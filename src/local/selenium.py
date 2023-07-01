@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
@@ -22,6 +23,7 @@ class Caminhos:
     ESOCIAL_DESLOGAR: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/header/div[2]/div[2]/span/a')
     # botão de deslogar está localizado em um lugar diferente se vc partir da tela de login com cnpj
     ESOCIAL_DESLOGAR_CNPJ_INPUT: Localizador = (By.XPATH, '/html/body/div[3]/div[1]/div[3]')
+    ESOCIAL_LOGOUT: Localizador = (By.CLASS_NAME, 'logout-sucesso')
 
     # Raspagem de dados
     DADOS_SITUACAO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[1]/div/p')
@@ -57,3 +59,12 @@ def apertar_teclas(driver: Chrome, *teclas) -> None:
     for tecla in teclas:
         time.sleep(.3)
         ActionChains(driver).send_keys(tecla).perform()
+
+
+def deslogado(driver: Chrome, timeout: int) -> bool:
+    try:
+        WebDriverWait(driver, timeout).until(
+            ec.presence_of_element_located(Caminhos.ESOCIAL_LOGOUT))
+    except TimeoutException: return False
+    else: return True
+        

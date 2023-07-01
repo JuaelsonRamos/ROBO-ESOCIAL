@@ -1,12 +1,13 @@
 import time
 from selenium.webdriver import Chrome
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 import pandas as pd
 
-from erros import FuncionarioNaoEncontradoError
+from erros import FuncionarioNaoEncontradoError, ESocialDeslogadoError
 from planilha import RegistroDados, ColunaPlanilha
 from local.selenium import *
 
@@ -48,33 +49,56 @@ def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
         raise FuncionarioNaoEncontradoError()
     apertar_teclas(driver, Keys.ENTER)
 
-def processar_planilha(driver: Chrome, funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.DataFrame:
+def teste_deslogado(driver: Chrome, timeout: int) -> None:
+    if deslogado(driver, timeout):
+        raise ESocialDeslogadoError()
+
+def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.DataFrame:
     apenas_digitos = lambda texto: ''.join([s for s in texto if s in '0123456789'])
-    carregar_pagina_ate_acessar_perfil(driver)
-    for CNPJ in funcionarios.CNPJ_lista:
-        CNPJ = apenas_digitos(CNPJ)
+    cnpj_index: int = 0
+    cpf_index: int = 0
+    logout_timeout: float = 10.0
+    while True: # emulando um GOTO da vida
+        try:
+            driver = Chrome(service=Service('C:\chromedriver_win32 (2)'))
+            carregar_pagina_ate_acessar_perfil(driver)
+            teste_deslogado(driver, logout_timeout)
+            
+            for i in range(cnpj_index, len(funcionarios.CNPJ_lista)):
+                cnpj_index = i
+                CNPJ = apenas_digitos(funcionarios.CNPJ_lista[i])
 
-        acessar_perfil(driver, CNPJ)
+                acessar_perfil(driver, CNPJ)
+                teste_deslogado(driver, logout_timeout)
 
-        for registro in funcionarios.CPF_lista:
-            CPF = apenas_digitos(registro.CPF)
+                for j in range(cpf_index, len(funcionarios.CPF_lista)):
+                    cpf_index = j
+                    registro = funcionarios.CPF_lista[i]
+                    CPF = apenas_digitos(registro.CPF)
 
-            try:
-                entrar_com_cpf(driver, CPF)
-            except FuncionarioNaoEncontradoError:
-                tabela[ColunaPlanilha.MATRICULA][registro.linha] = 'OFF'
-                continue
+                    try:
+                        entrar_com_cpf(driver, CPF)
+                        teste_deslogado(driver, logout_timeout)
+                    except FuncionarioNaoEncontradoError:
+                        tabela[ColunaPlanilha.MATRICULA][registro.linha] = 'OFF'
+                        continue
 
-            tabela[ColunaPlanilha.SITUACAO][registro.linha] = pegar_text(driver, Caminhos.DADOS_SITUACAO)
-            tabela[ColunaPlanilha.ADMISSAO][registro.linha] = pegar_text(driver, Caminhos.DADOS_ADMISSAO)
-            tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = pegar_text(driver, Caminhos.DADOS_NASCIMENTO)
-            tabela[ColunaPlanilha.MATRICULA][registro.linha] = str(pegar_text(driver, Caminhos.DADOS_MATRICULA))
-            tabela[ColunaPlanilha.DESLIGAMENTO][registro.linha] = pegar_text(driver, Caminhos.DADOS_DESLIGAMENTO)
-            time.sleep(20) # hard anti-ddos para evitar deslogar automaticamente
-
-        deslogar_button = driver.find_element(By.XPATH, Caminhos.ESOCIAL_DESLOGAR)
-        deslogar_button.click()
-        time.sleep(5)
-        driver.get(LINK_CNPJ_INPUT)
+                    tabela[ColunaPlanilha.SITUACAO][registro.linha] = pegar_text(driver, Caminhos.DADOS_SITUACAO)
+                    tabela[ColunaPlanilha.ADMISSAO][registro.linha] = pegar_text(driver, Caminhos.DADOS_ADMISSAO)
+                    tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = pegar_text(driver, Caminhos.DADOS_NASCIMENTO)
+                    tabela[ColunaPlanilha.MATRICULA][registro.linha] = str(pegar_text(driver, Caminhos.DADOS_MATRICULA))
+                    tabela[ColunaPlanilha.DESLIGAMENTO][registro.linha] = pegar_text(driver, Caminhos.DADOS_DESLIGAMENTO)
+        except (ESocialDeslogadoError, TimeoutException):
+            # Capturando TimeoutException para caso a pagina carregue tanto que
+            # exceda o tempo de espera para as operações de clicar, escrever, etc.
+            # Ou seja, se a pagina carregar de forma incompleta ou nem carregar, ele
+            # reinicia o processo de onde parou até conseguir.
+            # TODO notificação especial caso o processo reinicie por conta de timeout
+            driver.quit()
+            continue
+        else:
+            driver.quit()
+            # TODO notificação aqui
+            break
 
     return tabela

@@ -22,8 +22,6 @@ from local.io import criar_pastas_de_sistema, PastasSistema
 
 def main() -> None:
     criar_pastas_de_sistema()
-    service = Service('C:\chromedriver_win32 (2)')
-    driver = Chrome(service=service)
     while True:
         arquivos_excel: list[str] = []
         with os.scandir(PastasSistema.input) as arquivos:
@@ -56,7 +54,8 @@ def main() -> None:
             # funcionarios = filtrar_cpfs_apenas_matriz(coluna_cnpj_unidade, coluna_cpf)
             funcionarios = registro_de_dados_relevantes(coluna_cnpj_unidade, coluna_cnpj, coluna_cpf)
 
-            nova_tabela = processar_planilha(driver, funcionarios, tabela)
+            nova_tabela = processar_planilha(funcionarios, tabela)
+            # TODO enviar notificação após terminar de processar a planilha
             while True:
                 try:
                     nova_tabela.to_excel(join(PastasSistema.output, basename(caminho_arquivo_excel)),
