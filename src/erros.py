@@ -1,0 +1,1 @@
+class FuncionarioNaoEncontradoError(Exception): pass
