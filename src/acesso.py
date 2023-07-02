@@ -1,5 +1,5 @@
 import time
-from selenium.webdriver import Chrome
+from undetected_chromedriver import Chrome
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
@@ -60,7 +60,7 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
     logout_timeout: float = 10.0
     while True: # emulando um GOTO da vida
         try:
-            driver = Chrome(service=Service('C:\chromedriver_win32 (2)'))
+            driver = Chrome()
             carregar_pagina_ate_acessar_perfil(driver)
             teste_deslogado(driver, logout_timeout)
             

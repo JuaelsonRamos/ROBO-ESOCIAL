@@ -6,7 +6,7 @@ from os.path import basename, join
 from tkinter import messagebox
 import shutil
 import pandas as pd
-from selenium.webdriver import Chrome
+from undetected_chromedriver import Chrome
 from selenium.webdriver.chrome.service import Service
 
 from planilha import registro_de_dados_relevantes, DELTA, ColunaPlanilha
