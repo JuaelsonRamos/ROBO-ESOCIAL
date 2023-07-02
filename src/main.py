@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import time
 import sys
-from os.path import basename, join
+from os.path import basename, join, isdir
 from tkinter import messagebox
 import shutil
 import pandas as pd
@@ -24,10 +24,12 @@ def main() -> None:
     criar_pastas_de_sistema()
     while True:
         arquivos_excel: list[str] = []
+        arquivos_nao_excel: list[str] = []
         with os.scandir(PastasSistema.input) as arquivos:
             for arquivo in arquivos:
-                if not arquivo.is_file(): continue
-                if not Path(arquivo.path).suffix in ('.xlsx', '.xls'): continue
+                if arquivo.is_dir() or (not Path(arquivo.path).suffix in ('.xlsx', '.xls')):
+                    arquivos_nao_excel.append(arquivo.path)
+                    continue
                 # arquivo temporário de criado quando a planilha é aberta
                 if basename(arquivo.path).startswith("~$"): continue
                 arquivos_excel.append(arquivo.path)
@@ -70,7 +72,33 @@ def main() -> None:
                     # se o usuario clicar em REPETIR
                     if mensagem_popup: continue
                     else: sys.exit(1)
+                except FileNotFoundError:
+                    break
 
+            pular: bool = False
+            for caminho in arquivos_nao_excel:
+                while True:
+                    try:
+                        # TODO renomear arquivo de saída caso um com o mesmo nome já exista
+                        if isdir(caminho):
+                            shutil.move(src=caminho, dst=PastasSistema.nao_excel)
+                        else:
+                            shutil.move(src=caminho, dst=join(PastasSistema.nao_excel, basename(caminho)))
+                        break
+                    except PermissionError:
+                        mensagem_popup = messagebox.askyesnocancel(
+                            "Tentando mover arquivo irrelevante!",
+                            f"Arquivo Excel salvo! Porém, arquivos e pastas irrelevantes foram encontradas em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {caminho} está aberto em outro programa. Clique SIM para pular a moção dos arquivos restantes; NÃO para tentar mover novamente o arquivo citado; e CANCELAR para abortar a execução do programa.")
+                        if mensagem_popup is None:
+                            sys.exit(1)
+                        elif mensagem_popup:
+                            pular = True
+                            break
+                        else:
+                            continue
+                    except FileNotFoundError:
+                        break
+                if pular: break
 
 if __name__ == '__main__':
     main()
