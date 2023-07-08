@@ -18,8 +18,9 @@ def ocorreu_erro_funcionario(driver: Chrome) -> bool:
     mensagem_de_erro = 'Não foi encontrado empregado com o CPF informado.'
     try:
         WebDriverWait(driver, 3).until(ec.all_of(
+            # TODO adicionar todos os métodos de checagem de texto dentro de uma condição OR
             ec.presence_of_element_located(Caminhos.ERRO_FUNCIONARIO),
-            ec.text_to_be_present_in_element_value(Caminhos.ERRO_FUNCIONARIO, mensagem_de_erro)
+            ec.text_to_be_present_in_element(Caminhos.ERRO_FUNCIONARIO, mensagem_de_erro)
         ))
     except TimeoutException: return False
     else: return True
