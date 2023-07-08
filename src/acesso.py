@@ -28,6 +28,7 @@ def ocorreu_erro_funcionario(driver: Chrome) -> bool:
         except TimeoutException: return False
         else: return True
 
+    # TODO remover a habilidade do usuário de interagir e mudar o tamanho do navegador, apenas mover a janela
     def resultado_cpf_encontrado() -> bool:
         esperar_estar_presente(driver, Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT)
         element: WebElement = driver.find_element(*Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT)
@@ -71,7 +72,7 @@ def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
     apertar_teclas(driver, Keys.ENTER)
 
 def teste_deslogado(driver: Chrome, timeout: int) -> None:
-    if deslogado(driver, timeout):
+    if segundos_restantes_de_sessao(driver) <= (10*60) or deslogado(driver, timeout):
         raise ESocialDeslogadoError()
 
 def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.DataFrame:

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import datetime
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from undetected_chromedriver import Chrome
@@ -6,6 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.action_chains import ActionChains
 import time
+from sys import maxsize as MAX_INT
 from tipos import Localizador
 
 @dataclass(init=False, frozen=True)
@@ -24,6 +26,7 @@ class Caminhos:
     # botão de deslogar está localizado em um lugar diferente se vc partir da tela de login com cnpj
     ESOCIAL_DESLOGAR_CNPJ_INPUT: Localizador = (By.XPATH, '/html/body/div[3]/div[1]/div[3]')
     ESOCIAL_LOGOUT: Localizador = (By.CLASS_NAME, 'logout-sucesso')
+    ESOCIAL_TEMPO_SESSAO: Localizador = (By.CLASS_NAME, 'tempo-sessao')
 
     # Raspagem de dados
     DADOS_SITUACAO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[1]/div/p')
@@ -67,4 +70,16 @@ def deslogado(driver: Chrome, timeout: int) -> bool:
             ec.presence_of_element_located(Caminhos.ESOCIAL_LOGOUT))
     except TimeoutException: return False
     else: return True
+
+def segundos_restantes_de_sessao(driver: Chrome) -> int:
+    esperar_estar_presente(driver, Caminhos.ESOCIAL_TEMPO_SESSAO)
+    tempo: str = driver.find_element(*Caminhos.ESOCIAL_TEMPO_SESSAO).text
+    try:
+        t: time.struct_time = time.strptime(tempo, "%M:%S")
+        return int(datetime
+                   .timedelta(minutes=t.tm_min, seconds=t.tm_sec)
+                   .total_seconds())
+    except:
+        # principalmente caso o contador ainda não estiver na tela
+        return MAX_INT
         
