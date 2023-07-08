@@ -2,6 +2,7 @@ import time
 from undetected_chromedriver import Chrome
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
@@ -15,15 +16,34 @@ LINK_PRINCIPAL = 'https://sso.acesso.gov.br/login?client_id=login.esocial.gov.br
 LINK_CNPJ_INPUT = 'https://www.esocial.gov.br/portal/Home/Index?trocarPerfil=true'
 
 def ocorreu_erro_funcionario(driver: Chrome) -> bool:
-    mensagem_de_erro = 'Não foi encontrado empregado com o CPF informado.'
-    try:
-        WebDriverWait(driver, 3).until(ec.all_of(
-            # TODO adicionar todos os métodos de checagem de texto dentro de uma condição OR
-            ec.presence_of_element_located(Caminhos.ERRO_FUNCIONARIO),
-            ec.text_to_be_present_in_element(Caminhos.ERRO_FUNCIONARIO, mensagem_de_erro)
-        ))
-    except TimeoutException: return False
-    else: return True
+
+    def mensagem_de_erro_existe() -> bool:
+        mensagem_de_erro = 'Não foi encontrado empregado com o CPF informado.'
+        try:
+            WebDriverWait(driver, 3).until(ec.all_of(
+                # TODO adicionar todos os métodos de checagem de texto dentro de uma condição OR
+                ec.presence_of_element_located(Caminhos.ERRO_FUNCIONARIO),
+                ec.text_to_be_present_in_element(Caminhos.ERRO_FUNCIONARIO, mensagem_de_erro)
+            ))
+        except TimeoutException: return False
+        else: return True
+
+    def resultado_cpf_encontrado() -> bool:
+        esperar_estar_presente(driver, Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT)
+        element: WebElement = driver.find_element(*Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT)
+        id: str = element.get_attribute("aria-controls")
+        cpf: str = element.get_attribute("value")
+        css_selector: str = f"#{id} > li:nth-child(1)"
+        try:
+            WebDriverWait(driver, 5).until(ec.all_of(
+                ec.presence_of_element_located((By.CSS_SELECTOR, css_selector)),
+                ec.text_to_be_present_in_element((By.CSS_SELECTOR, css_selector), cpf)
+            ))
+        except TimeoutException: return False
+        else: return True
+
+    if resultado_cpf_encontrado(): return False
+    return True
 
 def carregar_pagina_ate_acessar_perfil(driver: Chrome) -> None:
     driver.get(LINK_PRINCIPAL)
@@ -74,7 +94,7 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
 
                 for j in range(cpf_index, len(funcionarios.CPF_lista)):
                     cpf_index = j
-                    registro = funcionarios.CPF_lista[i]
+                    registro = funcionarios.CPF_lista[j]
                     CPF = apenas_digitos(registro.CPF)
 
                     try:
