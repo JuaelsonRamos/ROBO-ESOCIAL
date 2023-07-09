@@ -2,6 +2,9 @@ import ctypes as ct
 import ctypes.wintypes as wintypes
 from hashlib import sha512
 from undetected_chromedriver import Chrome
+from selenium.webdriver.common.by import By
+
+from local.selenium import esperar_estar_presente
 
 def bloquear_janela(driver: Chrome) -> None:
     """Bloqueia input de mouse e teclado à janela do chrome."""
@@ -15,6 +18,7 @@ def bloquear_janela(driver: Chrome) -> None:
     driver.get("about:blank") # para que o site não mude o titulo
     titulo: str = sha512(bytes(str(driver.current_window_handle), "utf-8")).hexdigest()
     driver.execute_script(f"document.title = '{titulo}'")
+    esperar_estar_presente(driver, (By.CSS_SELECTOR, "head > title"))
 
     CALLBACK = ct.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 
@@ -36,5 +40,5 @@ def bloquear_janela(driver: Chrome) -> None:
 
     User32.EnumWindows.argtypes = [CALLBACK, wintypes.LPARAM]
     User32.EnumWindows.restype = wintypes.BOOL
-    # LPARAM como None dá um erro que é automaticamente silenciado; não afeta o funcionamento
-    User32.EnumWindows(CALLBACK(callback), None)
+    # LPARAM dá um erro que é automaticamente silenciado; não afeta o funcionamento
+    User32.EnumWindows(CALLBACK(callback), wintypes.LPARAM(0))
