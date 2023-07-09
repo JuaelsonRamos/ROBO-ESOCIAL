@@ -9,7 +9,7 @@ import pandas as pd
 from undetected_chromedriver import Chrome
 from selenium.webdriver.chrome.service import Service
 
-from planilha import registro_de_dados_relevantes, DELTA, ColunaPlanilha
+from planilha import registro_de_dados_relevantes, DELTA, ColunaPlanilha, checar_cpfs_cnpjs
 from acesso import processar_planilha
 from local.io import criar_pastas_de_sistema, PastasSistema
 
@@ -50,8 +50,7 @@ def main() -> None:
             coluna_cnpj = tabela.iloc[DELTA:, ColunaPlanilha.CNPJ].values
             coluna_cpf = tabela.iloc[DELTA:, ColunaPlanilha.CPF].values
 
-            if len(coluna_cnpj_unidade) != len(coluna_cpf):
-                raise ValueError(f"Não há a 1 cnpj para cada cpf, {len(coluna_cnpj_unidade)} cnpjs para {len(coluna_cpf)} cpfs.")
+            checar_cpfs_cnpjs(coluna_cpf, coluna_cnpj, coluna_cnpj_unidade)
 
             # funcionarios = filtrar_cpfs_apenas_matriz(coluna_cnpj_unidade, coluna_cpf)
             funcionarios = registro_de_dados_relevantes(coluna_cnpj_unidade, coluna_cnpj, coluna_cpf)
