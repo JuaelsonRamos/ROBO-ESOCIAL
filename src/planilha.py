@@ -57,12 +57,11 @@ def registro_de_dados_relevantes(coluna_cnpj_unidade, coluna_cnpj, coluna_cpf) -
     """Cria um registro de todos os cpnjs da MATRIZ e TODOS os cpfs."""
     registro = RegistroDados()
     for index, CPF in enumerate(coluna_cpf):
-        if isnan(CPF): continue
+        if not isinstance(CPF, str): continue
         pos_linha = DELTA + index
         registro.CPF_lista.append(RegistroCPF(CPF, pos_linha))
 
     for CNPJ in [*coluna_cnpj_unidade, *coluna_cnpj]:
-        if isnan(CNPJ): continue
         if not isinstance(CNPJ, str): continue
         if not re.split('[\\/-]', CNPJ)[1] == '0001': continue
         if CNPJ in registro.CNPJ_lista: continue
@@ -72,7 +71,10 @@ def registro_de_dados_relevantes(coluna_cnpj_unidade, coluna_cnpj, coluna_cpf) -
 
 def celulas_preenchidas(array) -> int:
     """Pede uma lista de valores de celulas e retorna quantas estão preenchidos."""
-    return len(list(filter(lambda x: not isnan(x), array)))
+    # celulas vazias são NaN
+    return len(list(filter(
+        lambda x: (not isnan(x) if isinstance(x, float) else True), 
+        array)))
 
 def checar_cpfs_cnpjs(cpfs, cnpjs, cnpjs_unidade) -> None:
     cpfs_qtt: int = celulas_preenchidas(cpfs)
