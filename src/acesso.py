@@ -84,6 +84,7 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
     while True: # emulando um GOTO da vida
         try:
             driver = Chrome()
+            driver.set_window_rect(x=0, y=0, width=1280, height=720)
             windows.bloquear_janela(driver) # necessariamente antes de iniciar o acesso
             carregar_pagina_ate_acessar_perfil(driver)
             teste_deslogado(driver, logout_timeout)
