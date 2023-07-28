@@ -23,16 +23,16 @@ def ocorreu_erro_funcionario(driver: Chrome) -> bool:
         try:
             WebDriverWait(driver, 3).until(ec.all_of(
                 # TODO adicionar todos os métodos de checagem de texto dentro de uma condição OR
-                ec.presence_of_element_located(Caminhos.ESOCIAL.Formulario.Dados.ERRO_FUNCIONARIO),
-                ec.text_to_be_present_in_element(Caminhos.ESOCIAL.Formulario.Dados.ERRO_FUNCIONARIO, mensagem_de_erro)
+                ec.presence_of_element_located(Caminhos.ERRO_FUNCIONARIO),
+                ec.text_to_be_present_in_element(Caminhos.ERRO_FUNCIONARIO, mensagem_de_erro)
             ))
         except TimeoutException: return False
         else: return True
 
     # TODO remover a habilidade do usuário de interagir e mudar o tamanho do navegador, apenas mover a janela
     def resultado_cpf_encontrado() -> bool:
-        esperar_estar_presente(driver, Caminhos.ESOCIAL.Formulario.CPF_EMPREGADO_INPUT)
-        element: WebElement = driver.find_element(*Caminhos.ESOCIAL.Formulario.CPF_EMPREGADO_INPUT)
+        esperar_estar_presente(driver, Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT)
+        element: WebElement = driver.find_element(*Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT)
         id: str = element.get_attribute("aria-controls")
         cpf: str = element.get_attribute("value")
         css_selector: str = f"#{id} > li:nth-child(1)"
@@ -50,25 +50,24 @@ def ocorreu_erro_funcionario(driver: Chrome) -> bool:
 def carregar_pagina_ate_acessar_perfil(driver: Chrome) -> None:
     driver.get(LINK_PRINCIPAL)
     # TODO deslogar do ESOCIAL antes de carregar a próxima planilha
-    # TODO checar credenciais presentes no LINK_PRINCIPAL
-    clicar(driver, Caminhos.ESOCIAL.BOTAO_LOGIN)
-    clicar(driver, Caminhos.GOVBR.SELECIONAR_CERTIFICADO)
-    clicar(driver, Caminhos.ESOCIAL.TROCAR_PERFIL)
+    clicar(driver, Caminhos.ESOCIAL_BOTAO_LOGIN)
+    clicar(driver, Caminhos.SELECIONAR_CERTIFICADO)
+    clicar(driver, Caminhos.ESOCIAL_TROCAR_PERFIL)
 
 def acessar_perfil(driver: Chrome, CNPJ: str) -> None:
-    clicar(driver, Caminhos.ESOCIAL.ACESSAR_PERFIL)
+    clicar(driver, Caminhos.ESOCIAL_ACESSAR_PERFIL)
     apertar_teclas(driver, Keys.DOWN, Keys.DOWN, Keys.ENTER)
 
-    escrever(driver, Caminhos.ESOCIAL.CNPJ_INPUT, CNPJ)
+    escrever(driver, Caminhos.ESOCIAL_CNPJ_INPUT, CNPJ)
     
-    clicar(driver, Caminhos.ESOCIAL.CNPJ_INPUT_CONFIRMAR)
-    clicar(driver, Caminhos.ESOCIAL.CNPJ_SELECIONAR_MODULO)
-    clicar(driver, Caminhos.ESOCIAL.MENU_TRABALHADOR)
-    clicar(driver, Caminhos.ESOCIAL.MENU_OPCAO_EMPREGADOS)
+    clicar(driver, Caminhos.ESOCIAL_CNPJ_INPUT_CONFIRMAR)
+    clicar(driver, Caminhos.ESOCIAL_CNPJ_SELECIONAR_MODULO)
+    clicar(driver, Caminhos.ESOCIAL_MENU_TRABALHADOR)
+    clicar(driver, Caminhos.ESOCIAL_MENU_OPCAO_EMPREGADOS)
 
 def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
-    escrever(driver, Caminhos.ESOCIAL.Formulario.CPF_EMPREGADO_INPUT, Keys.CONTROL+'a', Keys.DELETE)
-    escrever(driver, Caminhos.ESOCIAL.Formulario.CPF_EMPREGADO_INPUT, CPF)
+    escrever(driver, Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT, Keys.CONTROL+'a', Keys.DELETE)
+    escrever(driver, Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT, CPF)
     if ocorreu_erro_funcionario(driver):
         raise FuncionarioNaoEncontradoError()
     apertar_teclas(driver, Keys.ENTER)
@@ -109,11 +108,11 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                         tabela[ColunaPlanilha.MATRICULA][registro.linha] = 'OFF'
                         continue
 
-                    tabela[ColunaPlanilha.SITUACAO][registro.linha] = pegar_text(driver, Caminhos.ESOCIAL.Formulario.Dados.SITUACAO)
-                    tabela[ColunaPlanilha.ADMISSAO][registro.linha] = pegar_text(driver, Caminhos.ESOCIAL.Formulario.Dados.ADMISSAO)
-                    tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = pegar_text(driver, Caminhos.ESOCIAL.Formulario.Dados.NASCIMENTO)
-                    tabela[ColunaPlanilha.MATRICULA][registro.linha] = str(pegar_text(driver, Caminhos.ESOCIAL.Formulario.Dados.MATRICULA))
-                    tabela[ColunaPlanilha.DESLIGAMENTO][registro.linha] = pegar_text(driver, Caminhos.ESOCIAL.Formulario.Dados.DESLIGAMENTO)
+                    tabela[ColunaPlanilha.SITUACAO][registro.linha] = pegar_text(driver, Caminhos.DADOS_SITUACAO)
+                    tabela[ColunaPlanilha.ADMISSAO][registro.linha] = pegar_text(driver, Caminhos.DADOS_ADMISSAO)
+                    tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = pegar_text(driver, Caminhos.DADOS_NASCIMENTO)
+                    tabela[ColunaPlanilha.MATRICULA][registro.linha] = str(pegar_text(driver, Caminhos.DADOS_MATRICULA))
+                    tabela[ColunaPlanilha.DESLIGAMENTO][registro.linha] = pegar_text(driver, Caminhos.DADOS_DESLIGAMENTO)
         except (ESocialDeslogadoError, TimeoutException):
             # Capturando TimeoutException para caso a pagina carregue tanto que
             # exceda o tempo de espera para as operações de clicar, escrever, etc.

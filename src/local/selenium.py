@@ -11,62 +11,32 @@ from sys import maxsize as MAX_INT
 from tipos import Localizador
 
 @dataclass(init=False, frozen=True)
-class _Caminhos_ESOCIAL_Formulario_Dados:
-    """Caminhos HTML para a localização dos dados do funcionário
-    uma vez que ele tenha sido encontrado através do formulário."""
-    SITUACAO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[1]/div/p')
-    NASCIMENTO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[8]/div/p')
-    DESLIGAMENTO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[8]/div/p')
-    ADMISSAO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[7]/div/p')
-    MATRICULA: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[2]/div/p')
+class Caminhos:
+    ESOCIAL_BOTAO_LOGIN: Localizador = (By.XPATH, '//*[@id="login-acoes"]/div[2]/p/button')
+    SELECIONAR_CERTIFICADO: Localizador = (By.XPATH, '//*[@id="cert-digital"]/button')
+    ESOCIAL_TROCAR_PERFIL: Localizador = (By.XPATH, '//*[@id="header"]/div[2]/a')
+    ESOCIAL_ACESSAR_PERFIL: Localizador = (By.XPATH, '//*[@id="perfilAcesso"]')
+    ESOCIAL_CNPJ_INPUT: Localizador = (By.XPATH, '//*[@id="procuradorCnpj"]')
+    ESOCIAL_CNPJ_INPUT_CONFIRMAR: Localizador = (By.XPATH, '//*[@id="btn-verificar-procuracao-cnpj"]')
+    ESOCIAL_CNPJ_SELECIONAR_MODULO: Localizador = (By.XPATH, '/html/body/div[3]/div[4]/div/form/div/section/div[7]/div[2]/div[6]')
+    ESOCIAL_MENU_TRABALHADOR: Localizador = (By.XPATH, '//html/body/div[1]/div[2]/div[1]/nav/button')
+    ESOCIAL_MENU_OPCAO_EMPREGADOS: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/nav/div/ul/li[1]/a')
+    ESOCIAL_CPF_EMPREGADO_INPUT: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div/div/div/div/div/div/div/input')
+    ESOCIAL_DESLOGAR: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/header/div[2]/div[2]/span/a')
+    # botão de deslogar está localizado em um lugar diferente se vc partir da tela de login com cnpj
+    ESOCIAL_DESLOGAR_CNPJ_INPUT: Localizador = (By.XPATH, '/html/body/div[3]/div[1]/div[3]')
+    ESOCIAL_LOGOUT: Localizador = (By.CLASS_NAME, 'logout-sucesso')
+    ESOCIAL_TEMPO_SESSAO: Localizador = (By.CLASS_NAME, 'tempo-sessao')
+
+    # Raspagem de dados
+    DADOS_SITUACAO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[1]/div/p')
+    DADOS_NASCIMENTO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[8]/div/p')
+    DADOS_DESLIGAMENTO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[8]/div/p')
+    DADOS_ADMISSAO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[7]/div/p')
+    DADOS_MATRICULA: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[2]/div/p')
+
     ERRO_FUNCIONARIO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[1]/div/div[2]')
 
-@dataclass(init=False, frozen=True)
-class _Caminhos_ESOCIAL_Formulario:
-    """Caminhos HTML para a raspagem de Dados caso o método
-    de seleção de funcionários seja o formulário."""
-    Dados = _Caminhos_ESOCIAL_Formulario_Dados
-    CPF_EMPREGADO_INPUT: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div/div/div/div/div/div/div/input')
-    DESLOGAR: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/header/div[2]/div[2]/span/a')
-
-@dataclass(init=False, frozen=True)
-class _Caminhos_ESOCIAL_Lista_Dados:
-    """Caminhos HTML para a localização dos dados do funcionário
-    uma vez que ele tenha sido encontrado através da lista."""
-    pass
-
-@dataclass(init=False, frozen=True)
-class _Caminhos_ESOCIAL_Lista:
-    """Caminhos HTML para a raspagem de Dados caso o método
-    de seleção de funcionários seja a lista."""
-    Dados = _Caminhos_ESOCIAL_Lista_Dados
-
-@dataclass(init=False, frozen=True)
-class _Caminhos_GOVBR:
-    SELECIONAR_CERTIFICADO: Localizador = (By.XPATH, '//*[@id="cert-digital"]/button')
-
-@dataclass(init=False, frozen=True)
-class _Caminhos_ESOCIAL:
-    """Caminhos HTML para o site do ESocial."""
-    Formulario = _Caminhos_ESOCIAL_Formulario
-    Lista = _Caminhos_ESOCIAL_Lista
-    BOTAO_LOGIN: Localizador = (By.XPATH, '//*[@id="login-acoes"]/div[2]/p/button')
-    TROCAR_PERFIL: Localizador = (By.XPATH, '//*[@id="header"]/div[2]/a')
-    ACESSAR_PERFIL: Localizador = (By.XPATH, '//*[@id="perfilAcesso"]')
-    CNPJ_INPUT: Localizador = (By.XPATH, '//*[@id="procuradorCnpj"]')
-    CNPJ_INPUT_CONFIRMAR: Localizador = (By.XPATH, '//*[@id="btn-verificar-procuracao-cnpj"]')
-    CNPJ_SELECIONAR_MODULO: Localizador = (By.XPATH, '/html/body/div[3]/div[4]/div/form/div/section/div[7]/div[2]/div[6]')
-    # botão de deslogar está localizado em um lugar diferente se vc partir da tela de login com cnpj
-    DESLOGAR_CNPJ_INPUT: Localizador = (By.XPATH, '/html/body/div[3]/div[1]/div[3]')
-    MENU_TRABALHADOR: Localizador = (By.XPATH, '//html/body/div[1]/div[2]/div[1]/nav/button')
-    MENU_OPCAO_EMPREGADOS: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/nav/div/ul/li[1]/a')
-    LOGOUT: Localizador = (By.CLASS_NAME, 'logout-sucesso')
-    TEMPO_SESSAO: Localizador = (By.CLASS_NAME, 'tempo-sessao')
-
-@dataclass(init=False, frozen=True)
-class Caminhos:
-    ESOCIAL = _Caminhos_ESOCIAL
-    GOVBR = _Caminhos_GOVBR
 
 TIMEOUT_SECS: float = 120.0
 
@@ -97,13 +67,13 @@ def apertar_teclas(driver: Chrome, *teclas) -> None:
 def deslogado(driver: Chrome, timeout: int) -> bool:
     try:
         WebDriverWait(driver, timeout).until(
-            ec.presence_of_element_located(Caminhos.ESOCIAL.LOGOUT))
+            ec.presence_of_element_located(Caminhos.ESOCIAL_LOGOUT))
     except TimeoutException: return False
     else: return True
 
 def segundos_restantes_de_sessao(driver: Chrome) -> int:
-    esperar_estar_presente(driver, Caminhos.ESOCIAL.TEMPO_SESSAO)
-    tempo: str = driver.find_element(*Caminhos.ESOCIAL.TEMPO_SESSAO).text
+    esperar_estar_presente(driver, Caminhos.ESOCIAL_TEMPO_SESSAO)
+    tempo: str = driver.find_element(*Caminhos.ESOCIAL_TEMPO_SESSAO).text
     try:
         t: time.struct_time = time.strptime(tempo, "%M:%S")
         return int(datetime
