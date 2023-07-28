@@ -11,7 +11,6 @@ import pandas as pd
 from erros import FuncionarioNaoEncontradoError, ESocialDeslogadoError
 from planilha import RegistroDados, ColunaPlanilha
 from local.selenium import *
-import windows
 
 LINK_PRINCIPAL = 'https://sso.acesso.gov.br/login?client_id=login.esocial.gov.br&authorization_id=188b4b3efd4'
 LINK_CNPJ_INPUT = 'https://www.esocial.gov.br/portal/Home/Index?trocarPerfil=true'
@@ -83,15 +82,19 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
     logout_timeout: float = 10.0
     while True: # emulando um GOTO da vida
         try:
-            driver = Chrome()
-            driver.set_window_rect(x=0, y=0, width=1280, height=720)
-            windows.bloquear_janela(driver) # necessariamente antes de iniciar o acesso
+            driver = inicializar_driver()
             carregar_pagina_ate_acessar_perfil(driver)
             teste_deslogado(driver, logout_timeout)
-            
+
             for i in range(cnpj_index, len(funcionarios.CNPJ_lista)):
                 cnpj_index = i
                 CNPJ = apenas_digitos(funcionarios.CNPJ_lista[i])
+
+                if i > 0:
+                    driver.quit()
+                    driver = inicializar_driver()
+                    carregar_pagina_ate_acessar_perfil(driver)
+                    teste_deslogado(driver, logout_timeout)
 
                 acessar_perfil(driver, CNPJ)
                 teste_deslogado(driver, logout_timeout)

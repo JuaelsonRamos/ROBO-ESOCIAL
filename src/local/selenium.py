@@ -9,6 +9,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 import time
 from sys import maxsize as MAX_INT
 from tipos import Localizador
+import windows
 
 @dataclass(init=False, frozen=True)
 class Caminhos:
@@ -83,3 +84,8 @@ def segundos_restantes_de_sessao(driver: Chrome) -> int:
         # principalmente caso o contador ainda não estiver na tela
         return MAX_INT
         
+def inicializar_driver() -> Chrome:
+    driver = Chrome()
+    driver.set_window_rect(x=0, y=0, width=1280, height=720)
+    windows.bloquear_janela(driver)
+    return driver
