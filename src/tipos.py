@@ -1,3 +1,5 @@
 from typing import Tuple, NewType
 
-Localizador = NewType("Localizador", Tuple[str, str])
+SeletorHTML = NewType("SeletorHTML", Tuple[str, str])
+CelulaVaziaType = NewType("CelulaVaziaType", float)
+CelulaVazia: CelulaVaziaType = float("nan")

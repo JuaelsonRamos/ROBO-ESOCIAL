@@ -18,7 +18,7 @@ def letra_para_numero_coluna(char: str) -> int:
 class ColunaPlanilha:
     SITUACAO: int = letra_para_numero_coluna('L')
     NASCIMENTO: int = letra_para_numero_coluna('J')
-    DESLIGAMENTO: int = letra_para_numero_coluna('N')
+    DEMISSAO: int = letra_para_numero_coluna('N')
     MATRICULA: int = letra_para_numero_coluna('G')
     ADMISSAO: int = letra_para_numero_coluna('M')
     CPF: int = letra_para_numero_coluna('T')

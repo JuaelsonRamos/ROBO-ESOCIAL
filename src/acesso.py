@@ -1,79 +1,43 @@
-import time
 from undetected_chromedriver import Chrome
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support import expected_conditions as ec
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 import pandas as pd
 
-from erros import FuncionarioNaoEncontradoError, ESocialDeslogadoError
+from erros import FuncionarioNaoEncontradoError
 from planilha import RegistroDados, ColunaPlanilha
-from local.selenium import *
+from utils.selenium import *
+from utils.acesso import *
+from caminhos import Caminhos, DadoNaoEncontrado
+from tipos import CelulaVazia
 
 LINK_PRINCIPAL = 'https://sso.acesso.gov.br/login?client_id=login.esocial.gov.br&authorization_id=188b4b3efd4'
 LINK_CNPJ_INPUT = 'https://www.esocial.gov.br/portal/Home/Index?trocarPerfil=true'
 
-def ocorreu_erro_funcionario(driver: Chrome) -> bool:
-
-    def mensagem_de_erro_existe() -> bool:
-        mensagem_de_erro = 'Não foi encontrado empregado com o CPF informado.'
-        try:
-            WebDriverWait(driver, 3).until(ec.all_of(
-                # TODO adicionar todos os métodos de checagem de texto dentro de uma condição OR
-                ec.presence_of_element_located(Caminhos.ERRO_FUNCIONARIO),
-                ec.text_to_be_present_in_element(Caminhos.ERRO_FUNCIONARIO, mensagem_de_erro)
-            ))
-        except TimeoutException: return False
-        else: return True
-
-    # TODO remover a habilidade do usuário de interagir e mudar o tamanho do navegador, apenas mover a janela
-    def resultado_cpf_encontrado() -> bool:
-        esperar_estar_presente(driver, Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT)
-        element: WebElement = driver.find_element(*Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT)
-        id: str = element.get_attribute("aria-controls")
-        cpf: str = element.get_attribute("value")
-        css_selector: str = f"#{id} > li:nth-child(1)"
-        try:
-            WebDriverWait(driver, 5).until(ec.all_of(
-                ec.presence_of_element_located((By.CSS_SELECTOR, css_selector)),
-                ec.text_to_be_present_in_element((By.CSS_SELECTOR, css_selector), cpf)
-            ))
-        except TimeoutException: return False
-        else: return True
-
-    if resultado_cpf_encontrado(): return False
-    return True
 
 def carregar_pagina_ate_acessar_perfil(driver: Chrome) -> None:
     driver.get(LINK_PRINCIPAL)
     # TODO deslogar do ESOCIAL antes de carregar a próxima planilha
-    clicar(driver, Caminhos.ESOCIAL_BOTAO_LOGIN)
-    clicar(driver, Caminhos.SELECIONAR_CERTIFICADO)
-    clicar(driver, Caminhos.ESOCIAL_TROCAR_PERFIL)
+    clicar(driver, Caminhos.ESocial.BOTAO_LOGIN)
+    clicar(driver, Caminhos.Govbr.SELECIONAR_CERTIFICADO)
+    clicar(driver, Caminhos.ESocial.TROCAR_PERFIL)
 
 def acessar_perfil(driver: Chrome, CNPJ: str) -> None:
-    clicar(driver, Caminhos.ESOCIAL_ACESSAR_PERFIL)
+    clicar(driver, Caminhos.ESocial.ACESSAR_PERFIL)
     apertar_teclas(driver, Keys.DOWN, Keys.DOWN, Keys.ENTER)
 
-    escrever(driver, Caminhos.ESOCIAL_CNPJ_INPUT, CNPJ)
+    escrever(driver, Caminhos.ESocial.CNPJ_INPUT, CNPJ)
     
-    clicar(driver, Caminhos.ESOCIAL_CNPJ_INPUT_CONFIRMAR)
-    clicar(driver, Caminhos.ESOCIAL_CNPJ_SELECIONAR_MODULO)
-    clicar(driver, Caminhos.ESOCIAL_MENU_TRABALHADOR)
-    clicar(driver, Caminhos.ESOCIAL_MENU_OPCAO_EMPREGADOS)
+    clicar(driver, Caminhos.ESocial.CNPJ_INPUT_CONFIRMAR)
+    clicar(driver, Caminhos.ESocial.CNPJ_SELECIONAR_MODULO)
+    clicar(driver, Caminhos.ESocial.MENU_TRABALHADOR)
+    clicar(driver, Caminhos.ESocial.MENU_OPCAO_EMPREGADOS)
 
 def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
-    escrever(driver, Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT, Keys.CONTROL+'a', Keys.DELETE)
-    escrever(driver, Caminhos.ESOCIAL_CPF_EMPREGADO_INPUT, CPF)
+    escrever(driver, Caminhos.ESocial.CPF_EMPREGADO_INPUT, Keys.CONTROL+'a', Keys.DELETE)
+    escrever(driver, Caminhos.ESocial.CPF_EMPREGADO_INPUT, CPF)
     if ocorreu_erro_funcionario(driver):
         raise FuncionarioNaoEncontradoError()
     apertar_teclas(driver, Keys.ENTER)
-
-def teste_deslogado(driver: Chrome, timeout: int) -> None:
-    if segundos_restantes_de_sessao(driver) <= (10*60) or deslogado(driver, timeout):
-        raise ESocialDeslogadoError()
 
 def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.DataFrame:
     apenas_digitos = lambda texto: ''.join([s for s in texto if s in '0123456789'])
@@ -111,11 +75,20 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                         tabela[ColunaPlanilha.MATRICULA][registro.linha] = 'OFF'
                         continue
 
-                    tabela[ColunaPlanilha.SITUACAO][registro.linha] = pegar_text(driver, Caminhos.DADOS_SITUACAO)
-                    tabela[ColunaPlanilha.ADMISSAO][registro.linha] = pegar_text(driver, Caminhos.DADOS_ADMISSAO)
-                    tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = pegar_text(driver, Caminhos.DADOS_NASCIMENTO)
-                    tabela[ColunaPlanilha.MATRICULA][registro.linha] = str(pegar_text(driver, Caminhos.DADOS_MATRICULA))
-                    tabela[ColunaPlanilha.DESLIGAMENTO][registro.linha] = pegar_text(driver, Caminhos.DADOS_DESLIGAMENTO)
+                    crawler = Caminhos.ESocial.Formulario(driver)
+                    tabela[ColunaPlanilha.SITUACAO][registro.linha] = crawler.SITUACAO
+                    tabela[ColunaPlanilha.ADMISSAO][registro.linha] = crawler.ADMISSAO
+                    tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = crawler.NASCIMENTO
+                    tabela[ColunaPlanilha.MATRICULA][registro.linha] = crawler.MATRICULA
+                    # TODO se alguns desses dados não for encontrado, recomece de onde parou até serem encontrados
+
+                    demissao = CelulaVazia
+                    try:
+                        demissao = crawler.DEMISSAO
+                    except DadoNaoEncontrado:
+                        pass
+                    # se o funcionario ainda estiver contratado o campo de demissao não existirá    
+                    tabela[ColunaPlanilha.DEMISSAO][registro.linha] = demissao
         except (ESocialDeslogadoError, TimeoutException):
             # Capturando TimeoutException para caso a pagina carregue tanto que
             # exceda o tempo de espera para as operações de clicar, escrever, etc.
