@@ -13,30 +13,30 @@ import windows
 
 @dataclass(init=False, frozen=True)
 class Caminhos:
-    ESOCIAL_BOTAO_LOGIN: Localizador = (By.XPATH, '//*[@id="login-acoes"]/div[2]/p/button')
-    SELECIONAR_CERTIFICADO: Localizador = (By.XPATH, '//*[@id="cert-digital"]/button')
-    ESOCIAL_TROCAR_PERFIL: Localizador = (By.XPATH, '//*[@id="header"]/div[2]/a')
-    ESOCIAL_ACESSAR_PERFIL: Localizador = (By.XPATH, '//*[@id="perfilAcesso"]')
-    ESOCIAL_CNPJ_INPUT: Localizador = (By.XPATH, '//*[@id="procuradorCnpj"]')
-    ESOCIAL_CNPJ_INPUT_CONFIRMAR: Localizador = (By.XPATH, '//*[@id="btn-verificar-procuracao-cnpj"]')
-    ESOCIAL_CNPJ_SELECIONAR_MODULO: Localizador = (By.XPATH, '/html/body/div[3]/div[4]/div/form/div/section/div[7]/div[2]/div[6]')
-    ESOCIAL_MENU_TRABALHADOR: Localizador = (By.XPATH, '//html/body/div[1]/div[2]/div[1]/nav/button')
-    ESOCIAL_MENU_OPCAO_EMPREGADOS: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/nav/div/ul/li[1]/a')
-    ESOCIAL_CPF_EMPREGADO_INPUT: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div/div/div/div/div/div/div/input')
-    ESOCIAL_DESLOGAR: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/header/div[2]/div[2]/span/a')
+    ESOCIAL_BOTAO_LOGIN: Localizador = (By.CSS_SELECTOR, '#login-acoes button.sign-in')
+    SELECIONAR_CERTIFICADO: Localizador = (By.CSS_SELECTOR, '#cert-digital button[type=submit]')
+    ESOCIAL_TROCAR_PERFIL: Localizador = (By.CLASS_NAME, 'alterar-perfil')
+    ESOCIAL_ACESSAR_PERFIL: Localizador = (By.ID, 'perfilAcesso')
+    ESOCIAL_CNPJ_INPUT: Localizador = (By.ID, 'procuradorCnpj')
+    ESOCIAL_CNPJ_INPUT_CONFIRMAR: Localizador = (By.ID, 'btn-verificar-procuracao-cnpj')
+    ESOCIAL_CNPJ_SELECIONAR_MODULO: Localizador = (By.CSS_SELECTOR, '#comSelecaoModulo .modulos #sst')
+    ESOCIAL_MENU_TRABALHADOR: Localizador = (By.CSS_SELECTOR, 'nav:first-child button[aria-haspopup=true]')
+    ESOCIAL_MENU_OPCAO_EMPREGADOS: Localizador = (By.CSS_SELECTOR, 'nav:first-child [role=menu] [role=menuitem] a[href$=gestaoTrabalhadores]')
+    ESOCIAL_CPF_EMPREGADO_INPUT: Localizador = (By.CSS_SELECTOR, 'div[label*=CPF] input[type=text]')
+    ESOCIAL_DESLOGAR: Localizador = (By.CSS_SELECTOR, 'div.logout a')
     # botão de deslogar está localizado em um lugar diferente se vc partir da tela de login com cnpj
-    ESOCIAL_DESLOGAR_CNPJ_INPUT: Localizador = (By.XPATH, '/html/body/div[3]/div[1]/div[3]')
+    ESOCIAL_DESLOGAR_CNPJ_INPUT: Localizador = (By.ID, 'sairAplicacao')
     ESOCIAL_LOGOUT: Localizador = (By.CLASS_NAME, 'logout-sucesso')
     ESOCIAL_TEMPO_SESSAO: Localizador = (By.CLASS_NAME, 'tempo-sessao')
 
     # Raspagem de dados
-    DADOS_SITUACAO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[1]/div/p')
-    DADOS_NASCIMENTO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[8]/div/p')
-    DADOS_DESLIGAMENTO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[8]/div/p')
-    DADOS_ADMISSAO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[7]/div/p')
-    DADOS_MATRICULA: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[2]/div/div/fieldset/div/div[3]/div/div[2]/ul/li[2]/div/p')
+    DADOS_SITUACAO: Localizador = (By.CSS_SELECTOR, 'div[role=tabpanel] ul li:first-child p')
+    DADOS_NASCIMENTO: Localizador = (By.CSS_SELECTOR, 'div[role=tabpanel] ul li:nth-child(11) p')
+    DADOS_DESLIGAMENTO: Localizador = (By.CSS_SELECTOR, 'div[role=tabpanel] ul li:nth-child(10) p')
+    DADOS_ADMISSAO: Localizador = (By.CSS_SELECTOR, 'div[role=tabpanel] ul li:nth-child(9) p')
+    DADOS_MATRICULA: Localizador = (By.CSS_SELECTOR, 'div[role=tabpanel] ul li:nth-child(2) p')
 
-    ERRO_FUNCIONARIO: Localizador = (By.XPATH, '/html/body/div[1]/div[2]/div[1]/div/div[1]/div/div[2]')
+    ERRO_FUNCIONARIO: Localizador = (By.CSS_SELECTOR, '#mensagens-gerais div[role=alert] .MuiAlert-message')
 
 
 TIMEOUT_SECS: float = 120.0
