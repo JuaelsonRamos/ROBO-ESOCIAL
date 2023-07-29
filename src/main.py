@@ -14,12 +14,6 @@ from acesso import processar_planilha
 from local.io import criar_pastas_de_sistema, PastasSistema
 
 
-# TODO limitar seleção de planilhas a uma pasta espcífica (C:\\PLANILHAS_SISTEMAS)
-# TODO checar erro caso cnpj não tenha procuração
-# TODO interagir com páginas apenas se carregada (função acima)
-# TODO identificar se falta pouco tempo para o ESOCIAL deslogar; se sim, desloga e loga antes de continuar
-# TODO trocar time.sleep por uma forma de idetificar se a página carregou completamente
-
 def main() -> None:
     criar_pastas_de_sistema()
     while True:
@@ -52,11 +46,9 @@ def main() -> None:
 
             checar_cpfs_cnpjs(coluna_cpf, coluna_cnpj, coluna_cnpj_unidade)
 
-            # funcionarios = filtrar_cpfs_apenas_matriz(coluna_cnpj_unidade, coluna_cpf)
             funcionarios = registro_de_dados_relevantes(coluna_cnpj_unidade, coluna_cnpj, coluna_cpf)
 
             nova_tabela = processar_planilha(funcionarios, tabela)
-            # TODO enviar notificação após terminar de processar a planilha
             while True:
                 try:
                     nova_tabela.to_excel(join(PastasSistema.output, basename(caminho_arquivo_excel)),
@@ -78,7 +70,6 @@ def main() -> None:
             for caminho in arquivos_nao_excel:
                 while True:
                     try:
-                        # TODO renomear arquivo de saída caso um com o mesmo nome já exista
                         if isdir(caminho):
                             shutil.move(src=caminho, dst=PastasSistema.nao_excel)
                         else:

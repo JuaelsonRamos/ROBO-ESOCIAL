@@ -16,7 +16,6 @@ LINK_CNPJ_INPUT = 'https://www.esocial.gov.br/portal/Home/Index?trocarPerfil=tru
 
 def carregar_pagina_ate_acessar_perfil(driver: Chrome) -> None:
     driver.get(LINK_PRINCIPAL)
-    # TODO deslogar do ESOCIAL antes de carregar a próxima planilha
     clicar(driver, Caminhos.ESocial.BOTAO_LOGIN)
     clicar(driver, Caminhos.Govbr.SELECIONAR_CERTIFICADO)
     clicar(driver, Caminhos.ESocial.TROCAR_PERFIL)
@@ -80,7 +79,6 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                     tabela[ColunaPlanilha.ADMISSAO][registro.linha] = crawler.ADMISSAO
                     tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = crawler.NASCIMENTO
                     tabela[ColunaPlanilha.MATRICULA][registro.linha] = crawler.MATRICULA
-                    # TODO se alguns desses dados não for encontrado, recomece de onde parou até serem encontrados
 
                     demissao = CelulaVazia
                     try:
@@ -94,12 +92,10 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
             # exceda o tempo de espera para as operações de clicar, escrever, etc.
             # Ou seja, se a pagina carregar de forma incompleta ou nem carregar, ele
             # reinicia o processo de onde parou até conseguir.
-            # TODO notificação especial caso o processo reinicie por conta de timeout
             driver.quit()
             continue
         else:
             driver.quit()
-            # TODO notificação aqui
             break
 
     return tabela

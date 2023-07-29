@@ -30,7 +30,6 @@ def segundos_restantes_de_sessao(driver: Chrome) -> int:
                    .timedelta(minutes=t.tm_min, seconds=t.tm_sec)
                    .total_seconds())
     except:
-        # principalmente caso o contador ainda não estiver na tela
         return MAX_INT
         
 def inicializar_driver() -> Chrome:
@@ -49,14 +48,12 @@ def ocorreu_erro_funcionario(driver: Chrome) -> bool:
         mensagem_de_erro = 'Não foi encontrado empregado com o CPF informado.'
         try:
             WebDriverWait(driver, 3).until(ec.all_of(
-                # TODO adicionar todos os métodos de checagem de texto dentro de uma condição OR
                 ec.presence_of_element_located(Caminhos.ERRO_FUNCIONARIO),
                 ec.text_to_be_present_in_element(Caminhos.ERRO_FUNCIONARIO, mensagem_de_erro)
             ))
         except TimeoutException: return False
         else: return True
 
-    # TODO remover a habilidade do usuário de interagir e mudar o tamanho do navegador, apenas mover a janela
     def resultado_cpf_encontrado() -> bool:
         esperar_estar_presente(driver, Caminhos.ESocial.CPF_EMPREGADO_INPUT)
         element: WebElement = driver.find_element(*Caminhos.ESocial.CPF_EMPREGADO_INPUT)
