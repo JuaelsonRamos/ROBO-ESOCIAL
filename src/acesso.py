@@ -4,10 +4,10 @@ from selenium.webdriver.common.keys import Keys
 import pandas as pd
 
 from erros import FuncionarioNaoEncontradoError
-from planilha import RegistroDados, ColunaPlanilha
+from planilha import RegistroDados, ColunaPlanilha, RegistroCPF
 from utils.selenium import *
 from utils.acesso import *
-from caminhos import Caminhos, DadoNaoEncontrado
+from caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
 from tipos import CelulaVazia
 
 LINK_PRINCIPAL = 'https://sso.acesso.gov.br/login?client_id=login.esocial.gov.br&authorization_id=188b4b3efd4'
@@ -38,6 +38,20 @@ def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
         raise FuncionarioNaoEncontradoError()
     apertar_teclas(driver, Keys.ENTER)
 
+def raspar_dados(tabela: pd.DataFrame, registro: RegistroCPF, crawler: FuncionarioCrawlerBase) -> None:
+    tabela[ColunaPlanilha.SITUACAO][registro.linha] = crawler.SITUACAO
+    tabela[ColunaPlanilha.ADMISSAO][registro.linha] = crawler.ADMISSAO
+    tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = crawler.NASCIMENTO
+    tabela[ColunaPlanilha.MATRICULA][registro.linha] = crawler.MATRICULA
+
+    demissao = CelulaVazia
+    try:
+        demissao = crawler.DEMISSAO
+    except DadoNaoEncontrado:
+        pass
+    # se o funcionario ainda estiver contratado o campo de demissao não existirá    
+    tabela[ColunaPlanilha.DEMISSAO][registro.linha] = demissao
+
 def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.DataFrame:
     apenas_digitos = lambda texto: ''.join([s for s in texto if s in '0123456789'])
     cnpj_index: int = 0
@@ -62,6 +76,14 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                 acessar_perfil(driver, CNPJ)
                 teste_deslogado(driver, logout_timeout)
 
+                if Caminhos.ESocial.Lista.testar(driver):
+                    crawler = Caminhos.ESocial.Lista(driver)
+                    for cpf in crawler.proximo_funcionario():
+                        for registro in filter(lambda r: r.CPF == cpf, funcionarios.CPF_lista):
+                            raspar_dados(tabela, registro, crawler)
+                    continue
+
+                # else: assumir formulário
                 for j in range(cpf_index, len(funcionarios.CPF_lista)):
                     cpf_index = j
                     registro = funcionarios.CPF_lista[j]
@@ -75,18 +97,7 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                         continue
 
                     crawler = Caminhos.ESocial.Formulario(driver)
-                    tabela[ColunaPlanilha.SITUACAO][registro.linha] = crawler.SITUACAO
-                    tabela[ColunaPlanilha.ADMISSAO][registro.linha] = crawler.ADMISSAO
-                    tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = crawler.NASCIMENTO
-                    tabela[ColunaPlanilha.MATRICULA][registro.linha] = crawler.MATRICULA
-
-                    demissao = CelulaVazia
-                    try:
-                        demissao = crawler.DEMISSAO
-                    except DadoNaoEncontrado:
-                        pass
-                    # se o funcionario ainda estiver contratado o campo de demissao não existirá    
-                    tabela[ColunaPlanilha.DEMISSAO][registro.linha] = demissao
+                    raspar_dados(tabela, registro, crawler)
         except (ESocialDeslogadoError, TimeoutException):
             # Capturando TimeoutException para caso a pagina carregue tanto que
             # exceda o tempo de espera para as operações de clicar, escrever, etc.
