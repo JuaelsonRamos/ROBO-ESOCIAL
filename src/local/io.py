@@ -1,5 +1,7 @@
 from collections import namedtuple
+from dataclasses import dataclass
 import os
+from os.path import join, dirname, abspath
 
 PastasSistema = namedtuple("PastasSistema", ['input', 'output', 'pronto', 'nao_excel'])\
     ('C:\\SISTEMA_PLANILHAS', 'C:\\SISTEMA_PLANILHAS_PROCESSADAS',
@@ -10,3 +12,8 @@ def criar_pastas_de_sistema() -> None:
         try:
             os.mkdir(pasta)
         except FileExistsError: pass
+
+@dataclass(init=False, frozen=True)
+class PastasProjeto:
+    root: str = abspath(join(dirname(__file__), "..", ".."))
+    assets: str = join(root, "assets")

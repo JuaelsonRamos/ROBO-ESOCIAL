@@ -11,7 +11,7 @@ from sys import maxsize as MAX_INT
 import windows
 from erros import ESocialDeslogadoError
 from caminhos import Caminhos
-
+from utils.python import DEBUG
 from utils.selenium import esperar_estar_presente
 
 def deslogado(driver: Chrome, timeout: int) -> bool:
@@ -35,7 +35,8 @@ def segundos_restantes_de_sessao(driver: Chrome) -> int:
 def inicializar_driver() -> Chrome:
     driver = Chrome()
     driver.set_window_rect(x=0, y=0, width=1280, height=720)
-    windows.bloquear_janela(driver)
+    if not DEBUG:
+        windows.bloquear_janela(driver)
     return driver
 
 def teste_deslogado(driver: Chrome, timeout: int) -> None:

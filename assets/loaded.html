@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloqueando janela...</title>
+</head>
+<body>
+    <script>
+        window.onload = () => {
+            const elem = document.createElement("h1")
+            elem.innerText = "Página carregada com sucesso!"
+            elem.id = "paginaCarregada"
+            document.body.appendChild(elem)
+        }
+    </script>
+</body>
+</html>
