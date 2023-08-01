@@ -5,8 +5,8 @@ from undetected_chromedriver import Chrome
 from unidecode import unidecode
 from contextlib import suppress
 
-from tipos import SeletorHTML as sh
-from utils.selenium import esperar_estar_presente
+from src.tipos import SeletorHTML as sh
+from src.utils.selenium import esperar_estar_presente
 
 class DadoNaoEncontrado(Exception): pass
 

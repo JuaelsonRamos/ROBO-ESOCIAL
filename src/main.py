@@ -9,9 +9,9 @@ import pandas as pd
 from undetected_chromedriver import Chrome
 from selenium.webdriver.chrome.service import Service
 
-from planilha import registro_de_dados_relevantes, DELTA, ColunaPlanilha, checar_cpfs_cnpjs
-from acesso import processar_planilha
-from local.io import criar_pastas_de_sistema, PastasSistema
+from src.planilha import registro_de_dados_relevantes, DELTA, ColunaPlanilha, checar_cpfs_cnpjs
+from src.acesso import processar_planilha
+from src.local.io import criar_pastas_de_sistema, PastasSistema
 
 
 def main() -> None:
@@ -78,7 +78,7 @@ def main() -> None:
                     except PermissionError:
                         mensagem_popup = messagebox.askyesnocancel(
                             "Tentando mover arquivo irrelevante!",
-                            f"Arquivo Excel salvo! Porém, arquivos e pastas irrelevantes foram encontradas em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {caminho} está aberto em outro programa. Clique SIM para pular a moção dos arquivos restantes; NÃO para tentar mover novamente o arquivo citado; e CANCELAR para abortar a execução do programa.")
+                            f"Arquivo Excel salvo! Porém, arquivos e pastas irrelevantes foram encontradas em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {caminho} está aberto em outro programa. Clique SIM para pular a moção dos arquivos restantes; NÃO para tentar mover novamente o arquivo citado; e CANCELAR para abortar a execução do programa.".encode("utf-8"))
                         if mensagem_popup is None:
                             sys.exit(1)
                         elif mensagem_popup:

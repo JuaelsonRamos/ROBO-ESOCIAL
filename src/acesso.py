@@ -3,12 +3,12 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 import pandas as pd
 
-from erros import FuncionarioNaoEncontradoError
-from planilha import RegistroDados, ColunaPlanilha, RegistroCPF
-from utils.selenium import *
-from utils.acesso import *
-from caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
-from tipos import CelulaVazia
+from src.erros import FuncionarioNaoEncontradoError
+from src.planilha import RegistroDados, ColunaPlanilha, RegistroCPF
+from src.utils.selenium import *
+from src.utils.acesso import *
+from src.caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
+from src.tipos import CelulaVazia
 
 LINK_PRINCIPAL = 'https://sso.acesso.gov.br/login?client_id=login.esocial.gov.br&authorization_id=188b4b3efd4'
 LINK_CNPJ_INPUT = 'https://www.esocial.gov.br/portal/Home/Index?trocarPerfil=true'

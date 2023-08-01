@@ -81,4 +81,4 @@ def checar_cpfs_cnpjs(cpfs, cnpjs, cnpjs_unidade) -> None:
     cnpjs_qtt: int = celulas_preenchidas(cnpjs)
     cnpjs_unidade_qtt: int = celulas_preenchidas(cnpjs_unidade)
     if cpfs_qtt == 0 or cnpjs_qtt + cnpjs_unidade_qtt == 0:
-        raise ValueError(f"Faltam CPFs ou CNPJs. CPFs: {cpfs_qtt}, CNPJs: {cnpjs_qtt+cnpjs_unidade_qtt}")
+        raise ValueError(f"Faltam CPFs ou CNPJs. CPFs: {cpfs_qtt}, CNPJs: {cnpjs_qtt+cnpjs_unidade_qtt}".encode("utf-8"))

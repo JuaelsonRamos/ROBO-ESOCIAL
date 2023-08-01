@@ -8,11 +8,11 @@ from selenium.webdriver.common.by import By
 import time
 from sys import maxsize as MAX_INT
 
-import windows
-from erros import ESocialDeslogadoError
-from caminhos import Caminhos
-from utils.python import DEBUG
-from utils.selenium import esperar_estar_presente
+import src.windows as windows
+from src.erros import ESocialDeslogadoError
+from src.caminhos import Caminhos
+from src.utils.python import DEBUG
+from src.utils.selenium import esperar_estar_presente
 
 def deslogado(driver: Chrome, timeout: int) -> bool:
     try:
@@ -60,7 +60,7 @@ def ocorreu_erro_funcionario(driver: Chrome) -> bool:
         element: WebElement = driver.find_element(*Caminhos.ESocial.CPF_EMPREGADO_INPUT)
         id: str = element.get_attribute("aria-controls")
         cpf: str = element.get_attribute("value")
-        css_selector: str = f"#{id} > li:nth-child(1)"
+        css_selector: str = f"#{id} > li:nth-child(1)".encode("utf-8")
         try:
             WebDriverWait(driver, 5).until(ec.all_of(
                 ec.presence_of_element_located((By.CSS_SELECTOR, css_selector)),

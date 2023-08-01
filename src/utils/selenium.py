@@ -4,7 +4,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.action_chains import ActionChains
 import time
 
-from tipos import SeletorHTML
+from src.tipos import SeletorHTML
 
 TIMEOUT_SECS: float = 120.0
 
