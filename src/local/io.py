@@ -3,15 +3,21 @@ from dataclasses import dataclass
 import os
 from os.path import join, dirname, abspath
 
-PastasSistema = namedtuple("PastasSistema", ['input', 'output', 'pronto', 'nao_excel'])\
-    ('C:\\SISTEMA_PLANILHAS', 'C:\\SISTEMA_PLANILHAS_PROCESSADAS',
-     'C:\\SISTEMA_PLANILHAS_ARQUIVADAS', 'C:\\SISTEMA_LIXEIRA')
+PastasSistema = namedtuple("PastasSistema", ["input", "output", "pronto", "nao_excel"])(
+    "C:\\SISTEMA_PLANILHAS",
+    "C:\\SISTEMA_PLANILHAS_PROCESSADAS",
+    "C:\\SISTEMA_PLANILHAS_ARQUIVADAS",
+    "C:\\SISTEMA_LIXEIRA",
+)
+
 
 def criar_pastas_de_sistema() -> None:
     for pasta in PastasSistema:
         try:
             os.mkdir(pasta)
-        except FileExistsError: pass
+        except FileExistsError:
+            pass
+
 
 @dataclass(init=False, frozen=True)
 class PastasProjeto:

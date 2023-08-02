@@ -8,7 +8,10 @@ from contextlib import suppress
 from src.tipos import SeletorHTML as sh
 from src.utils.selenium import esperar_estar_presente
 
-class DadoNaoEncontrado(Exception): pass
+
+class DadoNaoEncontrado(Exception):
+    pass
+
 
 class FuncionarioCrawlerBase:
     _rotulos_seletor: sh
@@ -24,7 +27,7 @@ class FuncionarioCrawlerBase:
     def _get_dado(self, padrao: str) -> str:
         """Se o rotulo contém o padrão especificado, retorne seu valor. padrao pode ser
         uma versão em minusculo e sem acento do texto ou o texto exato.
-        
+
             raises DadoNaoEncontrado
                 Caso o padrão não tenha sido encontrado em nenhum rótulo."""
         for i in range(len(self.rotulos)):
@@ -36,55 +39,80 @@ class FuncionarioCrawlerBase:
     @property
     def SITUACAO(self) -> str:
         return self._get_dado("situacao")
-    
+
     @property
     def NASCIMENTO(self) -> str:
         return self._get_dado("nascimento")
-    
+
     @property
     def DEMISSAO(self) -> str:
         return self._get_dado("desligamento")
-    
+
     @property
     def ADMISSAO(self) -> str:
         return self._get_dado("admissao")
-    
+
     @property
     def MATRICULA(self) -> str:
         return self._get_dado("matricula")
 
+
 @dataclass(init=False, frozen=True)
 class Caminhos:
     class Govbr:
-        SELECIONAR_CERTIFICADO: sh = (By.CSS_SELECTOR, '#cert-digital button[type=submit]')
+        SELECIONAR_CERTIFICADO: sh = (By.CSS_SELECTOR, "#cert-digital button[type=submit]")
 
     class ESocial:
-        BOTAO_LOGIN: sh = (By.CSS_SELECTOR, '#login-acoes button.sign-in')
-        TROCAR_PERFIL: sh = (By.CLASS_NAME, 'alterar-perfil')
-        ACESSAR_PERFIL: sh = (By.ID, 'perfilAcesso')
-        CNPJ_INPUT: sh = (By.ID, 'procuradorCnpj')
-        CNPJ_INPUT_CONFIRMAR: sh = (By.ID, 'btn-verificar-procuracao-cnpj')
-        CNPJ_SELECIONAR_MODULO: sh = (By.CSS_SELECTOR, '#comSelecaoModulo .modulos #sst')
-        MENU_TRABALHADOR: sh = (By.CSS_SELECTOR, 'nav:first-child button[aria-haspopup=true]')
-        MENU_OPCAO_EMPREGADOS: sh = (By.CSS_SELECTOR, 'nav:first-child [role=menu] [role=menuitem] a[href$=gestaoTrabalhadores]')
-        CPF_EMPREGADO_INPUT: sh = (By.CSS_SELECTOR, 'div[label*=CPF] input[type=text]')
-        DESLOGAR: sh = (By.CSS_SELECTOR, 'div.logout a')
+        BOTAO_LOGIN: sh = (By.CSS_SELECTOR, "#login-acoes button.sign-in")
+        TROCAR_PERFIL: sh = (By.CLASS_NAME, "alterar-perfil")
+        ACESSAR_PERFIL: sh = (By.ID, "perfilAcesso")
+        CNPJ_INPUT: sh = (By.ID, "procuradorCnpj")
+        CNPJ_INPUT_CONFIRMAR: sh = (By.ID, "btn-verificar-procuracao-cnpj")
+        CNPJ_SELECIONAR_MODULO: sh = (By.CSS_SELECTOR, "#comSelecaoModulo .modulos #sst")
+        MENU_TRABALHADOR: sh = (By.CSS_SELECTOR, "nav:first-child button[aria-haspopup=true]")
+        MENU_OPCAO_EMPREGADOS: sh = (
+            By.CSS_SELECTOR,
+            "nav:first-child [role=menu] [role=menuitem] a[href$=gestaoTrabalhadores]",
+        )
+        CPF_EMPREGADO_INPUT: sh = (By.CSS_SELECTOR, "div[label*=CPF] input[type=text]")
+        DESLOGAR: sh = (By.CSS_SELECTOR, "div.logout a")
         # botão de deslogar está localizado em um lugar diferente se vc partir da tela de login com cnpj
-        DESLOGAR_CNPJ_INPUT: sh = (By.ID, 'sairAplicacao')
-        LOGOUT: sh = (By.CLASS_NAME, 'logout-sucesso')
-        TEMPO_SESSAO: sh = (By.CLASS_NAME, 'tempo-sessao')
+        DESLOGAR_CNPJ_INPUT: sh = (By.ID, "sairAplicacao")
+        LOGOUT: sh = (By.CLASS_NAME, "logout-sucesso")
+        TEMPO_SESSAO: sh = (By.CLASS_NAME, "tempo-sessao")
 
         class Formulario(FuncionarioCrawlerBase):
-            _rotulos_seletor: sh = (By.CSS_SELECTOR, "div[role=tabpanel] ul li .MuiListItemText-primary")
-            _valores_seletor: sh = (By.CSS_SELECTOR, "div[role=tabpanel] ul li .MuiListItemText-secondary")
-            
-            ERRO_FUNCIONARIO: sh = (By.CSS_SELECTOR, '#mensagens-gerais div[role=alert] .MuiAlert-message')
+            _rotulos_seletor: sh = (
+                By.CSS_SELECTOR,
+                "div[role=tabpanel] ul li .MuiListItemText-primary",
+            )
+            _valores_seletor: sh = (
+                By.CSS_SELECTOR,
+                "div[role=tabpanel] ul li .MuiListItemText-secondary",
+            )
+
+            ERRO_FUNCIONARIO: sh = (
+                By.CSS_SELECTOR,
+                "#mensagens-gerais div[role=alert] .MuiAlert-message",
+            )
 
         class Lista(FuncionarioCrawlerBase):
-            _clicaveis_seletor: sh = (By.CSS_SELECTOR, "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item")
-            _cpfs_seletor: sh = (By.CSS_SELECTOR, "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item .MuiCardContent-root p:last-child")
-            _rotulos_seletor: sh = (By.CSS_SELECTOR, "div[role=tabpanel] ul li .MuiListItemText-primary")
-            _valores_seletor: sh = (By.CSS_SELECTOR, "div[role=tabpanel] ul li .MuiListItemText-secondary")
+            _clicaveis_seletor: sh = (
+                By.CSS_SELECTOR,
+                "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item",
+            )
+            _cpfs_seletor: sh = (
+                By.CSS_SELECTOR,
+                "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item .MuiCardContent-root p:last-child",
+            )
+            _rotulos_seletor: sh = (
+                By.CSS_SELECTOR,
+                "div[role=tabpanel] ul li .MuiListItemText-primary",
+            )
+            _valores_seletor: sh = (
+                By.CSS_SELECTOR,
+                "div[role=tabpanel] ul li .MuiListItemText-secondary",
+            )
 
             def __init__(self, driver: Chrome) -> None:
                 esperar_estar_presente(driver, self._clicaveis_seletor)

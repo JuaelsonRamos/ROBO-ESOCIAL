@@ -5,3 +5,4 @@ xlrd == 2.0.*
 openpyxl == 3.1.*
 Unidecode
 cython == 3.0.*
+black == 23.7.*

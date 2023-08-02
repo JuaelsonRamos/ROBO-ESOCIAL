@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from src.local.io import PastasProjeto
 from src.utils.selenium import esperar_estar_presente
 
+
 def bloquear_janela(driver: Chrome) -> None:
     """Bloqueia input de mouse e teclado à janela do chrome."""
     # Referências:
@@ -18,8 +19,8 @@ def bloquear_janela(driver: Chrome) -> None:
     User32 = ct.cdll.User32
     CALLBACK = ct.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 
-    url = f"file:///{PurePath(join(PastasProjeto.assets, 'loaded.html')).as_posix()}".encode("utf-8")
-    driver.get(url.decode("utf-8"))
+    url = f"file:///{PurePath(join(PastasProjeto.assets, 'loaded.html')).as_posix()}".encode()
+    driver.get(url.decode())
     esperar_estar_presente(driver, (By.ID, "paginaCarregada"))
 
     def callback(hwnd, lParam) -> bool:

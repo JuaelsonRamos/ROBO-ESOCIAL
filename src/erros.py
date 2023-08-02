@@ -1,3 +1,6 @@
-class FuncionarioNaoEncontradoError(Exception): pass
+class FuncionarioNaoEncontradoError(Exception):
+    pass
 
-class ESocialDeslogadoError(Exception): pass
+
+class ESocialDeslogadoError(Exception):
+    pass
