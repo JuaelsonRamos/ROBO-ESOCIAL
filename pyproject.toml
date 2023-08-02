@@ -7,3 +7,25 @@ target-version = ["py311"]
 safe = true
 include = '\.py$'
 workers = 3
+
+[tool.isort]
+profile = "black"
+
+[tool.docformatter]
+# black opts modificadas
+pre-summary-space = true
+wrap-descriptions = 100
+wrap-summaries = 100
+# outras
+in-place = true
+recursive = false
+style = "sphinx"
+
+[tool.autoflake]
+jobs = "3"
+in-place = true
+remove-all-unused-imports = true
+ignore-init-module-imports = true
+remove-unused-variables = true
+ignore-pass-statements = false
+ignore-pass-after-docstring = true

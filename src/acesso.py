@@ -1,14 +1,14 @@
-from undetected_chromedriver import Chrome
+import pandas as pd
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
-import pandas as pd
+from undetected_chromedriver import Chrome
 
-from src.erros import FuncionarioNaoEncontradoError
-from src.planilha import RegistroDados, ColunaPlanilha, RegistroCPF
-from src.utils.selenium import *
-from src.utils.acesso import *
 from src.caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
+from src.erros import FuncionarioNaoEncontradoError
+from src.planilha import ColunaPlanilha, RegistroCPF, RegistroDados
 from src.tipos import CelulaVazia
+from src.utils.acesso import *
+from src.utils.selenium import *
 
 LINK_PRINCIPAL = (
     "https://sso.acesso.gov.br/login?client_id=login.esocial.gov.br&authorization_id=188b4b3efd4"

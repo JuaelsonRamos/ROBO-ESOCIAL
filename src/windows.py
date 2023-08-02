@@ -1,16 +1,17 @@
 import ctypes as ct
 import ctypes.wintypes as wintypes
-from pathlib import PurePath
 from os.path import join
-from undetected_chromedriver import Chrome
+from pathlib import PurePath
+
 from selenium.webdriver.common.by import By
+from undetected_chromedriver import Chrome
 
 from src.local.io import PastasProjeto
 from src.utils.selenium import esperar_estar_presente
 
 
 def bloquear_janela(driver: Chrome) -> None:
-    """Bloqueia input de mouse e teclado à janela do chrome."""
+    """ Bloqueia input de mouse e teclado à janela do chrome."""
     # Referências:
     #   EnableWindow: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-enablewindow
     #   GetWindowThreadProcessId: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowthreadprocessid

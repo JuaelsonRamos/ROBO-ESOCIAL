@@ -1,5 +1,6 @@
 import sys
-from cx_Freeze import setup, Executable
+
+from cx_Freeze import Executable, setup
 
 exe_options = {
     "build_exe": "installer/build",

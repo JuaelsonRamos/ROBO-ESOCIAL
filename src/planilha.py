@@ -1,14 +1,18 @@
-from dataclasses import dataclass, field
-from string import ascii_letters
-from math import isnan
 import re
+from dataclasses import dataclass, field
+from math import isnan
+from string import ascii_letters
 
 DELTA: int = 2
 
 
 def letra_para_numero_coluna(char: str) -> int:
-    """Retorna o número correspondente a uma lista de letras em formato de index para o pandas.
-    Exemplo: 'L' == 12, portanto esta função retorna 11 (12-1)."""
+    """ Retorna o número correspondente a uma lista de letras em formato de index para o.
+
+    pandas.
+
+    Exemplo: 'L' == 12, portanto esta função retorna 11 (12-1).
+    """
     num: int = 0
     for c in char:
         if c in ascii_letters:
@@ -44,8 +48,10 @@ class RegistroDados:
 
 # ESSA FUNÇÃO NÃO ESTÁ MAIS SENDO USADA; MANTIDA AQUI CASO MUDE DE IDEA
 def filtrar_cpfs_apenas_matriz(coluna_cnpj, coluna_cpf) -> dict[str, list[RegistroCPF]]:
-    """Cria um dicionário apenas com os cnpjs da matriz e os cpfs correspondentes
-    a esses cpnjs."""
+    """ Cria um dicionário apenas com os cnpjs da matriz e os cpfs correspondentes.
+
+    a esses cpnjs.
+    """
     CATALOGO_FUNCIONARIOS: dict[str, list[RegistroCPF]] = {}
     for index, info in enumerate(zip(coluna_cnpj, coluna_cpf)):
         pos_linha = DELTA + index
@@ -61,7 +67,7 @@ def filtrar_cpfs_apenas_matriz(coluna_cnpj, coluna_cpf) -> dict[str, list[Regist
 
 
 def registro_de_dados_relevantes(coluna_cnpj_unidade, coluna_cnpj, coluna_cpf) -> RegistroDados:
-    """Cria um registro de todos os cpnjs da MATRIZ e TODOS os cpfs."""
+    """ Cria um registro de todos os cpnjs da MATRIZ e TODOS os cpfs."""
     registro = RegistroDados()
     for index, CPF in enumerate(coluna_cpf):
         if not isinstance(CPF, str):
@@ -82,7 +88,7 @@ def registro_de_dados_relevantes(coluna_cnpj_unidade, coluna_cnpj, coluna_cpf) -
 
 
 def celulas_preenchidas(array) -> int:
-    """Pede uma lista de valores de celulas e retorna quantas estão preenchidos."""
+    """ Pede uma lista de valores de celulas e retorna quantas estão preenchidos."""
     # celulas vazias são NaN
     return len(list(filter(lambda x: (not isnan(x) if isinstance(x, float) else True), array)))
 

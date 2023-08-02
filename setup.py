@@ -1,10 +1,11 @@
-from setuptools import setup, Extension
-from Cython.Distutils import build_ext
-from Cython.Build import cythonize
-from typing import List
-from os.path import relpath, abspath
-from pathlib import PurePath
 from glob import glob
+from os.path import abspath, relpath
+from pathlib import PurePath
+from typing import List
+
+from Cython.Build import cythonize
+from Cython.Distutils import build_ext
+from setuptools import Extension, setup
 
 
 def get_extensions(files: List[str], project_root: str) -> List[Extension]:

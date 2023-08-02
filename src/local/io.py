@@ -1,7 +1,7 @@
+import os
 from collections import namedtuple
 from dataclasses import dataclass
-import os
-from os.path import join, dirname, abspath
+from os.path import abspath, dirname, join
 
 PastasSistema = namedtuple("PastasSistema", ["input", "output", "pronto", "nao_excel"])(
     "C:\\SISTEMA_PLANILHAS",

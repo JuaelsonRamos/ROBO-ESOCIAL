@@ -1,16 +1,17 @@
 import datetime
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.common.exceptions import TimeoutException
-from undetected_chromedriver import Chrome
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.common.by import By
 import time
 from sys import maxsize as MAX_INT
 
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support.wait import WebDriverWait
+from undetected_chromedriver import Chrome
+
 import src.windows as windows
-from src.erros import ESocialDeslogadoError
 from src.caminhos import Caminhos
+from src.erros import ESocialDeslogadoError
 from src.utils.python import DEBUG
 from src.utils.selenium import esperar_estar_presente
 

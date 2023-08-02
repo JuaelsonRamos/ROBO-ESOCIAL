@@ -1,17 +1,21 @@
 import os
-from pathlib import Path
-import time
-import sys
-from os.path import basename, join, isdir
-from tkinter import messagebox
 import shutil
-import pandas as pd
-from undetected_chromedriver import Chrome
-from selenium.webdriver.chrome.service import Service
+import sys
+import time
+from os.path import basename, isdir, join
+from pathlib import Path
+from tkinter import messagebox
 
-from src.planilha import registro_de_dados_relevantes, DELTA, ColunaPlanilha, checar_cpfs_cnpjs
+import pandas as pd
+
 from src.acesso import processar_planilha
-from src.local.io import criar_pastas_de_sistema, PastasSistema
+from src.local.io import PastasSistema, criar_pastas_de_sistema
+from src.planilha import (
+    DELTA,
+    ColunaPlanilha,
+    checar_cpfs_cnpjs,
+    registro_de_dados_relevantes,
+)
 
 
 def main() -> None:
