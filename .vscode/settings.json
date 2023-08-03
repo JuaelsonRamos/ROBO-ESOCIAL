@@ -8,8 +8,13 @@
       {
         "match": "\\.py$",
         "cmd": "${workspaceFolder}/.venv/Scripts/docformatter.exe ${file}"
+      },
+      {
+        "match": "\\.py$",
+        "cmd": "${workspaceFolder}/.venv/Scripts/unexport.exe -r ${file}"
       }
     ]
   },
-  "pylint.importStrategy":"fromEnvironment"
+  "pylint.importStrategy":"fromEnvironment",
+  "python.analysis.typeCheckingMode": "strict"
 }

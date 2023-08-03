@@ -65,3 +65,23 @@ disable = [
   "line-too-long",
   "invalid-name"
 ]
+
+[tool.pyright]
+pythonVersion = "3.11"
+pythonPlatform = "Windows"
+typeCheckingMode = "strict"
+useLibraryCodeForTypes = true
+exclude = [
+  "**/.venv*/",
+  "**/build*/",
+  "**/dist/",
+]
+include = [
+  "src/",
+  "installer/",
+  "."
+]
+# mensagens específicas
+reportMissingTypeStubs = "none"
+reportWildcardImportFromLibrary = "none"
+reportIncompleteStub = "warning"
