@@ -10,5 +10,6 @@
         "cmd": "${workspaceFolder}/.venv/Scripts/docformatter.exe ${file}"
       }
     ]
-  }
+  },
+  "pylint.importStrategy":"fromEnvironment"
 }

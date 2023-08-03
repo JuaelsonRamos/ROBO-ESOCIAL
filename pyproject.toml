@@ -29,3 +29,39 @@ ignore-init-module-imports = true
 remove-unused-variables = true
 ignore-pass-statements = false
 ignore-pass-after-docstring = true
+
+[tool.bandit]
+exclude_dirs = [
+  "installer/build",
+  ".venv",
+  ".venv-dist",
+  "build",
+  "build_cython",
+  "dist"
+]
+targets = [
+  "src",
+  "installer"
+]
+
+# Aviso para futuras modificações:
+#   No pylint seções de configuração são puramente uma ferramenta
+#   de organização de opções. Por debaixo dos panos ele transforma
+#   todas em argumentos de linha de comando. Portanto, colocar
+#   "enable=all" em uma seção que vem depois de "disable=invalid-name"
+#   vai anular o "disable" completamente. Nenhuma opção está restringida
+#   a nenhuma seção.
+[tool.pylint.main]
+max-line-length = 100
+load-plugins = [
+  "pylint.extensions.empty_comment",
+  "pylint.extensions.eq_without_hash",
+  "pylint.extensions.private_import",
+  "pylint.extensions.docparams"
+]
+
+[tool.pylint."messages control"]
+disable = [
+  "line-too-long",
+  "invalid-name"
+]
