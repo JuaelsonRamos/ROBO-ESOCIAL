@@ -1,9 +1,13 @@
 import os
-from collections import namedtuple
 from dataclasses import dataclass
 from os.path import abspath, dirname, join
+from typing import NamedTuple
 
-PastasSistema = namedtuple("PastasSistema", ["input", "output", "pronto", "nao_excel"])(
+__all__ = ["PastasProjeto", "PastasSistema", "criar_pastas_de_sistema"]
+
+PastasSistema = NamedTuple("PastasSistema",
+    [("input", str), ("output", str), ("pronto", str), ("nao_excel", str)]
+)(
     "C:\\SISTEMA_PLANILHAS",
     "C:\\SISTEMA_PLANILHAS_PROCESSADAS",
     "C:\\SISTEMA_PLANILHAS_ARQUIVADAS",

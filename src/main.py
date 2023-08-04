@@ -7,6 +7,7 @@ from pathlib import Path
 from tkinter import messagebox
 
 import pandas as pd
+from typing import Iterable, Any, cast
 
 from src.acesso import processar_planilha
 from src.local.io import PastasSistema, criar_pastas_de_sistema
@@ -17,6 +18,8 @@ from src.planilha import (
     registro_de_dados_relevantes,
 )
 
+__all__ = ["main"]
+
 
 def main() -> None:
     criar_pastas_de_sistema()
@@ -25,7 +28,7 @@ def main() -> None:
         arquivos_nao_excel: list[str] = []
         with os.scandir(PastasSistema.input) as arquivos:
             for arquivo in arquivos:
-                if arquivo.is_dir() or (not Path(arquivo.path).suffix in (".xlsx", ".xls")):
+                if arquivo.is_dir() or Path(arquivo.path).suffix not in (".xlsx", ".xls"):
                     arquivos_nao_excel.append(arquivo.path)
                     continue
                 # arquivo temporário de criado quando a planilha é aberta
@@ -45,9 +48,9 @@ def main() -> None:
             else:
                 tabela = pd.read_excel(caminho_arquivo_excel, header=None, engine="openpyxl")
 
-            coluna_cnpj_unidade = tabela.iloc[DELTA:, ColunaPlanilha.CNPJ_UNIDADE].values
-            coluna_cnpj = tabela.iloc[DELTA:, ColunaPlanilha.CNPJ].values
-            coluna_cpf = tabela.iloc[DELTA:, ColunaPlanilha.CPF].values
+            coluna_cnpj_unidade = cast(Iterable[Any], tabela.iloc[DELTA:, ColunaPlanilha.CNPJ_UNIDADE].values)
+            coluna_cnpj = cast(Iterable[Any], tabela.iloc[DELTA:, ColunaPlanilha.CNPJ].values)
+            coluna_cpf = cast(Iterable[Any], tabela.iloc[DELTA:, ColunaPlanilha.CPF].values)
 
             checar_cpfs_cnpjs(coluna_cpf, coluna_cnpj, coluna_cnpj_unidade)
 
@@ -96,7 +99,7 @@ def main() -> None:
                     except PermissionError:
                         mensagem_popup = messagebox.askyesnocancel(
                             "Tentando mover arquivo irrelevante!",
-                            f"Arquivo Excel salvo! Porém, arquivos e pastas irrelevantes foram encontradas em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {caminho} está aberto em outro programa. Clique SIM para pular a moção dos arquivos restantes; NÃO para tentar mover novamente o arquivo citado; e CANCELAR para abortar a execução do programa.".encode(),
+                            f"Arquivo Excel salvo! Porém, arquivos e pastas irrelevantes foram encontradas em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {caminho} está aberto em outro programa. Clique SIM para pular a moção dos arquivos restantes; NÃO para tentar mover novamente o arquivo citado; e CANCELAR para abortar a execução do programa.".encode().decode(),
                         )
                         if mensagem_popup is None:
                             sys.exit(1)

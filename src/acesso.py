@@ -1,18 +1,21 @@
+from typing import Optional
 import pandas as pd
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 from undetected_chromedriver import Chrome
+from string import digits
 
 from src.caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
 from src.erros import FuncionarioNaoEncontradoError
 from src.planilha import ColunaPlanilha, RegistroCPF, RegistroDados
-from src.tipos import CelulaVazia
-from src.utils.acesso import *
-from src.utils.selenium import *
+from src.tipos import CelulaVazia, Int, Float
+from src.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado
+from src.utils.selenium import clicar, apertar_teclas, escrever
+from src.erros import ESocialDeslogadoError
 
-LINK_PRINCIPAL = (
-    "https://sso.acesso.gov.br/login?client_id=login.esocial.gov.br&authorization_id=188b4b3efd4"
-)
+__all__ = ["LINK_CNPJ_INPUT", "LINK_PRINCIPAL", "acessar_perfil", "carregar_pagina_ate_acessar_perfil", "entrar_com_cpf", "processar_planilha", "raspar_dados"]
+
+LINK_PRINCIPAL = "https://login.esocial.gov.br/login.aspx"
 LINK_CNPJ_INPUT = "https://www.esocial.gov.br/portal/Home/Index?trocarPerfil=true"
 
 
@@ -43,9 +46,7 @@ def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
     apertar_teclas(driver, Keys.ENTER)
 
 
-def raspar_dados(
-    tabela: pd.DataFrame, registro: RegistroCPF, crawler: FuncionarioCrawlerBase
-) -> None:
+def raspar_dados(tabela: pd.DataFrame, registro: RegistroCPF, crawler: FuncionarioCrawlerBase) -> None:
     tabela[ColunaPlanilha.SITUACAO][registro.linha] = crawler.SITUACAO
     tabela[ColunaPlanilha.ADMISSAO][registro.linha] = crawler.ADMISSAO
     tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = crawler.NASCIMENTO
@@ -61,11 +62,14 @@ def raspar_dados(
 
 
 def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.DataFrame:
-    apenas_digitos = lambda texto: "".join([s for s in texto if s in "0123456789"])
-    cnpj_index: int = 0
-    cpf_index: int = 0
-    logout_timeout: float = 10.0
+    def apenas_digitos(texto: str) -> str:
+        return "".join([s for s in texto if s in digits])
+
+    cnpj_index = Int(0)
+    cpf_index = Int(0)
+    logout_timeout = Float(10.0)
     while True:  # emulando um GOTO da vida
+        driver: Optional[Chrome] = None
         try:
             driver = inicializar_driver()
             carregar_pagina_ate_acessar_perfil(driver)
@@ -87,7 +91,8 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                 if Caminhos.ESocial.Lista.testar(driver):
                     crawler = Caminhos.ESocial.Lista(driver)
                     for cpf in crawler.proximo_funcionario():
-                        for registro in filter(lambda r: r.CPF == cpf, funcionarios.CPF_lista):
+                        generator = (r for r in funcionarios.CPF_lista if r.CPF == cpf)
+                        for registro in generator:
                             raspar_dados(tabela, registro, crawler)
                     continue
 
@@ -111,7 +116,8 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
             # exceda o tempo de espera para as operações de clicar, escrever, etc.
             # Ou seja, se a pagina carregar de forma incompleta ou nem carregar, ele
             # reinicia o processo de onde parou até conseguir.
-            driver.quit()
+            if driver:
+                driver.quit()
             continue
         else:
             driver.quit()

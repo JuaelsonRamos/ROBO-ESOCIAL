@@ -63,7 +63,10 @@ load-plugins = [
 [tool.pylint."messages control"]
 disable = [
   "line-too-long",
-  "invalid-name"
+  "invalid-name",
+  "consider-using-enumerate",
+  "not-an-iterable",
+  "wrong-import-order",
 ]
 
 [tool.pyright]
@@ -81,7 +84,14 @@ include = [
   "installer/",
   "."
 ]
-# mensagens específicas
+# Bibliotecas importantes estão apenas parcialmente ou totalmente sem tipos.
+# Alguns desses avisos são importantes, mas em bao parte da codebase, inevitáveis, infelizmente.
+# Mensagens específicas:
 reportMissingTypeStubs = "none"
 reportWildcardImportFromLibrary = "none"
 reportIncompleteStub = "warning"
+reportUnnecessaryIsInstance = "none"
+reportUnnecessaryCast = "none"
+reportUnnecessaryContains = "none"
+reportUnnecessaryComparison = "none"
+reportUnknownMemberType = "none"

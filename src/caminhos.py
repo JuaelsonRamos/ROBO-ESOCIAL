@@ -2,11 +2,15 @@ from dataclasses import dataclass
 
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from undetected_chromedriver import Chrome
 from unidecode import unidecode
+from typing import List, Generator
 
-from src.tipos import SeletorHTML as sh
+from src.tipos import SeletorHTML as sh, Int
 from src.utils.selenium import esperar_estar_presente
+
+__all__ = ["Caminhos", "DadoNaoEncontrado", "FuncionarioCrawlerBase"]
 
 
 class DadoNaoEncontrado(Exception):
@@ -20,9 +24,9 @@ class FuncionarioCrawlerBase:
     def __init__(self, driver: Chrome) -> None:
         esperar_estar_presente(driver, self._rotulos_seletor)
         esperar_estar_presente(driver, self._valores_seletor)
-        self.rotulos = [elem.text for elem in driver.find_elements(*self._rotulos_seletor)]
-        self.rotulos_normalizado = [unidecode(rotulo).lower() for rotulo in self.rotulos]
-        self.valores = [elem.text for elem in driver.find_elements(*self._valores_seletor)]
+        self.rotulos: List[str] = [elem.text for elem in driver.find_elements(*self._rotulos_seletor)]
+        self.rotulos_normalizado: List[str] = [unidecode(rotulo).lower() for rotulo in self.rotulos]
+        self.valores: List[str] = [elem.text for elem in driver.find_elements(*self._valores_seletor)]
 
     def _get_dado(self, padrao: str) -> str:
         """ Se o rotulo contém o padrão especificado, retorne seu valor.
@@ -60,69 +64,69 @@ class FuncionarioCrawlerBase:
 @dataclass(init=False, frozen=True)
 class Caminhos:
     class Govbr:
-        SELECIONAR_CERTIFICADO: sh = (By.CSS_SELECTOR, "#cert-digital button[type=submit]")
+        SELECIONAR_CERTIFICADO = sh((By.CSS_SELECTOR, "#cert-digital button[type=submit]"))
 
     class ESocial:
-        BOTAO_LOGIN: sh = (By.CSS_SELECTOR, "#login-acoes button.sign-in")
-        TROCAR_PERFIL: sh = (By.CLASS_NAME, "alterar-perfil")
-        ACESSAR_PERFIL: sh = (By.ID, "perfilAcesso")
-        CNPJ_INPUT: sh = (By.ID, "procuradorCnpj")
-        CNPJ_INPUT_CONFIRMAR: sh = (By.ID, "btn-verificar-procuracao-cnpj")
-        CNPJ_SELECIONAR_MODULO: sh = (By.CSS_SELECTOR, "#comSelecaoModulo .modulos #sst")
-        MENU_TRABALHADOR: sh = (By.CSS_SELECTOR, "nav:first-child button[aria-haspopup=true]")
-        MENU_OPCAO_EMPREGADOS: sh = (
+        BOTAO_LOGIN = sh((By.CSS_SELECTOR, "#login-acoes button.sign-in"))
+        TROCAR_PERFIL = sh((By.CLASS_NAME, "alterar-perfil"))
+        ACESSAR_PERFIL = sh((By.ID, "perfilAcesso"))
+        CNPJ_INPUT = sh((By.ID, "procuradorCnpj"))
+        CNPJ_INPUT_CONFIRMAR = sh((By.ID, "btn-verificar-procuracao-cnpj"))
+        CNPJ_SELECIONAR_MODULO = sh((By.CSS_SELECTOR, "#comSelecaoModulo .modulos #sst"))
+        MENU_TRABALHADOR = sh((By.CSS_SELECTOR, "nav:first-child button[aria-haspopup=true]"))
+        MENU_OPCAO_EMPREGADOS = sh((
             By.CSS_SELECTOR,
             "nav:first-child [role=menu] [role=menuitem] a[href$=gestaoTrabalhadores]",
-        )
-        CPF_EMPREGADO_INPUT: sh = (By.CSS_SELECTOR, "div[label*=CPF] input[type=text]")
-        DESLOGAR: sh = (By.CSS_SELECTOR, "div.logout a")
+        ))
+        CPF_EMPREGADO_INPUT = sh((By.CSS_SELECTOR, "div[label*=CPF] input[type=text]"))
+        DESLOGAR = sh((By.CSS_SELECTOR, "div.logout a"))
         # botão de deslogar está localizado em um lugar diferente se vc partir da tela de login com cnpj
-        DESLOGAR_CNPJ_INPUT: sh = (By.ID, "sairAplicacao")
-        LOGOUT: sh = (By.CLASS_NAME, "logout-sucesso")
-        TEMPO_SESSAO: sh = (By.CLASS_NAME, "tempo-sessao")
+        DESLOGAR_CNPJ_INPUT = sh((By.ID, "sairAplicacao"))
+        LOGOUT = sh((By.CLASS_NAME, "logout-sucesso"))
+        TEMPO_SESSAO = sh((By.CLASS_NAME, "tempo-sessao"))
 
         class Formulario(FuncionarioCrawlerBase):
-            _rotulos_seletor: sh = (
+            _rotulos_seletor = sh((
                 By.CSS_SELECTOR,
                 "div[role=tabpanel] ul li .MuiListItemText-primary",
-            )
-            _valores_seletor: sh = (
+            ))
+            _valores_seletor = sh((
                 By.CSS_SELECTOR,
                 "div[role=tabpanel] ul li .MuiListItemText-secondary",
-            )
+            ))
 
-            ERRO_FUNCIONARIO: sh = (
+            ERRO_FUNCIONARIO = sh((
                 By.CSS_SELECTOR,
                 "#mensagens-gerais div[role=alert] .MuiAlert-message",
-            )
+            ))
 
         class Lista(FuncionarioCrawlerBase):
-            _clicaveis_seletor: sh = (
+            _clicaveis_seletor = sh((
                 By.CSS_SELECTOR,
                 "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item",
-            )
-            _cpfs_seletor: sh = (
+            ))
+            _cpfs_seletor = sh((
                 By.CSS_SELECTOR,
                 "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item .MuiCardContent-root p:last-child",
-            )
-            _rotulos_seletor: sh = (
+            ))
+            _rotulos_seletor = sh((
                 By.CSS_SELECTOR,
                 "div[role=tabpanel] ul li .MuiListItemText-primary",
-            )
-            _valores_seletor: sh = (
+            ))
+            _valores_seletor = sh((
                 By.CSS_SELECTOR,
                 "div[role=tabpanel] ul li .MuiListItemText-secondary",
-            )
+            ))
 
-            def __init__(self, driver: Chrome) -> None:
+            def __init__(self, driver: Chrome) -> None: # pylint: disable=super-init-not-called
                 esperar_estar_presente(driver, self._clicaveis_seletor)
                 esperar_estar_presente(driver, self._cpfs_seletor)
                 self.driver = driver
-                self.clicaveis = driver.find_elements(*self._clicaveis_seletor)
-                self.quantos = len(self.clicaveis)
-                self.cpfs = [elem.text for elem in driver.find_elements(*self._cpfs_seletor)]
+                self.clicaveis: List[WebElement] = driver.find_elements(*self._clicaveis_seletor)
+                self.quantos = Int(len(self.clicaveis))
+                self.cpfs: List[str] = [elem.text for elem in driver.find_elements(*self._cpfs_seletor)]
 
-            def proximo_funcionario(self) -> str:
+            def proximo_funcionario(self) -> Generator[str, None, None]:
                 """ Toda vez que é executado prepara o objeto com os dados do próximo
                 funcionário."""
                 for i in range(self.quantos):
@@ -131,7 +135,7 @@ class Caminhos:
                     yield self.cpfs[i]
 
             @classmethod
-            def testar(self, driver: Chrome) -> bool:
+            def testar(cls, driver: Chrome) -> bool:
                 """ Checa se a seleção de funcionários se apresenta em formato de lista."""
                 try:
                     driver.find_element(By.ID, "div-pesquisa")
