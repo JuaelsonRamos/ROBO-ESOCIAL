@@ -13,3 +13,8 @@ pylint == 2.17.*
 bandit[toml]
 pyright == 1.1.*
 unexport == 0.4.*
+sphinx
+sphinx-autobuild
+sphinx-autoapi
+furo
+myst-parser
