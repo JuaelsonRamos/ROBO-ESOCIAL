@@ -1,12 +1,12 @@
 """ Definições de tipos personalizados que não dependem de nenhum outro módulo dentro da própria
 code base."""
 
-from typing import NewType, Tuple
+from typing import NewType, Tuple, TypeAlias
 import cython
 
 __all__ = ["CelulaVazia", "CelulaVaziaType", "Float", "Int", "SeletorHTML"]
 
-SeletorHTML = NewType("SeletorHTML", Tuple[str, str])
+SeletorHTML: TypeAlias = Tuple[str, str]
 CelulaVaziaType = NewType("CelulaVaziaType", float)
 CelulaVazia: CelulaVaziaType = CelulaVaziaType(float("nan"))
 

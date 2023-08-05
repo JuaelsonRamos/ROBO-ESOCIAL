@@ -7,7 +7,7 @@ from undetected_chromedriver import Chrome
 from unidecode import unidecode
 from typing import List, Generator
 
-from src.tipos import SeletorHTML as sh, Int
+from src.tipos import SeletorHTML, Int
 from src.utils.selenium import esperar_estar_presente
 
 __all__ = ["Caminhos", "DadoNaoEncontrado", "FuncionarioCrawlerBase"]
@@ -18,8 +18,8 @@ class DadoNaoEncontrado(Exception):
 
 
 class FuncionarioCrawlerBase:
-    _rotulos_seletor: sh
-    _valores_seletor: sh
+    _rotulos_seletor: SeletorHTML
+    _valores_seletor: SeletorHTML
 
     def __init__(self, driver: Chrome) -> None:
         esperar_estar_presente(driver, self._rotulos_seletor)
@@ -64,59 +64,59 @@ class FuncionarioCrawlerBase:
 @dataclass(init=False, frozen=True)
 class Caminhos:
     class Govbr:
-        SELECIONAR_CERTIFICADO = sh((By.CSS_SELECTOR, "#cert-digital button[type=submit]"))
+        SELECIONAR_CERTIFICADO: SeletorHTML = (By.CSS_SELECTOR, "#cert-digital button[type=submit]")
 
     class ESocial:
-        BOTAO_LOGIN = sh((By.CSS_SELECTOR, "#login-acoes button.sign-in"))
-        TROCAR_PERFIL = sh((By.CLASS_NAME, "alterar-perfil"))
-        ACESSAR_PERFIL = sh((By.ID, "perfilAcesso"))
-        CNPJ_INPUT = sh((By.ID, "procuradorCnpj"))
-        CNPJ_INPUT_CONFIRMAR = sh((By.ID, "btn-verificar-procuracao-cnpj"))
-        CNPJ_SELECIONAR_MODULO = sh((By.CSS_SELECTOR, "#comSelecaoModulo .modulos #sst"))
-        MENU_TRABALHADOR = sh((By.CSS_SELECTOR, "nav:first-child button[aria-haspopup=true]"))
-        MENU_OPCAO_EMPREGADOS = sh((
+        BOTAO_LOGIN: SeletorHTML = (By.CSS_SELECTOR, "#login-acoes button.sign-in")
+        TROCAR_PERFIL: SeletorHTML = (By.CLASS_NAME, "alterar-perfil")
+        ACESSAR_PERFIL: SeletorHTML = (By.ID, "perfilAcesso")
+        CNPJ_INPUT: SeletorHTML = (By.ID, "procuradorCnpj")
+        CNPJ_INPUT_CONFIRMAR: SeletorHTML = (By.ID, "btn-verificar-procuracao-cnpj")
+        CNPJ_SELECIONAR_MODULO: SeletorHTML = (By.CSS_SELECTOR, "#comSelecaoModulo .modulos #sst")
+        MENU_TRABALHADOR: SeletorHTML = (By.CSS_SELECTOR, "nav:first-child button[aria-haspopup=true]")
+        MENU_OPCAO_EMPREGADOS: SeletorHTML = (
             By.CSS_SELECTOR,
             "nav:first-child [role=menu] [role=menuitem] a[href$=gestaoTrabalhadores]",
-        ))
-        CPF_EMPREGADO_INPUT = sh((By.CSS_SELECTOR, "div[label*=CPF] input[type=text]"))
-        DESLOGAR = sh((By.CSS_SELECTOR, "div.logout a"))
+        )
+        CPF_EMPREGADO_INPUT: SeletorHTML = (By.CSS_SELECTOR, "div[label*=CPF] input[type=text]")
+        DESLOGAR: SeletorHTML = (By.CSS_SELECTOR, "div.logout a")
         # botão de deslogar está localizado em um lugar diferente se vc partir da tela de login com cnpj
-        DESLOGAR_CNPJ_INPUT = sh((By.ID, "sairAplicacao"))
-        LOGOUT = sh((By.CLASS_NAME, "logout-sucesso"))
-        TEMPO_SESSAO = sh((By.CLASS_NAME, "tempo-sessao"))
+        DESLOGAR_CNPJ_INPUT: SeletorHTML = (By.ID, "sairAplicacao")
+        LOGOUT: SeletorHTML = (By.CLASS_NAME, "logout-sucesso")
+        TEMPO_SESSAO: SeletorHTML = (By.CLASS_NAME, "tempo-sessao")
 
         class Formulario(FuncionarioCrawlerBase):
-            _rotulos_seletor = sh((
+            _rotulos_seletor: SeletorHTML = (
                 By.CSS_SELECTOR,
                 "div[role=tabpanel] ul li .MuiListItemText-primary",
-            ))
-            _valores_seletor = sh((
+            )
+            _valores_seletor: SeletorHTML = (
                 By.CSS_SELECTOR,
                 "div[role=tabpanel] ul li .MuiListItemText-secondary",
-            ))
+            )
 
-            ERRO_FUNCIONARIO = sh((
+            ERRO_FUNCIONARIO: SeletorHTML = (
                 By.CSS_SELECTOR,
                 "#mensagens-gerais div[role=alert] .MuiAlert-message",
-            ))
+            )
 
         class Lista(FuncionarioCrawlerBase):
-            _clicaveis_seletor = sh((
+            _clicaveis_seletor: SeletorHTML = (
                 By.CSS_SELECTOR,
                 "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item",
-            ))
-            _cpfs_seletor = sh((
+            )
+            _cpfs_seletor: SeletorHTML = (
                 By.CSS_SELECTOR,
                 "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item .MuiCardContent-root p:last-child",
-            ))
-            _rotulos_seletor = sh((
+            )
+            _rotulos_seletor: SeletorHTML = (
                 By.CSS_SELECTOR,
                 "div[role=tabpanel] ul li .MuiListItemText-primary",
-            ))
-            _valores_seletor = sh((
+            )
+            _valores_seletor: SeletorHTML = (
                 By.CSS_SELECTOR,
                 "div[role=tabpanel] ul li .MuiListItemText-secondary",
-            ))
+            )
 
             def __init__(self, driver: Chrome) -> None: # pylint: disable=super-init-not-called
                 esperar_estar_presente(driver, self._clicaveis_seletor)

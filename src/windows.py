@@ -9,7 +9,6 @@ from selenium.webdriver.common.by import By
 from undetected_chromedriver import Chrome
 
 from src.local.io import PastasProjeto
-from src.tipos import SeletorHTML
 from src.utils.selenium import esperar_estar_presente
 
 __all__ = ["bloquear_janela"]
@@ -30,7 +29,7 @@ def bloquear_janela(driver: Chrome) -> None:
 
     url = f"file:///{PurePath(join(PastasProjeto.assets, 'loaded.html')).as_posix()}".encode()
     driver.get(url.decode())
-    esperar_estar_presente(driver, SeletorHTML((By.ID, "paginaCarregada")))
+    esperar_estar_presente(driver, (By.ID, "paginaCarregada"))
 
     def callback(hwnd: wintypes.HWND, lParam: wintypes.LPARAM) -> wintypes.BOOL:
         """ Função que vai ser executada para cada janela do windows.
