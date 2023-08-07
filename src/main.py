@@ -1,3 +1,5 @@
+""" Entrypoint da aplicação."""
+
 import os
 import shutil
 import sys
@@ -22,6 +24,7 @@ __all__ = ["main"]
 
 
 def main() -> None:
+    """ Entrypoint da aplicação."""
     criar_pastas_de_sistema()
     while True:
         arquivos_excel: list[str] = []

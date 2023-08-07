@@ -1,3 +1,6 @@
+""" Operações relacionadas ao acesso das páginas web e processamento de planilhas que tem a ver com
+essas páginas."""
+
 from typing import Optional
 import pandas as pd
 from selenium.common.exceptions import TimeoutException
@@ -20,6 +23,10 @@ LINK_CNPJ_INPUT = "https://www.esocial.gov.br/portal/Home/Index?trocarPerfil=tru
 
 
 def carregar_pagina_ate_acessar_perfil(driver: Chrome) -> None:
+    """ Interage com os elementos corretos até chegar na página de acesso perfil com base no CNPJ.
+
+    :param driver: Webdriver ativo na hora do acesso.
+    """
     driver.get(LINK_PRINCIPAL)
     clicar(driver, Caminhos.ESocial.BOTAO_LOGIN)
     clicar(driver, Caminhos.Govbr.SELECIONAR_CERTIFICADO)
@@ -27,6 +34,12 @@ def carregar_pagina_ate_acessar_perfil(driver: Chrome) -> None:
 
 
 def acessar_perfil(driver: Chrome, CNPJ: str) -> None:
+    """ Interage com os elementos corretos para entrar com os dados e acessar o perfil da empresa com
+    base no CNPJ.
+
+    :param driver: Webdriver ativo na hora do acesso.
+    :param CNPJ: CNPJ da empresa cujo perfil deve ser acessado.
+    """
     clicar(driver, Caminhos.ESocial.ACESSAR_PERFIL)
     apertar_teclas(driver, Keys.DOWN, Keys.DOWN, Keys.ENTER)
 
@@ -39,6 +52,12 @@ def acessar_perfil(driver: Chrome, CNPJ: str) -> None:
 
 
 def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
+    """ Entra com os dados do CPF do funcionário quando a forma de pesquisa de funcionários é o
+    formulário.
+
+    :param driver: Webdriver ativo na hora do acesso.
+    :param CPF: CPF do funcionário com ou sem pontuação.
+    """
     escrever(driver, Caminhos.ESocial.CPF_EMPREGADO_INPUT, Keys.CONTROL + "a", Keys.DELETE)
     escrever(driver, Caminhos.ESocial.CPF_EMPREGADO_INPUT, CPF)
     if ocorreu_erro_funcionario(driver):
@@ -47,6 +66,15 @@ def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
 
 
 def raspar_dados(tabela: pd.DataFrame, registro: RegistroCPF, crawler: FuncionarioCrawlerBase) -> None:
+    """ Pega os dados do funcionário utilizando a instância do crawler especificado e posiciona os
+    dados encontrados na tabela utilizando a posição do CPF relativo a posição dos dados raspados na
+    planilha.
+
+    :param tabela: Dataframe que representa a planilha que será mudada.
+    :param registro: Dados do CPF (como posição dele na planilha).
+    :param crawler: Instância do crawler correto para raspar os dados do funcionário na página.
+    :raises DadoNaoEncontrado: Quando o dado que você está tentando acessar não existe na pagina.
+    """
     tabela[ColunaPlanilha.SITUACAO][registro.linha] = crawler.SITUACAO
     tabela[ColunaPlanilha.ADMISSAO][registro.linha] = crawler.ADMISSAO
     tabela[ColunaPlanilha.NASCIMENTO][registro.linha] = crawler.NASCIMENTO
@@ -62,7 +90,14 @@ def raspar_dados(tabela: pd.DataFrame, registro: RegistroCPF, crawler: Funcionar
 
 
 def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.DataFrame:
+    """ Inicializa o webdriver, acessa a página de raspagem e raspa os dados.
+
+    :param funcionarios: Registro de CPNJs e CPFs.
+    :param tabela: Representação da planilha.
+    :return: Nova planilha com dados mudados.
+    """
     def apenas_digitos(texto: str) -> str:
+        """ Remove todos os caracteres que não sao números de um texto."""
         return "".join([s for s in texto if s in digits])
 
     cnpj_index = Int(0)
