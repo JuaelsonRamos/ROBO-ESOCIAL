@@ -1,0 +1,98 @@
+[build-system]
+requires = ["setuptools ~= 58.0", "cython ~= 3.0.0"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+safe = true
+include = '\.py$'
+workers = 3
+
+[tool.isort]
+profile = "black"
+
+[tool.docformatter]
+# black opts modificadas
+pre-summary-space = true
+wrap-descriptions = 100
+wrap-summaries = 100
+# outras
+in-place = true
+recursive = false
+style = "sphinx"
+
+[tool.autoflake]
+jobs = "3"
+in-place = true
+remove-all-unused-imports = true
+ignore-init-module-imports = true
+remove-unused-variables = true
+ignore-pass-statements = false
+ignore-pass-after-docstring = true
+
+[tool.bandit]
+exclude_dirs = [
+  "installer/build",
+  ".venv",
+  ".venv-dist",
+  "build",
+  "build_cython",
+  "dist"
+]
+targets = [
+  "src",
+  "installer"
+]
+
+# Aviso para futuras modificações:
+#   No pylint seções de configuração são puramente uma ferramenta
+#   de organização de opções. Por debaixo dos panos ele transforma
+#   todas em argumentos de linha de comando. Portanto, colocar
+#   "enable=all" em uma seção que vem depois de "disable=invalid-name"
+#   vai anular o "disable" completamente. Nenhuma opção está restringida
+#   a nenhuma seção.
+[tool.pylint.main]
+max-line-length = 100
+load-plugins = [
+  "pylint.extensions.empty_comment",
+  "pylint.extensions.eq_without_hash",
+  "pylint.extensions.private_import",
+  "pylint.extensions.docparams"
+]
+
+[tool.pylint."messages control"]
+disable = [
+  "line-too-long",
+  "invalid-name",
+  "consider-using-enumerate",
+  "not-an-iterable",
+  "wrong-import-order",
+  "wrong-import-position"
+]
+
+[tool.pyright]
+pythonVersion = "3.11"
+pythonPlatform = "Windows"
+typeCheckingMode = "strict"
+useLibraryCodeForTypes = true
+exclude = [
+  "**/.venv*/",
+  "**/build*/",
+  "**/dist/",
+  "./*.py"
+]
+include = [
+  "src/",
+  "installer/"
+]
+# Bibliotecas importantes estão apenas parcialmente ou totalmente sem tipos.
+# Alguns desses avisos são importantes, mas em bao parte da codebase, inevitáveis, infelizmente.
+# Mensagens específicas:
+reportMissingTypeStubs = "none"
+reportWildcardImportFromLibrary = "none"
+reportIncompleteStub = "warning"
+reportUnnecessaryIsInstance = "none"
+reportUnnecessaryCast = "none"
+reportUnnecessaryContains = "none"
+reportUnnecessaryComparison = "none"
+reportUnknownMemberType = "none"

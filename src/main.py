@@ -1,37 +1,42 @@
+""" Entrypoint da aplicação."""
+
 import os
-from pathlib import Path
-import time
-import sys
-from os.path import basename, join, isdir
-from tkinter import messagebox
 import shutil
+import sys
+import time
+from os.path import basename, isdir, join
+from pathlib import Path
+from tkinter import messagebox
+
 import pandas as pd
-from undetected_chromedriver import Chrome
-from selenium.webdriver.chrome.service import Service
+from typing import Iterable, Any, cast
 
-from planilha import registro_de_dados_relevantes, DELTA, ColunaPlanilha
-from acesso import processar_planilha
-from local.io import criar_pastas_de_sistema, PastasSistema
+from src.acesso import processar_planilha
+from src.local.io import PastasSistema, criar_pastas_de_sistema
+from src.planilha import (
+    DELTA,
+    ColunaPlanilha,
+    checar_cpfs_cnpjs,
+    registro_de_dados_relevantes,
+)
 
+__all__ = ["main"]
 
-# TODO limitar seleção de planilhas a uma pasta espcífica (C:\\PLANILHAS_SISTEMAS)
-# TODO checar erro caso cnpj não tenha procuração
-# TODO interagir com páginas apenas se carregada (função acima)
-# TODO identificar se falta pouco tempo para o ESOCIAL deslogar; se sim, desloga e loga antes de continuar
-# TODO trocar time.sleep por uma forma de idetificar se a página carregou completamente
 
 def main() -> None:
+    """ Entrypoint da aplicação."""
     criar_pastas_de_sistema()
     while True:
         arquivos_excel: list[str] = []
         arquivos_nao_excel: list[str] = []
         with os.scandir(PastasSistema.input) as arquivos:
             for arquivo in arquivos:
-                if arquivo.is_dir() or (not Path(arquivo.path).suffix in ('.xlsx', '.xls')):
+                if arquivo.is_dir() or Path(arquivo.path).suffix not in (".xlsx", ".xls"):
                     arquivos_nao_excel.append(arquivo.path)
                     continue
                 # arquivo temporário de criado quando a planilha é aberta
-                if basename(arquivo.path).startswith("~$"): continue
+                if basename(arquivo.path).startswith("~$"):
+                    continue
                 arquivos_excel.append(arquivo.path)
 
         # se não encontrar nenhum arquivo, espere 2 minutos e cheque de novo
@@ -41,37 +46,45 @@ def main() -> None:
 
         for caminho_arquivo_excel in arquivos_excel:
             tabela = None
-            if Path(caminho_arquivo_excel).suffix == '.xls':
-                tabela = pd.read_excel(caminho_arquivo_excel, header=None, engine='xlrd')
+            if Path(caminho_arquivo_excel).suffix == ".xls":
+                tabela = pd.read_excel(caminho_arquivo_excel, header=None, engine="xlrd")
             else:
-                tabela = pd.read_excel(caminho_arquivo_excel, header=None, engine='openpyxl')
-            
-            coluna_cnpj_unidade = tabela.iloc[DELTA:, ColunaPlanilha.CNPJ_UNIDADE].values
-            coluna_cnpj = tabela.iloc[DELTA:, ColunaPlanilha.CNPJ].values
-            coluna_cpf = tabela.iloc[DELTA:, ColunaPlanilha.CPF].values
+                tabela = pd.read_excel(caminho_arquivo_excel, header=None, engine="openpyxl")
 
-            if len(coluna_cnpj_unidade) != len(coluna_cpf):
-                raise ValueError(f"Não há a 1 cnpj para cada cpf, {len(coluna_cnpj_unidade)} cnpjs para {len(coluna_cpf)} cpfs.")
+            coluna_cnpj_unidade = cast(Iterable[Any], tabela.iloc[DELTA:, ColunaPlanilha.CNPJ_UNIDADE].values)
+            coluna_cnpj = cast(Iterable[Any], tabela.iloc[DELTA:, ColunaPlanilha.CNPJ].values)
+            coluna_cpf = cast(Iterable[Any], tabela.iloc[DELTA:, ColunaPlanilha.CPF].values)
 
-            # funcionarios = filtrar_cpfs_apenas_matriz(coluna_cnpj_unidade, coluna_cpf)
-            funcionarios = registro_de_dados_relevantes(coluna_cnpj_unidade, coluna_cnpj, coluna_cpf)
+            checar_cpfs_cnpjs(coluna_cpf, coluna_cnpj, coluna_cnpj_unidade)
+
+            funcionarios = registro_de_dados_relevantes(
+                coluna_cnpj_unidade, coluna_cnpj, coluna_cpf
+            )
 
             nova_tabela = processar_planilha(funcionarios, tabela)
-            # TODO enviar notificação após terminar de processar a planilha
             while True:
                 try:
-                    nova_tabela.to_excel(join(PastasSistema.output, basename(caminho_arquivo_excel)),
-                                        index=False, header=False, engine='openpyxl')
-                    shutil.move(src=caminho_arquivo_excel,
-                                dst=join(PastasSistema.pronto, basename(caminho_arquivo_excel)))
+                    nova_tabela.to_excel(
+                        join(PastasSistema.output, basename(caminho_arquivo_excel)),
+                        index=False,
+                        header=False,
+                        engine="openpyxl",
+                    )
+                    shutil.move(
+                        src=caminho_arquivo_excel,
+                        dst=join(PastasSistema.pronto, basename(caminho_arquivo_excel)),
+                    )
                     break
                 except PermissionError:
                     mensagem_popup = messagebox.askretrycancel(
                         "Permissão negada!",
-                        "Não foi possível salvar o arquivo, pois, o programa não tem permissões o suficiente. Isso também ocorre quando o arquivo já esta aberto em outro programa no momento do salvamento. Feche-o e tente novamente, ou clique em CANCELAR para abortar a execução do programa.")
+                        "Não foi possível salvar o arquivo, pois, o programa não tem permissões o suficiente. Isso também ocorre quando o arquivo já esta aberto em outro programa no momento do salvamento. Feche-o e tente novamente, ou clique em CANCELAR para abortar a execução do programa.",
+                    )
                     # se o usuario clicar em REPETIR
-                    if mensagem_popup: continue
-                    else: sys.exit(1)
+                    if mensagem_popup:
+                        continue
+                    else:
+                        sys.exit(1)
                 except FileNotFoundError:
                     break
 
@@ -79,16 +92,18 @@ def main() -> None:
             for caminho in arquivos_nao_excel:
                 while True:
                     try:
-                        # TODO renomear arquivo de saída caso um com o mesmo nome já exista
                         if isdir(caminho):
                             shutil.move(src=caminho, dst=PastasSistema.nao_excel)
                         else:
-                            shutil.move(src=caminho, dst=join(PastasSistema.nao_excel, basename(caminho)))
+                            shutil.move(
+                                src=caminho, dst=join(PastasSistema.nao_excel, basename(caminho))
+                            )
                         break
                     except PermissionError:
                         mensagem_popup = messagebox.askyesnocancel(
                             "Tentando mover arquivo irrelevante!",
-                            f"Arquivo Excel salvo! Porém, arquivos e pastas irrelevantes foram encontradas em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {caminho} está aberto em outro programa. Clique SIM para pular a moção dos arquivos restantes; NÃO para tentar mover novamente o arquivo citado; e CANCELAR para abortar a execução do programa.")
+                            f"Arquivo Excel salvo! Porém, arquivos e pastas irrelevantes foram encontradas em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {caminho} está aberto em outro programa. Clique SIM para pular a moção dos arquivos restantes; NÃO para tentar mover novamente o arquivo citado; e CANCELAR para abortar a execução do programa.".encode().decode(),
+                        )
                         if mensagem_popup is None:
                             sys.exit(1)
                         elif mensagem_popup:
@@ -98,11 +113,9 @@ def main() -> None:
                             continue
                     except FileNotFoundError:
                         break
-                if pular: break
+                if pular:
+                    break
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
-    
-
-
-    
