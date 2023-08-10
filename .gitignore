@@ -167,3 +167,6 @@ build_cython/
 
 # installer build
 installer/build/
+
+# arquivos compactados
+*.zip

@@ -1,10 +1,4 @@
-undetected-chromedriver == 3.5.*
-# selenium == 4.9.*
-pandas == 2.0.*
-xlrd == 2.0.*
-openpyxl == 3.1.*
-Unidecode
-cython == 3.0.*
+-r "dist-requirements.txt"
 black == 23.7.*
 isort == 5.12.*
 autoflake == 2.2.*

@@ -1,3 +1,7 @@
+""" Configuração de compilação e instalação do código fonte como pacote."""
+
+# pylint: disable=all
+
 from glob import glob
 from os.path import abspath, relpath
 from pathlib import PurePath
@@ -7,20 +11,16 @@ from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 from setuptools import Extension, setup
 
+__all__ = ["get_extensions"]
+
 
 def get_extensions(files: List[str], project_root: str) -> List[Extension]:
     extensions = []
     for file in files:
         relative = PurePath(relpath(file, project_root))
-        if relative.stem == "__init__":
-            parts = relative.parent.parts
-            if len(parts) == 1:  # apenas "src", por exemplo
-                continue
-            extensions.append(Extension(".".join(parts), [file]))
-        else:
-            extensions.append(
-                Extension(".".join(relative.parent.joinpath(relative.stem).parts), [file])
-            )
+        extensions.append(
+            Extension(".".join(relative.parent.joinpath(relative.stem).parts), [file])
+        )
     return extensions
 
 

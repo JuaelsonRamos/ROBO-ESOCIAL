@@ -67,6 +67,7 @@ disable = [
   "consider-using-enumerate",
   "not-an-iterable",
   "wrong-import-order",
+  "wrong-import-position"
 ]
 
 [tool.pyright]
@@ -78,11 +79,11 @@ exclude = [
   "**/.venv*/",
   "**/build*/",
   "**/dist/",
+  "./*.py"
 ]
 include = [
   "src/",
-  "installer/",
-  "."
+  "installer/"
 ]
 # Bibliotecas importantes estão apenas parcialmente ou totalmente sem tipos.
 # Alguns desses avisos são importantes, mas em bao parte da codebase, inevitáveis, infelizmente.

@@ -2,7 +2,6 @@
 code base."""
 
 from typing import NewType, Tuple, TypeAlias
-import cython
 
 __all__ = ["CelulaVazia", "CelulaVaziaType", "Float", "Int", "SeletorHTML"]
 
@@ -11,5 +10,5 @@ CelulaVaziaType = NewType("CelulaVaziaType", float)
 CelulaVazia: CelulaVaziaType = CelulaVaziaType(float("nan"))
 
 # Tipos do cython são definidos na hora da compilação
-Int = NewType("Int", cython.long)  # pylint: disable=no-member # type: ignore
-Float = NewType("Float", cython.double)  # pylint: disable=no-member # type: ignore
+Int = NewType("Int", int)
+Float = NewType("Float", float)
