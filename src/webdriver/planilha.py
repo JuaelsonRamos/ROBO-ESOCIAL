@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from math import isnan
 from string import ascii_letters
 from typing import Any, Iterable, List, Dict
-from src.tipos import Int
+from src.webdriver.tipos import Int
 
 __all__ = ["ColunaPlanilha", "DELTA", "RegistroCPF", "RegistroDados", "celulas_preenchidas", "checar_cpfs_cnpjs", "filtrar_cpfs_apenas_matriz", "letra_para_numero_coluna", "registro_de_dados_relevantes"]
 

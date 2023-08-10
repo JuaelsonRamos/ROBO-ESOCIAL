@@ -12,12 +12,12 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 
-import src.windows as windows
-from src.caminhos import Caminhos
-from src.erros import ESocialDeslogadoError
-from src.utils.python import DEBUG
-from src.utils.selenium import esperar_estar_presente
-from src.tipos import Int
+import src.webdriver.windows as windows
+from src.webdriver.caminhos import Caminhos
+from src.webdriver.erros import ESocialDeslogadoError
+from src.webdriver.utils.python import DEBUG
+from src.webdriver.utils.selenium import esperar_estar_presente
+from src.webdriver.tipos import Int
 
 __all__ = ["deslogado", "inicializar_driver", "ocorreu_erro_funcionario", "segundos_restantes_de_sessao", "teste_deslogado"]
 

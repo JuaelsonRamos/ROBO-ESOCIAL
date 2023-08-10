@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 
-from src.tipos import SeletorHTML, Float
+from src.webdriver.tipos import SeletorHTML, Float
 
 __all__ = ["TIMEOUT_SECS", "apertar_teclas", "clicar", "escrever", "esperar_estar_presente", "pegar_text"]
 

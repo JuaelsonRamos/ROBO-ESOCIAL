@@ -32,5 +32,5 @@ class PastasProjeto:
 
     :final:
     """
-    root: str = abspath(join(dirname(__file__), "..", ".."))
+    root: str = abspath(join(dirname(__file__), "..", "..", ".."))
     assets: str = join(root, "assets")

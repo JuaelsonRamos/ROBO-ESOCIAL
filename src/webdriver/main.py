@@ -11,9 +11,9 @@ from tkinter import messagebox
 import pandas as pd
 from typing import Iterable, Any, cast
 
-from src.acesso import processar_planilha
-from src.local.io import PastasSistema, criar_pastas_de_sistema
-from src.planilha import (
+from src.webdriver.acesso import processar_planilha
+from src.webdriver.local.io import PastasSistema, criar_pastas_de_sistema
+from src.webdriver.planilha import (
     DELTA,
     ColunaPlanilha,
     checar_cpfs_cnpjs,

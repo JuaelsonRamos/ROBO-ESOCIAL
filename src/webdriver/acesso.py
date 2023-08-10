@@ -8,13 +8,13 @@ from selenium.webdriver.common.keys import Keys
 from undetected_chromedriver import Chrome
 from string import digits
 
-from src.caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
-from src.erros import FuncionarioNaoEncontradoError
-from src.planilha import ColunaPlanilha, RegistroCPF, RegistroDados
-from src.tipos import CelulaVazia, Int, Float
-from src.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado
-from src.utils.selenium import clicar, apertar_teclas, escrever
-from src.erros import ESocialDeslogadoError
+from src.webdriver.caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
+from src.webdriver.erros import FuncionarioNaoEncontradoError
+from src.webdriver.planilha import ColunaPlanilha, RegistroCPF, RegistroDados
+from src.webdriver.tipos import CelulaVazia, Int, Float
+from src.webdriver.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado
+from src.webdriver.utils.selenium import clicar, apertar_teclas, escrever
+from src.webdriver.erros import ESocialDeslogadoError
 
 __all__ = ["LINK_CNPJ_INPUT", "LINK_PRINCIPAL", "acessar_perfil", "carregar_pagina_ate_acessar_perfil", "entrar_com_cpf", "processar_planilha", "raspar_dados"]
 

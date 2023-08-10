@@ -8,8 +8,8 @@ from pathlib import PurePath
 from selenium.webdriver.common.by import By
 from undetected_chromedriver import Chrome
 
-from src.local.io import PastasProjeto
-from src.utils.selenium import esperar_estar_presente
+from src.webdriver.local.io import PastasProjeto
+from src.webdriver.utils.selenium import esperar_estar_presente
 
 __all__ = ["bloquear_janela"]
 
