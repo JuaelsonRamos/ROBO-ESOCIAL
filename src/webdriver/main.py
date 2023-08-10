@@ -115,7 +115,3 @@ def main() -> None:
                         break
                 if pular:
                     break
-
-
-if __name__ == "__main__":
-    main()
