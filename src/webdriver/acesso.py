@@ -1,7 +1,7 @@
-""" Operações relacionadas ao acesso das páginas web e processamento de planilhas que tem a ver com
+"""Operações relacionadas ao acesso das páginas web e processamento de planilhas que tem a ver com
 essas páginas."""
 
-from typing import Optional
+from typing import Optional, Set
 import pandas as pd
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
@@ -114,6 +114,7 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
     cnpj_index = Int(0)
     cpf_index = Int(0)
     logout_timeout = Int(10)
+    cpfs_ja_vistos: Set[str] = set()
     while True:  # emulando um GOTO da vida
         driver: Optional[Chrome] = None
         try:
@@ -139,13 +140,18 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                     for cpf in crawler.proximo_funcionario():
                         generator = (r for r in funcionarios.CPF_lista if r.CPF == cpf)
                         for registro in generator:
+                            if registro.CPF in cpfs_ja_vistos:
+                                continue
                             raspar_dados(tabela, registro, crawler)
+                            cpfs_ja_vistos.add(registro.CPF)
                     continue
 
                 # else: assumir formulário
                 for j in range(cpf_index, len(funcionarios.CPF_lista)):
                     cpf_index = j
                     registro = funcionarios.CPF_lista[j]
+                    if registro.CPF in cpfs_ja_vistos:
+                        continue
                     CPF = apenas_digitos(registro.CPF)
 
                     try:
@@ -157,6 +163,7 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
 
                     crawler = Caminhos.ESocial.Formulario(driver)
                     raspar_dados(tabela, registro, crawler)
+                    cpfs_ja_vistos.add(registro.CPF)
         except (ESocialDeslogadoError, TimeoutException):
             # Capturando TimeoutException para caso a pagina carregue tanto que
             # exceda o tempo de espera para as operações de clicar, escrever, etc.
