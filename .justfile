@@ -11,7 +11,7 @@ export PYTHONPATH := `(Get-Item .).FullName` + "src;"
 run:
   #! powershell.exe
   . ./.venv/Scripts/Activate.ps1
-  python ./src/main.py
+  python ./installer/entrypoint.py
 
 docs +FLAGS="":
   #! powershell.exe

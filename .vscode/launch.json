@@ -5,7 +5,7 @@
       "name": "Programa principal",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/src/main.py",
+      "program": "${workspaceFolder}/installer/entrypoint.py",
       "console": "internalConsole",
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src;${env:PYTHONPATH}"
