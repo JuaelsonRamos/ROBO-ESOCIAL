@@ -15,6 +15,7 @@ from src.webdriver.queues import (
     planilhas_para_depois,
 )
 from src.webdriver.tipos import PlanilhaPronta, Int
+from src.webdriver.utils.python import string_multilinha
 
 __all__ = [
     "PastasProjeto",
@@ -75,7 +76,12 @@ async def remover_arquivos_nao_excel() -> None:
             except PermissionError:
                 mensagem_popup: bool = messagebox.askretrycancel(
                     "Tentando mover arquivo irrelevante!",
-                    f"Arquivo Excel salvo! Porém, arquivos e pastas irrelevantes foram encontradas em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {caminho} está aberto em outro programa. Clique REPETIR para tentar novamente ou CANCELAR para pular este arquivo.".encode().decode(),
+                    string_multilinha(f"""
+                    Arquivo Excel salvo! Porém, arquivos e pastas irrelevantes foram encontradas
+                    em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {caminho}
+                    está aberto em outro programa. Clique REPETIR para tentar novamente ou CANCELAR
+                    para pular este arquivo.
+                    """.encode().decode()),
                 )
                 if mensagem_popup:
                     continue
@@ -152,7 +158,12 @@ async def salvar_planilha_pronta() -> None:
             except PermissionError:
                 mensagem_popup = messagebox.askretrycancel(
                     "Permissão negada!",
-                    "Não foi possível salvar o arquivo, pois, o programa não tem permissões o suficiente. Isso também ocorre quando o arquivo já está aberto em outro programa no momento do salvamento. Feche-o e tente novamente ou clique CANCELAR para tentar mais tarde.",
+                    string_multilinha("""
+                    Não foi possível salvar o arquivo, pois, o programa não tem permissões o
+                    suficiente. Isso também ocorre quando o arquivo já está aberto em outro
+                    programa no momento do salvamento. Feche-o e tente novamente ou clique
+                    CANCELAR para tentar mais tarde.
+                    """),
                 )
                 if mensagem_popup:
                     continue
