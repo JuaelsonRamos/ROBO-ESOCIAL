@@ -68,7 +68,8 @@ disable = [
   "not-an-iterable",
   "wrong-import-order",
   "wrong-import-position",
-  "pointless-string-statement" # para docstrings de variaveis
+  "pointless-string-statement", # para docstrings de variaveis
+  "consider-using-f-string"
 ]
 
 [tool.pyright]

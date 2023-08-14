@@ -17,6 +17,9 @@
       "type": "python",
       "request": "launch",
       "program": "${file}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src;${env:PYTHONPATH}"
+      },
       "justMyCode": true
     }
   ]
