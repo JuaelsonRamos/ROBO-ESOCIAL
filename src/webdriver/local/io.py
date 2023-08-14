@@ -86,6 +86,7 @@ async def remover_arquivos_nao_excel() -> None:
             else:
                 break
 
+
 async def buscar_planilhas() -> None:
     """Busca planilhas na pasta de planilhas e: as adiciona à fila de processamento ou espera 2 minutos antes de checar novamente caso não haja nenhuma."""
     asyncio.create_task(remover_arquivos_nao_excel())
@@ -126,6 +127,7 @@ async def aguardar_antes_de_salvar() -> None:
 
     while True:
         asyncio.create_task(aguardar(await planilhas_para_depois.get()))
+
 
 async def salvar_planilha_pronta() -> None:
     """Espera planilhas ficarem prontas e as salva.

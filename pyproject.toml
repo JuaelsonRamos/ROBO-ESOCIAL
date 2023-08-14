@@ -13,7 +13,7 @@ profile = "black"
 
 [tool.docformatter]
 # black opts modificadas
-pre-summary-space = true
+pre-summary-space = false
 wrap-descriptions = 100
 wrap-summaries = 100
 # outras
@@ -67,7 +67,8 @@ disable = [
   "consider-using-enumerate",
   "not-an-iterable",
   "wrong-import-order",
-  "wrong-import-position"
+  "wrong-import-position",
+  "pointless-string-statement" # para docstrings de variaveis
 ]
 
 [tool.pyright]

@@ -11,19 +11,27 @@ from string import digits
 from src.webdriver.caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
 from src.webdriver.erros import FuncionarioNaoEncontradoError
 from src.webdriver.planilha import ColunaPlanilha, RegistroCPF, RegistroDados
-from src.webdriver.tipos import CelulaVazia, Int, Float
+from src.webdriver.tipos import CelulaVazia, Int
 from src.webdriver.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado
 from src.webdriver.utils.selenium import clicar, apertar_teclas, escrever
 from src.webdriver.erros import ESocialDeslogadoError
 
-__all__ = ["LINK_CNPJ_INPUT", "LINK_PRINCIPAL", "acessar_perfil", "carregar_pagina_ate_acessar_perfil", "entrar_com_cpf", "processar_planilha", "raspar_dados"]
+__all__ = [
+    "LINK_CNPJ_INPUT",
+    "LINK_PRINCIPAL",
+    "acessar_perfil",
+    "carregar_pagina_ate_acessar_perfil",
+    "entrar_com_cpf",
+    "processar_planilha",
+    "raspar_dados",
+]
 
 LINK_PRINCIPAL = "https://login.esocial.gov.br/login.aspx"
 LINK_CNPJ_INPUT = "https://www.esocial.gov.br/portal/Home/Index?trocarPerfil=true"
 
 
 def carregar_pagina_ate_acessar_perfil(driver: Chrome) -> None:
-    """ Interage com os elementos corretos até chegar na página de acesso perfil com base no CNPJ.
+    """Interage com os elementos corretos até chegar na página de acesso perfil com base no CNPJ.
 
     :param driver: Webdriver ativo na hora do acesso.
     """
@@ -34,7 +42,7 @@ def carregar_pagina_ate_acessar_perfil(driver: Chrome) -> None:
 
 
 def acessar_perfil(driver: Chrome, CNPJ: str) -> None:
-    """ Interage com os elementos corretos para entrar com os dados e acessar o perfil da empresa com
+    """Interage com os elementos corretos para entrar com os dados e acessar o perfil da empresa com
     base no CNPJ.
 
     :param driver: Webdriver ativo na hora do acesso.
@@ -52,7 +60,7 @@ def acessar_perfil(driver: Chrome, CNPJ: str) -> None:
 
 
 def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
-    """ Entra com os dados do CPF do funcionário quando a forma de pesquisa de funcionários é o
+    """Entra com os dados do CPF do funcionário quando a forma de pesquisa de funcionários é o
     formulário.
 
     :param driver: Webdriver ativo na hora do acesso.
@@ -65,8 +73,10 @@ def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
     apertar_teclas(driver, Keys.ENTER)
 
 
-def raspar_dados(tabela: pd.DataFrame, registro: RegistroCPF, crawler: FuncionarioCrawlerBase) -> None:
-    """ Pega os dados do funcionário utilizando a instância do crawler especificado e posiciona os
+def raspar_dados(
+    tabela: pd.DataFrame, registro: RegistroCPF, crawler: FuncionarioCrawlerBase
+) -> None:
+    """Pega os dados do funcionário utilizando a instância do crawler especificado e posiciona os
     dados encontrados na tabela utilizando a posição do CPF relativo a posição dos dados raspados na
     planilha.
 
@@ -90,19 +100,20 @@ def raspar_dados(tabela: pd.DataFrame, registro: RegistroCPF, crawler: Funcionar
 
 
 def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.DataFrame:
-    """ Inicializa o webdriver, acessa a página de raspagem e raspa os dados.
+    """Inicializa o webdriver, acessa a página de raspagem e raspa os dados.
 
     :param funcionarios: Registro de CPNJs e CPFs.
     :param tabela: Representação da planilha.
     :return: Nova planilha com dados mudados.
     """
+
     def apenas_digitos(texto: str) -> str:
-        """ Remove todos os caracteres que não sao números de um texto."""
+        """Remove todos os caracteres que não sao números de um texto."""
         return "".join([s for s in texto if s in digits])
 
     cnpj_index = Int(0)
     cpf_index = Int(0)
-    logout_timeout = Float(10.0)
+    logout_timeout = Int(10)
     while True:  # emulando um GOTO da vida
         driver: Optional[Chrome] = None
         try:

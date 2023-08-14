@@ -9,14 +9,21 @@ from undetected_chromedriver import Chrome
 
 from src.webdriver.tipos import SeletorHTML, Float
 
-__all__ = ["TIMEOUT_SECS", "apertar_teclas", "clicar", "escrever", "esperar_estar_presente", "pegar_text"]
+__all__ = [
+    "TIMEOUT_SECS",
+    "apertar_teclas",
+    "clicar",
+    "escrever",
+    "esperar_estar_presente",
+    "pegar_text",
+]
 
 TIMEOUT_SECS = Float(120.0)
 """ Segundos para esperar antes de assumir que a página demorou demais para carregar."""
 
 
 def clicar(driver: Chrome, locator: SeletorHTML) -> None:
-    """ Espera o elemento estar disponível e clica nele.
+    """Espera o elemento estar disponível e clica nele.
 
     :param driver: Webdriver ativo no momento do clique.
     :param locator: Seletor que representa o elemento HTML que deve ser clicado.
@@ -26,7 +33,7 @@ def clicar(driver: Chrome, locator: SeletorHTML) -> None:
 
 
 def escrever(driver: Chrome, locator: SeletorHTML, *teclas: str) -> None:
-    """ Espera o elemento estar disponível e escreve nele.
+    """Espera o elemento estar disponível e escreve nele.
 
     :param driver: Webdriver ativo no momento do clique.
     :param locator: Seletor que representa o elemento HTML que deve ser clicado.
@@ -37,7 +44,7 @@ def escrever(driver: Chrome, locator: SeletorHTML, *teclas: str) -> None:
 
 
 def esperar_estar_presente(driver: Chrome, locator: SeletorHTML) -> None:
-    """ Espera um elemento HTML estar presente na página.
+    """Espera um elemento HTML estar presente na página.
 
     :param driver: Webdriver ativo no momento do clique.
     :param locator: Seletor que representa o elemento HTML que deve ser clicado.
@@ -46,7 +53,7 @@ def esperar_estar_presente(driver: Chrome, locator: SeletorHTML) -> None:
 
 
 def pegar_text(driver: Chrome, locator: SeletorHTML) -> str:
-    """ Espera um elemento estar presente na página e retorna o texto dentro dele.
+    """Espera um elemento estar presente na página e retorna o texto dentro dele.
 
     :param driver: Webdriver ativo no momento do clique.
     :param locator: Seletor que representa o elemento HTML que deve ser clicado.
@@ -57,7 +64,7 @@ def pegar_text(driver: Chrome, locator: SeletorHTML) -> str:
 
 
 def apertar_teclas(driver: Chrome, *teclas: str) -> None:
-    """ Tecla uma série de teclas.
+    """Tecla uma série de teclas.
 
     :param driver: Webdriver ativo no momento do clique.
     :param teclas: Lista de teclas a serem tecladas.

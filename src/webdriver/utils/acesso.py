@@ -19,10 +19,17 @@ from src.webdriver.utils.python import DEBUG
 from src.webdriver.utils.selenium import esperar_estar_presente
 from src.webdriver.tipos import Int
 
-__all__ = ["deslogado", "inicializar_driver", "ocorreu_erro_funcionario", "segundos_restantes_de_sessao", "teste_deslogado"]
+__all__ = [
+    "deslogado",
+    "inicializar_driver",
+    "ocorreu_erro_funcionario",
+    "segundos_restantes_de_sessao",
+    "teste_deslogado",
+]
+
 
 def deslogado(driver: Chrome, timeout: Int) -> bool:
-    """ Testa se o elemento da mensagem de logout do ESocial aparece dentro do limite de tempo
+    """Testa se o elemento da mensagem de logout do ESocial aparece dentro do limite de tempo
     especificado.
 
     :param driver: Webdriver ativo no hora da checagem.
@@ -40,7 +47,7 @@ def deslogado(driver: Chrome, timeout: Int) -> bool:
 
 
 def segundos_restantes_de_sessao(driver: Chrome) -> Int:
-    """ Retorna a quantidade de segundos restantes antes da sessão acabar ou um número absurdamente
+    """Retorna a quantidade de segundos restantes antes da sessão acabar ou um número absurdamente
     alto se algum erro acontecer.
 
     :param driver: Webdriver ativo no momento da checagem.
@@ -56,7 +63,7 @@ def segundos_restantes_de_sessao(driver: Chrome) -> Int:
 
 
 def inicializar_driver() -> Chrome:
-    """ Inicializa o webdriver com as opções e características necessárias.
+    """Inicializa o webdriver com as opções e características necessárias.
 
     :return: Instância do webdriver.
     """
@@ -68,7 +75,7 @@ def inicializar_driver() -> Chrome:
 
 
 def teste_deslogado(driver: Chrome, timeout: Int) -> None:
-    """ Testa se o ESocial for deslogado ao checar o tempo restante de sessão e a mensagem de logout.
+    """Testa se o ESocial for deslogado ao checar o tempo restante de sessão e a mensagem de logout.
 
     :param driver: Webdriver ativo na hora do teste.
     :param timeout: Tempo limite de espera antes de assumir que a mensagem não existe.
@@ -78,7 +85,7 @@ def teste_deslogado(driver: Chrome, timeout: Int) -> None:
 
 
 def ocorreu_erro_funcionario(driver: Chrome) -> bool:
-    """ Checa se algum erro relacionado ao funcionário ocorreu.
+    """Checa se algum erro relacionado ao funcionário ocorreu.
 
     :param driver: Webdriver ativo na hora da checagem.
     :return: Se o erro ocorreu ou não.
@@ -99,7 +106,7 @@ def ocorreu_erro_funcionario(driver: Chrome) -> bool:
     #         return True
 
     def resultado_cpf_encontrado() -> bool:
-        """ Checa se algum resultado na pesquisa do CPF no formulário foi encontrado.
+        """Checa se algum resultado na pesquisa do CPF no formulário foi encontrado.
 
         :return: Se algum resultado foi encontrado.
         """

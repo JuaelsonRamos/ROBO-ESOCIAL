@@ -3,9 +3,10 @@ circulares."""
 
 __all__ = ["ESocialDeslogadoError", "FuncionarioNaoEncontradoError"]
 
+
 class FuncionarioNaoEncontradoError(Exception):
-    """ Erro para quando os dados do funcionário não são encontrados ou não carregam a tempo."""
+    """Erro para quando os dados do funcionário não são encontrados ou não carregam a tempo."""
 
 
 class ESocialDeslogadoError(Exception):
-    """ Erro para quando o site do ESocial é deslogado por quaisquer motivos."""
+    """Erro para quando o site do ESocial é deslogado por quaisquer motivos."""

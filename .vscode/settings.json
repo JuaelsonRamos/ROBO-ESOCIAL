@@ -16,6 +16,10 @@
       }
     ]
   },
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true
+  },
   "pylint.importStrategy":"fromEnvironment",
   "python.analysis.typeCheckingMode": "strict"
 }
