@@ -1,4 +1,7 @@
+"""Entrypoint do executável."""
+
+import asyncio
 from src import app
 
 if __name__ == "__main__":
-    app()
+    asyncio.run(app())
