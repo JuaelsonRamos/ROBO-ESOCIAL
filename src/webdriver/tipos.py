@@ -11,9 +11,14 @@ SeletorHTML: TypeAlias = Tuple[str, str]
 CelulaVaziaType = NewType("CelulaVaziaType", float)
 CelulaVazia: CelulaVaziaType = CelulaVaziaType(float("nan"))
 
-# Tipos do cython são definidos na hora da compilação
-Int = NewType("Int", int)
-Float = NewType("Float", float)
+
+class Int(int):
+    """Classe para forçar a diferenciação entre int e float."""
+
+
+class Float(float):
+    """Classe para forçar a diferenciação entre int e float."""
+
 
 PlanilhaPronta = NamedTuple(
     "PlanilhaPronta", [("dataframe", pd.DataFrame), ("name", str), ("original_path", str)]
