@@ -1,9 +1,10 @@
 """Operações genéricas relacionadas ao sistema de arquivos do sistema operacional."""
 
 import asyncio
+import hashlib
 import os
 from dataclasses import dataclass
-from os.path import abspath, dirname, join, basename, isdir
+from os.path import abspath, dirname, join, basename
 import re
 from string import digits
 from typing import List, NamedTuple, Set
@@ -16,7 +17,7 @@ from src.webdriver.queues import (
     planilhas_prontas,
     planilhas_para_depois,
 )
-from src.webdriver.tipos import PlanilhaPronta, Int
+from src.webdriver.tipos import PlanilhaPronta, Int, ArquivoPlanilha
 from src.webdriver.utils.python import string_multilinha
 
 __all__ = [
@@ -120,23 +121,23 @@ ignore_arquivos: Set[str] = set()
 async def remover_arquivos_nao_excel() -> None:
     """Espera arquivos não-excel serem encontrados e os move para fora da pasta de planilhas."""
     while True:
-        caminho: str = await arquivos_nao_planilhas.get()
-        nome_novo: str = renomear_arquivo_existente(PastasSistema.nao_excel, caminho)
+        file: ArquivoPlanilha = await arquivos_nao_planilhas.get()
+        nome_novo: str = renomear_arquivo_existente(PastasSistema.nao_excel, file.path)
         while True:
             try:
-                if caminho in ignore_arquivos:
+                if file.identifier in ignore_arquivos:
                     break
-                if isdir(caminho):
-                    shutil.move(src=caminho, dst=join(PastasSistema.nao_excel, nome_novo))
+                if not file.isfile:
+                    shutil.move(src=file.path, dst=join(PastasSistema.nao_excel, nome_novo))
                     break
-                shutil.move(src=caminho, dst=join(PastasSistema.nao_excel, nome_novo))
+                shutil.move(src=file.path, dst=join(PastasSistema.nao_excel, nome_novo))
             except PermissionError:
                 mensagem_popup: bool = messagebox.askretrycancel(
                     "Tentando mover arquivo irrelevante!",
                     string_multilinha(
                         f"""
                         Arquivo Excel salvo! Porém, arquivos e pastas irrelevantes foram encontradas
-                        em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {caminho}
+                        em {PastasSistema.input} e um ERRO ocorreu ao tentar movê-los, pois, {file}
                         está aberto em outro programa. Clique REPETIR para tentar novamente ou CANCELAR
                         para pular este arquivo.
                         """.encode().decode()
@@ -144,7 +145,7 @@ async def remover_arquivos_nao_excel() -> None:
                 )
                 if mensagem_popup:
                     continue
-                ignore_arquivos.add(caminho)
+                ignore_arquivos.add(file.identifier)
                 break
             except FileNotFoundError:
                 break
@@ -156,27 +157,53 @@ async def buscar_planilhas() -> None:
     """Busca planilhas na pasta de planilhas e: as adiciona à fila de processamento ou espera 2 minutos antes de checar novamente caso não haja nenhuma."""
     asyncio.create_task(remover_arquivos_nao_excel())
     ja_vistos: Set[str] = set()
+
+    def folder_hash(path: str) -> bytes:
+        stat_hash: Int = Int(hash(os.stat(path)))
+        bytes_length: Int = Int((stat_hash.bit_length() + 7) // 8)
+        stat_bytes: bytes = stat_hash.to_bytes(
+            bytes_length, signed=(True if stat_hash < 0 else False)
+        )
+        return path.encode() + stat_bytes
+
     while True:
-        arquivos: List[os.DirEntry[str]] = list(os.scandir(PastasSistema.input))
+        arquivos: List[os.DirEntry[str]]
         ja_vistos_count: Int = Int(0)
+
+        with os.scandir(PastasSistema.input) as folder:
+            arquivos = list(folder)
+
         if len(arquivos) == 0:
             await asyncio.sleep(120)
             continue
+
         for arquivo in arquivos:
-            if arquivo.path in ja_vistos:
+            arquivo_id: str
+            if arquivo.is_file():
+                with open(arquivo.path, "rb") as file:
+                    arquivo_id = hashlib.sha256(file.read()).hexdigest()
+            else:
+                arquivo_id = hashlib.sha256(folder_hash(arquivo.path)).hexdigest()
+
+            if arquivo_id in ja_vistos:
                 ja_vistos_count += Int(1)  # type: ignore
                 continue
-            if arquivo.path in ignore_arquivos:
+            if arquivo_id in ignore_arquivos:
                 continue
-            if arquivo.is_dir() or Path(arquivo.path).suffix not in (".xlsx", ".xls"):
-                await arquivos_nao_planilhas.put(arquivo.path)
-                ja_vistos.add(arquivo.path)
+
+            if (is_dir := arquivo.is_dir()) or Path(arquivo.path).suffix not in (".xlsx", ".xls"):
+                arquivo_obj = ArquivoPlanilha(
+                    isfile=(not is_dir), identifier=arquivo_id, path=arquivo.path
+                )
+                await arquivos_nao_planilhas.put(arquivo_obj)
+                ja_vistos.add(arquivo_id)
                 continue
+
             # arquivo temporário criado quando a planilha é aberta
             if basename(arquivo.path).startswith("~$"):
                 continue
             await arquivos_planilhas.put(arquivo.path)
-            ja_vistos.add(arquivo.path)
+            ja_vistos.add(arquivo_id)
         if len(arquivos) == ja_vistos_count:
             await asyncio.sleep(120)
 

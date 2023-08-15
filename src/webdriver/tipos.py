@@ -5,7 +5,15 @@ from typing import NewType, Tuple, TypeAlias, NamedTuple
 import pandas as pd
 
 
-__all__ = ["CelulaVazia", "CelulaVaziaType", "Float", "Int", "PlanilhaPronta", "SeletorHTML"]
+__all__ = [
+    "ArquivoPlanilha",
+    "CelulaVazia",
+    "CelulaVaziaType",
+    "Float",
+    "Int",
+    "PlanilhaPronta",
+    "SeletorHTML",
+]
 
 SeletorHTML: TypeAlias = Tuple[str, str]
 CelulaVaziaType = NewType("CelulaVaziaType", float)
@@ -23,3 +31,8 @@ class Float(float):
 PlanilhaPronta = NamedTuple(
     "PlanilhaPronta", [("dataframe", pd.DataFrame), ("name", str), ("original_path", str)]
 )
+
+ArquivoPlanilha = NamedTuple(
+    "ArquivoPlanilha", [("isfile", bool), ("identifier", str), ("path", str)]
+)
+"""Registro de informações relevantes para a seleção de arquivos pré processamento."""
