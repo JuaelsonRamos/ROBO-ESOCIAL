@@ -15,12 +15,14 @@ from src.webdriver.tipos import CelulaVazia, Int
 from src.webdriver.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado
 from src.webdriver.utils.selenium import clicar, apertar_teclas, escrever
 from src.webdriver.erros import ESocialDeslogadoError
+from src.webdriver.utils.python import LoopState
 
 __all__ = [
     "LINK_CNPJ_INPUT",
     "LINK_PRINCIPAL",
     "acessar_perfil",
     "carregar_pagina_ate_acessar_perfil",
+    "carregar_pagina_ate_cpf_input",
     "entrar_com_cpf",
     "processar_planilha",
     "raspar_dados",
@@ -28,6 +30,7 @@ __all__ = [
 
 LINK_PRINCIPAL = "https://login.esocial.gov.br/login.aspx"
 LINK_CNPJ_INPUT = "https://www.esocial.gov.br/portal/Home/Index?trocarPerfil=true"
+logout_timeout = Int(10)
 
 
 def carregar_pagina_ate_acessar_perfil(driver: Chrome) -> None:
@@ -99,6 +102,15 @@ def raspar_dados(
     tabela[ColunaPlanilha.DEMISSAO][registro.linha] = demissao
 
 
+def carregar_pagina_ate_cpf_input(driver: Chrome, CNPJ: str) -> None:
+    """Abstração do processo de chegar até o ponto de selecionar os funcionários para a raspagem de
+    dados."""
+    carregar_pagina_ate_acessar_perfil(driver)
+    teste_deslogado(driver, logout_timeout)
+    acessar_perfil(driver, CNPJ)
+    teste_deslogado(driver, logout_timeout)
+
+
 def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.DataFrame:
     """Inicializa o webdriver, acessa a página de raspagem e raspa os dados.
 
@@ -113,67 +125,91 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
 
     cnpj_index = Int(0)
     cpf_index = Int(0)
-    logout_timeout = Int(10)
     cpfs_ja_vistos: Set[str] = set()
     while True:  # emulando um GOTO da vida
         driver: Optional[Chrome] = None
-        try:
+
+        cnpj_loop = LoopState(iter(range(cnpj_index, len(funcionarios.CNPJ_lista))))
+        while True:
+            if not cnpj_loop.locked:
+                try:
+                    cnpj_index = Int(next(cnpj_loop.iterator))
+                except StopIteration:
+                    break
+                cnpj_loop.lock()
+
+            CNPJ = apenas_digitos(funcionarios.CNPJ_lista[cnpj_index])
+
+            if driver:
+                # É necessário reiniciar o driver para cada CNPJ
+                driver.quit()
             driver = inicializar_driver()
-            carregar_pagina_ate_acessar_perfil(driver)
-            teste_deslogado(driver, logout_timeout)
+            try:
+                carregar_pagina_ate_cpf_input(driver, CNPJ)
+            except (ESocialDeslogadoError, TimeoutException):
+                # Capturando TimeoutException para caso a pagina carregue tanto que
+                # exceda o tempo de espera para as operações de clicar, escrever, etc.
+                # Ou seja, se a pagina carregar de forma incompleta ou nem carregar, ele
+                # reinicia o processo de onde parou até conseguir.
+                continue
 
-            for i in range(cnpj_index, len(funcionarios.CNPJ_lista)):
-                cnpj_index = i
-                CNPJ = apenas_digitos(funcionarios.CNPJ_lista[i])
+            if Caminhos.ESocial.Lista.testar(driver):
+                crawler = Caminhos.ESocial.Lista(driver)
+                for cpf in crawler.proximo_funcionario():
+                    generator = (r for r in funcionarios.CPF_lista if r.CPF == cpf)
+                    for registro in generator:
+                        if registro.CPF in cpfs_ja_vistos:
+                            continue
+                        raspar_dados(tabela, registro, crawler)
+                        cpfs_ja_vistos.add(registro.CPF)
+                cnpj_loop.unlock()
+                continue
 
-                if i > 0:
-                    driver.quit()
-                    driver = inicializar_driver()
-                    carregar_pagina_ate_acessar_perfil(driver)
+            # else: assumir formulário
+            cpf_form_loop = LoopState(iter(range(cpf_index, len(funcionarios.CPF_lista))))
+            restart: bool = False
+            while True:
+                if restart:
+                    # Só reinicia o driver para o CPF caso um erro ocorra
+                    if driver:
+                        driver.quit()
+                    try:
+                        carregar_pagina_ate_cpf_input(driver, CNPJ)
+                    except (ESocialDeslogadoError, TimeoutException):
+                        continue
+                    restart = False
+
+                if not cpf_form_loop.locked:
+                    try:
+                        cpf_index = Int(next(cpf_form_loop.iterator))
+                    except StopIteration:
+                        break
+                    cpf_form_loop.lock()
+
+                registro = funcionarios.CPF_lista[cpf_index]
+                if registro.CPF in cpfs_ja_vistos:
+                    continue
+                CPF = apenas_digitos(registro.CPF)
+
+                try:
+                    entrar_com_cpf(driver, CPF)
                     teste_deslogado(driver, logout_timeout)
-
-                acessar_perfil(driver, CNPJ)
-                teste_deslogado(driver, logout_timeout)
-
-                if Caminhos.ESocial.Lista.testar(driver):
-                    crawler = Caminhos.ESocial.Lista(driver)
-                    for cpf in crawler.proximo_funcionario():
-                        generator = (r for r in funcionarios.CPF_lista if r.CPF == cpf)
-                        for registro in generator:
-                            if registro.CPF in cpfs_ja_vistos:
-                                continue
-                            raspar_dados(tabela, registro, crawler)
-                            cpfs_ja_vistos.add(registro.CPF)
+                except FuncionarioNaoEncontradoError:
+                    tabela[ColunaPlanilha.MATRICULA][registro.linha] = "OFF"
+                    continue
+                except (ESocialDeslogadoError, TimeoutException):
+                    restart = True
                     continue
 
-                # else: assumir formulário
-                for j in range(cpf_index, len(funcionarios.CPF_lista)):
-                    cpf_index = j
-                    registro = funcionarios.CPF_lista[j]
-                    if registro.CPF in cpfs_ja_vistos:
-                        continue
-                    CPF = apenas_digitos(registro.CPF)
+                crawler = Caminhos.ESocial.Formulario(driver)
+                raspar_dados(tabela, registro, crawler)
+                cpfs_ja_vistos.add(registro.CPF)
+                cpf_form_loop.unlock()
 
-                    try:
-                        entrar_com_cpf(driver, CPF)
-                        teste_deslogado(driver, logout_timeout)
-                    except FuncionarioNaoEncontradoError:
-                        tabela[ColunaPlanilha.MATRICULA][registro.linha] = "OFF"
-                        continue
+            cnpj_loop.unlock()
 
-                    crawler = Caminhos.ESocial.Formulario(driver)
-                    raspar_dados(tabela, registro, crawler)
-                    cpfs_ja_vistos.add(registro.CPF)
-        except (ESocialDeslogadoError, TimeoutException):
-            # Capturando TimeoutException para caso a pagina carregue tanto que
-            # exceda o tempo de espera para as operações de clicar, escrever, etc.
-            # Ou seja, se a pagina carregar de forma incompleta ou nem carregar, ele
-            # reinicia o processo de onde parou até conseguir.
-            if driver:
-                driver.quit()
-            continue
-        else:
+        if driver:
             driver.quit()
-            break
+        break
 
     return tabela
