@@ -1,7 +1,12 @@
 """Entrypoint do executável."""
 
-import asyncio
-from src import app
+from src.async_vitals.processes import Fork
 
 if __name__ == "__main__":
-    asyncio.run(app())
+    try:
+        p = Fork()
+        for proc in p.processes:
+            proc.join()
+    finally:
+        for proc in p.processes:
+            proc.kill()

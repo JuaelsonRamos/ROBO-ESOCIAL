@@ -7,16 +7,13 @@ from dataclasses import dataclass
 from os.path import abspath, dirname, join, basename
 import re
 from string import digits
+import time
 from typing import List, NamedTuple, Set
 from pathlib import Path, PurePath
 import shutil
 import tkinter.messagebox as messagebox
-from src.webdriver.queues import (
-    arquivos_planilhas,
-    arquivos_nao_planilhas,
-    planilhas_prontas,
-    planilhas_para_depois,
-)
+
+from aioprocessing.queues import AioQueue
 from src.webdriver.tipos import PlanilhaPronta, Int, ArquivoPlanilha
 from src.webdriver.utils.python import string_multilinha
 
@@ -118,10 +115,10 @@ def renomear_arquivo_existente(dst_folder: str, src_file_path: str) -> str:
 ignore_arquivos: Set[str] = set()
 
 
-async def remover_arquivos_nao_excel() -> None:
+def remover_arquivos_nao_excel(queue: AioQueue) -> None:
     """Espera arquivos não-excel serem encontrados e os move para fora da pasta de planilhas."""
     while True:
-        file: ArquivoPlanilha = await arquivos_nao_planilhas.get()
+        file: ArquivoPlanilha = queue.get()
         nome_novo: str = renomear_arquivo_existente(PastasSistema.nao_excel, file.path)
         while True:
             try:
@@ -153,9 +150,8 @@ async def remover_arquivos_nao_excel() -> None:
                 break
 
 
-async def buscar_planilhas() -> None:
+def buscar_planilhas(queue_excel: AioQueue, queue_nao_excel: AioQueue) -> None:
     """Busca planilhas na pasta de planilhas e: as adiciona à fila de processamento ou espera 2 minutos antes de checar novamente caso não haja nenhuma."""
-    asyncio.create_task(remover_arquivos_nao_excel())
     ja_vistos: Set[str] = set()
 
     def folder_hash(path: str) -> bytes:
@@ -174,16 +170,20 @@ async def buscar_planilhas() -> None:
             arquivos = list(folder)
 
         if len(arquivos) == 0:
-            await asyncio.sleep(120)
+            time.sleep(120)
             continue
 
         for arquivo in arquivos:
             arquivo_id: str
-            if arquivo.is_file():
-                with open(arquivo.path, "rb") as file:
-                    arquivo_id = hashlib.sha256(file.read()).hexdigest()
-            else:
-                arquivo_id = hashlib.sha256(folder_hash(arquivo.path)).hexdigest()
+            try:
+                if arquivo.is_file():
+                    with open(arquivo.path, "rb") as file:
+                        arquivo_id = hashlib.sha256(file.read()).hexdigest()
+                else:
+                    arquivo_id = hashlib.sha256(folder_hash(arquivo.path)).hexdigest()
+            except FileNotFoundError:
+                # Arquivo já foi processado e removido da pasta.
+                continue
 
             if arquivo_id in ja_vistos:
                 ja_vistos_count += Int(1)  # type: ignore
@@ -195,40 +195,42 @@ async def buscar_planilhas() -> None:
                 arquivo_obj = ArquivoPlanilha(
                     isfile=(not is_dir), identifier=arquivo_id, path=arquivo.path
                 )
-                await arquivos_nao_planilhas.put(arquivo_obj)
+                queue_nao_excel.put(arquivo_obj)
                 ja_vistos.add(arquivo_id)
                 continue
 
             # arquivo temporário criado quando a planilha é aberta
             if basename(arquivo.path).startswith("~$"):
                 continue
-            await arquivos_planilhas.put(arquivo.path)
+            queue_excel.put(arquivo.path)
             ja_vistos.add(arquivo_id)
         if len(arquivos) == ja_vistos_count:
-            await asyncio.sleep(120)
+            time.sleep(120)
 
 
-async def aguardar_antes_de_salvar() -> None:
+def aguardar_antes_de_salvar(queue: AioQueue, queue_para_depois: AioQueue) -> None:
     """Pega planilhas onde erros ocorreram na hora do salvamento e para cada uma espera uma
     quantidade determinada de tempo; depois as coloca novamente na fila de salvamento."""
     minutos: Int = Int(5)
 
     async def aguardar(planilha: PlanilhaPronta) -> None:
         await asyncio.sleep(minutos * 60)
-        await planilhas_prontas.put(planilha)
+        await queue.coro_put(planilha)
 
-    while True:
-        asyncio.create_task(aguardar(await planilhas_para_depois.get()))
+    async def criar_tarefas() -> None:
+        while True:
+            asyncio.create_task(aguardar(await queue_para_depois.coro_get()))
+
+    asyncio.run(criar_tarefas())
 
 
-async def salvar_planilha_pronta() -> None:
+def salvar_planilha_pronta(queue: AioQueue, queue_para_depois: AioQueue) -> None:
     """Espera planilhas ficarem prontas e as salva.
 
     Se um erro ocorrer o usuário tem a opção de salvar a planilha depois.
     """
-    asyncio.create_task(aguardar_antes_de_salvar())
     while True:
-        nova_tabela = await planilhas_prontas.get()
+        nova_tabela = queue.get()
         nome_nova_planilha: str = renomear_arquivo_existente(PastasSistema.output, nova_tabela.name)
         novo_nome_arq_original: str = renomear_arquivo_existente(
             PastasSistema.pronto, nova_tabela.name
@@ -259,7 +261,7 @@ async def salvar_planilha_pronta() -> None:
                 )
                 if mensagem_popup:
                     continue
-                await planilhas_para_depois.put(nova_tabela)
+                queue_para_depois.put(nova_tabela)
                 break
             except FileNotFoundError:
                 break
