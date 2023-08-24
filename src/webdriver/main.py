@@ -1,15 +1,14 @@
 """Entrypoint da parte da aplicação relacionada ao WebDriver."""
 
-import asyncio
 from pathlib import Path
+from aioprocessing.queues import AioQueue
 
 import pandas as pd
 from typing import Iterable, Any, cast
 from os.path import basename
 
 from src.webdriver.acesso import processar_planilha
-from src.webdriver.local.io import criar_pastas_de_sistema, buscar_planilhas, salvar_planilha_pronta
-from src.webdriver.queues import arquivos_planilhas, planilhas_prontas
+from src.webdriver.local.io import criar_pastas_de_sistema
 from src.webdriver.tipos import PlanilhaPronta
 from src.webdriver.planilha import (
     DELTA,
@@ -21,13 +20,11 @@ from src.webdriver.planilha import (
 __all__ = ["main"]
 
 
-async def main() -> None:
+def main(queue_planilhas: AioQueue, queue_prontas: AioQueue) -> None:
     """Entrypoint da aplicação."""
     criar_pastas_de_sistema()
-    asyncio.create_task(buscar_planilhas())
-    asyncio.create_task(salvar_planilha_pronta())
     while True:
-        caminho_arquivo_excel = await arquivos_planilhas.get()
+        caminho_arquivo_excel: str = queue_planilhas.get()
         tabela: pd.DataFrame
         if Path(caminho_arquivo_excel).suffix == ".xls":
             tabela = pd.read_excel(caminho_arquivo_excel, header=None, engine="xlrd")
@@ -45,6 +42,6 @@ async def main() -> None:
         funcionarios = registro_de_dados_relevantes(coluna_cnpj_unidade, coluna_cnpj, coluna_cpf)
 
         dataframe: pd.DataFrame = processar_planilha(funcionarios, tabela)
-        await planilhas_prontas.put(
+        queue_prontas.put(
             PlanilhaPronta(dataframe, basename(caminho_arquivo_excel), caminho_arquivo_excel)
         )

@@ -12,6 +12,7 @@ from src.webdriver.local.io import (
     remover_arquivos_nao_excel,
     salvar_planilha_pronta,
 )
+from src.webdriver.main import main
 
 __all__ = ["Fork"]
 
@@ -23,6 +24,7 @@ _Processes = NamedTuple(
         ("remover_arquivos", AioProcess),
         ("salvar_arquivos", AioProcess),
         ("adiar_salvamento", AioProcess),
+        ("main", AioProcess),
         ("processes", List[AioProcess]),
     ],
 )
@@ -58,5 +60,6 @@ def Fork() -> _Processes:
         adiar_salvamento=_run_proc(
             aguardar_antes_de_salvar, Queues.planilhas_prontas, Queues.planilhas_para_depois
         ),
+        main=_run_proc(main, Queues.arquivos_planilhas, Queues.planilhas_prontas),
         processes=_procs_list,
     )
