@@ -1,4 +1,4 @@
-""" Operações que só funcionam na plataforma Windows."""
+"""Operações que só funcionam na plataforma Windows."""
 
 import ctypes as ct
 import ctypes.wintypes as wintypes
@@ -8,8 +8,8 @@ from pathlib import PurePath
 from selenium.webdriver.common.by import By
 from undetected_chromedriver import Chrome
 
-from src.webdriver.local.io import PastasProjeto
-from src.webdriver.utils.selenium import esperar_estar_presente
+from src.utils.io import PastasProjeto
+from src.utils.selenium import esperar_estar_presente
 
 __all__ = ["bloquear_janela"]
 

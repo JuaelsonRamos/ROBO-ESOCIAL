@@ -6,7 +6,7 @@ from aioprocessing import AioProcess as AioProcessFactory
 from aioprocessing.process import AioProcess
 from src.async_vitals.messaging import Queues
 
-from src.webdriver.local.io import (
+from src.local.io import (
     aguardar_antes_de_salvar,
     buscar_planilhas,
     remover_arquivos_nao_excel,

@@ -2,8 +2,7 @@
 
 import asyncio
 import os
-from dataclasses import dataclass
-from os.path import abspath, dirname, join, basename
+from os.path import join, basename
 import re
 from string import digits
 import time
@@ -14,18 +13,9 @@ import tkinter.messagebox as messagebox
 
 from aioprocessing.queues import AioQueue
 from src.webdriver.tipos import PlanilhaPronta, Int
-from src.webdriver.utils.python import string_multilinha
+from src.utils.python import string_multilinha
 
-__all__ = [
-    "PastasProjeto",
-    "PastasSistema",
-    "aguardar_antes_de_salvar",
-    "buscar_planilhas",
-    "criar_pastas_de_sistema",
-    "remover_arquivos_nao_excel",
-    "renomear_arquivo_existente",
-    "salvar_planilha_pronta",
-]
+__all__ = ["PastasSistema", "aguardar_antes_de_salvar", "buscar_planilhas", "criar_pastas_de_sistema", "remover_arquivos_nao_excel", "renomear_arquivo_existente", "salvar_planilha_pronta"]
 
 PastasSistema = NamedTuple(
     "PastasSistema", [("input", str), ("output", str), ("pronto", str), ("nao_excel", str)]
@@ -45,17 +35,6 @@ def criar_pastas_de_sistema() -> None:
             os.mkdir(pasta)
         except FileExistsError:
             pass
-
-
-@dataclass(init=False, frozen=True)
-class PastasProjeto:
-    """Pastas relacionadas ao próprio projeto (código fonte).
-
-    :final:
-    """
-
-    root: str = abspath(join(dirname(__file__), "..", "..", ".."))
-    assets: str = join(root, "assets")
 
 
 regex_num_arquivo: re.Pattern[str] = re.compile(" \\[[0-9]+\\]$")

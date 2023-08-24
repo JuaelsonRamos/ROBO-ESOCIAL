@@ -12,10 +12,10 @@ from src.webdriver.caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawl
 from src.webdriver.erros import FuncionarioNaoEncontradoError
 from src.webdriver.planilha import ColunaPlanilha, RegistroCPF, RegistroDados
 from src.webdriver.tipos import CelulaVazia, Int
-from src.webdriver.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado
-from src.webdriver.utils.selenium import clicar, apertar_teclas, escrever
+from src.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado
+from src.utils.selenium import clicar, apertar_teclas, escrever
 from src.webdriver.erros import ESocialDeslogadoError
-from src.webdriver.utils.python import LoopState
+from src.utils.python import LoopState
 
 __all__ = [
     "LINK_CNPJ_INPUT",

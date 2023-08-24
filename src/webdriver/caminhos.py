@@ -1,4 +1,4 @@
-""" Operações e dados relevantes para o processamento e interação de objetos na página HTML."""
+"""Operações e dados relevantes para o processamento e interação de objetos na página HTML."""
 
 from dataclasses import dataclass
 
@@ -10,7 +10,7 @@ from unidecode import unidecode
 from typing import List, Generator
 
 from src.webdriver.tipos import SeletorHTML, Int
-from src.webdriver.utils.selenium import esperar_estar_presente
+from src.utils.selenium import esperar_estar_presente
 
 __all__ = ["Caminhos", "DadoNaoEncontrado", "FuncionarioCrawlerBase"]
 
@@ -167,8 +167,7 @@ class Caminhos:
                 ]
 
             def proximo_funcionario(self) -> Generator[str, None, None]:
-                """Toda vez que é executado prepara o objeto com os dados do próximo
-                funcionário."""
+                """Toda vez que é executado prepara o objeto com os dados do próximo funcionário."""
                 for i in range(self.quantos):
                     self.clicaveis[i].click()
                     super().__init__(self.driver)

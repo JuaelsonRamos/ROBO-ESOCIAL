@@ -16,8 +16,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 import src.webdriver.windows as windows
 from src.webdriver.caminhos import Caminhos
 from src.webdriver.erros import ESocialDeslogadoError
-from src.webdriver.utils.python import DEBUG
-from src.webdriver.utils.selenium import esperar_estar_presente
+from src.utils.python import DEBUG
+from src.utils.selenium import esperar_estar_presente
 from src.webdriver.tipos import Int
 
 __all__ = [
