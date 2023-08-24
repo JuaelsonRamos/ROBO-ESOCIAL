@@ -9,7 +9,8 @@ from undetected_chromedriver import Chrome
 from unidecode import unidecode
 from typing import List, Generator
 
-from src.webdriver.tipos import SeletorHTML, Int
+from src.webdriver.types import SeletorHTML
+from src.local.types import Int
 from src.utils.selenium import esperar_estar_presente
 
 __all__ = ["Caminhos", "DadoNaoEncontrado", "FuncionarioCrawlerBase"]

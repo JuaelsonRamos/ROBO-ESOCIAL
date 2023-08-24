@@ -11,7 +11,8 @@ from string import digits
 from src.webdriver.caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
 from src.webdriver.erros import FuncionarioNaoEncontradoError
 from src.webdriver.planilha import ColunaPlanilha, RegistroCPF, RegistroDados
-from src.webdriver.tipos import CelulaVazia, Int
+from src.webdriver.types import CelulaVazia
+from src.local.types import Int
 from src.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado
 from src.utils.selenium import clicar, apertar_teclas, escrever
 from src.webdriver.erros import ESocialDeslogadoError

@@ -18,7 +18,7 @@ from src.webdriver.caminhos import Caminhos
 from src.webdriver.erros import ESocialDeslogadoError
 from src.utils.python import DEBUG
 from src.utils.selenium import esperar_estar_presente
-from src.webdriver.tipos import Int
+from src.local.types import Int
 
 __all__ = [
     "deslogado",

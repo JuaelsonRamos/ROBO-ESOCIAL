@@ -1,4 +1,4 @@
-""" Operações úteis e genérias relacionadas ao Selenium."""
+"""Operações úteis e genérias relacionadas ao Selenium."""
 
 import time
 
@@ -7,7 +7,8 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
 
-from src.webdriver.tipos import SeletorHTML, Float
+from src.webdriver.types import SeletorHTML
+from src.local.types import Float
 
 __all__ = [
     "TIMEOUT_SECS",
@@ -19,7 +20,7 @@ __all__ = [
 ]
 
 TIMEOUT_SECS = Float(120.0)
-""" Segundos para esperar antes de assumir que a página demorou demais para carregar."""
+"""Segundos para esperar antes de assumir que a página demorou demais para carregar."""
 
 
 def clicar(driver: Chrome, locator: SeletorHTML) -> None:

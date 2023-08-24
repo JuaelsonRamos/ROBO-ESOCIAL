@@ -1,4 +1,4 @@
-""" Operações de manipulação de planilhas, processamento de dados que vem de planilhas e dados
+"""Operações de manipulação de planilhas, processamento de dados que vem de planilhas e dados
 relevantes para interações complanilhas."""
 
 import re
@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from math import isnan
 from string import ascii_letters
 from typing import Any, Iterable, List, Dict
-from src.webdriver.tipos import Int
+from src.local.types import Int
 
 __all__ = [
     "ColunaPlanilha",
@@ -21,7 +21,7 @@ __all__ = [
 ]
 
 DELTA = Int(2)
-""" Quantidade de linhas da planilha a serem ignoradas de cima para baixo."""
+"""Quantidade de linhas da planilha a serem ignoradas de cima para baixo."""
 
 
 def letra_para_numero_coluna(char: str) -> Int:

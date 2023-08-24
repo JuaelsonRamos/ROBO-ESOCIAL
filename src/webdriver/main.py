@@ -9,7 +9,7 @@ from os.path import basename
 
 from src.webdriver.acesso import processar_planilha
 from src.local.io import criar_pastas_de_sistema
-from src.webdriver.tipos import PlanilhaPronta
+from src.webdriver.types import PlanilhaPronta
 from src.webdriver.planilha import (
     DELTA,
     ColunaPlanilha,

@@ -12,10 +12,19 @@ import shutil
 import tkinter.messagebox as messagebox
 
 from aioprocessing.queues import AioQueue
-from src.webdriver.tipos import PlanilhaPronta, Int
+from src.webdriver.types import PlanilhaPronta
+from src.local.types import Int
 from src.utils.python import string_multilinha
 
-__all__ = ["PastasSistema", "aguardar_antes_de_salvar", "buscar_planilhas", "criar_pastas_de_sistema", "remover_arquivos_nao_excel", "renomear_arquivo_existente", "salvar_planilha_pronta"]
+__all__ = [
+    "PastasSistema",
+    "aguardar_antes_de_salvar",
+    "buscar_planilhas",
+    "criar_pastas_de_sistema",
+    "remover_arquivos_nao_excel",
+    "renomear_arquivo_existente",
+    "salvar_planilha_pronta",
+]
 
 PastasSistema = NamedTuple(
     "PastasSistema", [("input", str), ("output", str), ("pronto", str), ("nao_excel", str)]
