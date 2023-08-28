@@ -1,0 +1,27 @@
+#:kivy 2.2.1
+
+#:import window kivy.core.window.Window
+#:set nav_width 70
+#:set nav_width_border 3
+
+<NavButton>:
+  text: str(self.y)
+  x: 5
+
+<Nav>:
+  size: nav_width, window.height
+  background_color: 0, 255, 0
+
+  canvas.before:
+    Color:
+      rgb: 226, 226, 226
+
+    Rectangle:
+      size: nav_width, window.height
+
+    Color:
+      rgb: 255, 0, 0
+
+    Rectangle:
+      size: nav_width_border, window.height
+      pos: nav_width, self.pos[1]

@@ -1,9 +1,7 @@
 #:kivy 2.2.1
 
-<BaseLayout>:
-  canvas.before:
-    Color:
-      rgba: 226, 226, 226, 1
-    Rectangle:
-      pos: self.pos
-      size: self.size
+#:import window kivy.core.window.Window
+
+BoxLayout:
+  orientation: "horizontal"
+  size: window.size
