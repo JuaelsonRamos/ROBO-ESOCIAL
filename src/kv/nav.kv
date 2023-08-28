@@ -1,6 +1,7 @@
 #:kivy 2.2.1
 
 #:import window kivy.core.window.Window
+#:import Sizes src.uix.style_guides.Sizes
 #:set nav_width 70
 #:set nav_width_border 3
 
@@ -9,7 +10,7 @@
   x: 5
 
 <Nav>:
-  size: nav_width, window.height
+  size: Sizes.Nav.width, window.height
   background_color: 0, 255, 0
 
   canvas.before:
@@ -17,11 +18,11 @@
       rgb: 226, 226, 226
 
     Rectangle:
-      size: nav_width, window.height
+      size: Sizes.Nav.width, window.height
 
     Color:
       rgb: 255, 0, 0
 
     Rectangle:
-      size: nav_width_border, window.height
-      pos: nav_width, self.pos[1]
+      size: Sizes.Nav.border_width, window.height
+      pos: Sizes.Nav.width, self.pos[1]

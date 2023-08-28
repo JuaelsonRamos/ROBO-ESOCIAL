@@ -8,6 +8,7 @@ from typing import Any, Dict
 
 from src.local.types import Int
 from src.utils.io import loadkv
+from src.uix.style_guides import Sizes
 
 __all__ = [
     "CertificatesButton",
@@ -28,16 +29,15 @@ class NavButton(ToggleButton):
 
     order_position_top = Int(0)
     order_position_bottom = Int(0)
-    margin_between = Int(10)
 
     kv_opts: Dict[str, Any] = dict(size=(60, 60), size_hint=(None, None))
 
     def _calc_y_nocheck(self) -> None:
         order = self.order_position_bottom or self.order_position_top
         if self.order_position_top:
-            self.y = Window.height - (self.margin_between * order + self.height * order)
+            self.y = Window.height - (Sizes.Nav.button_margin * order + self.height * order)
         else:
-            self.y = self.margin_between * order + (self.height * (order - 1))
+            self.y = Sizes.Nav.button_margin * order + (self.height * (order - 1))
 
     def _calc_y(self) -> None:
         if self.order_position_bottom > 0 and self.order_position_top > 0:
