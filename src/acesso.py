@@ -12,9 +12,9 @@ from src.caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
 from src.erros import FuncionarioNaoEncontradoError
 from src.planilha import ColunaPlanilha, RegistroCPF, RegistroDados
 from src.tipos import CelulaVazia, Int, Float
-from src.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado
+from src.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado, erro_procuracao
 from src.utils.selenium import clicar, apertar_teclas, escrever
-from src.erros import ESocialDeslogadoError
+from src.erros import ESocialDeslogadoError, LoginCNPJError
 
 __all__ = ["LINK_CNPJ_INPUT", "LINK_PRINCIPAL", "acessar_perfil", "carregar_pagina_ate_acessar_perfil", "entrar_com_cpf", "processar_planilha", "raspar_dados"]
 
@@ -46,6 +46,8 @@ def acessar_perfil(driver: Chrome, CNPJ: str) -> None:
     escrever(driver, Caminhos.ESocial.CNPJ_INPUT, CNPJ)
 
     clicar(driver, Caminhos.ESocial.CNPJ_INPUT_CONFIRMAR)
+    if erro_procuracao(driver):
+        raise LoginCNPJError()
     clicar(driver, Caminhos.ESocial.CNPJ_SELECIONAR_MODULO)
     clicar(driver, Caminhos.ESocial.MENU_TRABALHADOR)
     clicar(driver, Caminhos.ESocial.MENU_OPCAO_EMPREGADOS)
@@ -120,8 +122,11 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                     carregar_pagina_ate_acessar_perfil(driver)
                     teste_deslogado(driver, logout_timeout)
 
-                acessar_perfil(driver, CNPJ)
-                teste_deslogado(driver, logout_timeout)
+                try:
+                    acessar_perfil(driver, CNPJ)
+                    teste_deslogado(driver, logout_timeout)
+                except LoginCNPJError:
+                    continue
 
                 if Caminhos.ESocial.Lista.testar(driver):
                     crawler = Caminhos.ESocial.Lista(driver)

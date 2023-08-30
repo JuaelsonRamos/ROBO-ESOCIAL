@@ -36,13 +36,13 @@ def escrever(driver: Chrome, locator: SeletorHTML, *teclas: str) -> None:
     driver.find_element(*locator).send_keys(*teclas)
 
 
-def esperar_estar_presente(driver: Chrome, locator: SeletorHTML) -> None:
+def esperar_estar_presente(driver: Chrome, locator: SeletorHTML, timeout: Float = TIMEOUT_SECS) -> None:
     """ Espera um elemento HTML estar presente na página.
 
     :param driver: Webdriver ativo no momento do clique.
     :param locator: Seletor que representa o elemento HTML que deve ser clicado.
     """
-    WebDriverWait(driver, TIMEOUT_SECS).until(ec.presence_of_element_located(locator))
+    WebDriverWait(driver, timeout).until(ec.presence_of_element_located(locator))
 
 
 def pegar_text(driver: Chrome, locator: SeletorHTML) -> str:

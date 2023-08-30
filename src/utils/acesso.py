@@ -17,9 +17,9 @@ from src.caminhos import Caminhos
 from src.erros import ESocialDeslogadoError
 from src.utils.python import DEBUG
 from src.utils.selenium import esperar_estar_presente
-from src.tipos import Int
+from src.tipos import Float, Int
 
-__all__ = ["deslogado", "inicializar_driver", "ocorreu_erro_funcionario", "segundos_restantes_de_sessao", "teste_deslogado"]
+__all__ = ["deslogado", "erro_procuracao", "inicializar_driver", "ocorreu_erro_funcionario", "segundos_restantes_de_sessao", "teste_deslogado"]
 
 def deslogado(driver: Chrome, timeout: Int) -> bool:
     """ Testa se o elemento da mensagem de logout do ESocial aparece dentro do limite de tempo
@@ -121,5 +121,16 @@ def ocorreu_erro_funcionario(driver: Chrome) -> bool:
             return True
 
     if resultado_cpf_encontrado():
+        return False
+    return True
+
+def erro_procuracao(driver: Chrome) -> bool:
+    """
+    :param driver: Webdriver.
+    :return: Se o cnpj tem procuração ou não.
+    """
+    try:
+        esperar_estar_presente(driver, Caminhos.ESocial.ERRO_PROCURACAO, Float(10))
+    except TimeoutException:
         return False
     return True

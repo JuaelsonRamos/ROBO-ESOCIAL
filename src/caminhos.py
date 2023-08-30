@@ -103,6 +103,7 @@ class Caminhos:
         DESLOGAR_CNPJ_INPUT: SeletorHTML = (By.ID, "sairAplicacao")
         LOGOUT: SeletorHTML = (By.CLASS_NAME, "logout-sucesso")
         TEMPO_SESSAO: SeletorHTML = (By.CLASS_NAME, "tempo-sessao")
+        ERRO_PROCURACAO: SeletorHTML = (By.CSS_SELECTOR, "#mensagemGeral .alert-danger")
 
         class Formulario(FuncionarioCrawlerBase):
             """ Raspador de dados para quando os dados do funcionário se apresentam em forma de
