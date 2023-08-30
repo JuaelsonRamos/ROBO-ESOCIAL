@@ -1,0 +1,25 @@
+#:kivy 2.2.1
+
+#:import Sizes src.uix.style_guides.Sizes
+#:import window kivy.core.window.Window
+
+<Section>:
+  width: Sizes.Page.width()
+  size_hint: None, None
+
+<SectionTitle>:
+  bold: True
+  font_size: pt(18)
+  size: self.texture_size
+  size_hint: None, None
+  max_lines: 1
+  valign: "middle"
+
+  canvas:
+    Color:
+      rgb: 0, 0, 0
+
+    Rectangle:
+      group: "title_separator"
+      size: self.size[0], 2
+      pos: self.pos[0], self.pos[1] - Sizes.Page.HomePage.title_separator_margin
