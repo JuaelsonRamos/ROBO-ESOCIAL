@@ -1,8 +1,9 @@
 """Definição da aplicação."""
 
 import kivy
-from kivy.config import Config
 from kivy.app import App
+from kivy.config import ConfigParser
+from kivy.core.window import Window
 from os.path import join
 from src.utils.io import PastasProjeto, loadkv
 from src.uix.nav import Nav
@@ -15,8 +16,13 @@ kivy.require("2.2.1")
 class CoralApp(App):
     """Definição da aplicação."""
 
+    def build_config(self, config: ConfigParser) -> None:
+        config.read(join(PastasProjeto.config, "kivyconf.ini"))
+        size = (config.getint("graphics", "width"), config.getint("graphics", "height"))
+        Window.size = size
+        Window.minimum_width, Window.minimum_height = size
+
     def build(self):
-        Config.read(join(PastasProjeto.config, "kivyconf.ini"))
         base = loadkv("app").root_widget
         if not base:
             raise ValueError("No root widget returned from kv file. Can't creat app root widget.")
