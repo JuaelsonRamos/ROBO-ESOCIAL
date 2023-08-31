@@ -97,7 +97,8 @@ class Caminhos:
             By.CSS_SELECTOR,
             "nav:first-child [role=menu] [role=menuitem] a[href$=gestaoTrabalhadores]",
         )
-        CPF_EMPREGADO_INPUT: SeletorHTML = (By.CSS_SELECTOR, "div[label*=CPF] input[type=text]")
+        CPF_EMPREGADO_INPUT: SeletorHTML = (By.CSS_SELECTOR, "#div-pesquisa input")
+        CPF_OPCAO: SeletorHTML = (By.CSS_SELECTOR, "div[role=presentation] li[role=option]")
         DESLOGAR: SeletorHTML = (By.CSS_SELECTOR, "div.logout a")
         # botão de deslogar está localizado em um lugar diferente se vc partir da tela de login com cnpj
         DESLOGAR_CNPJ_INPUT: SeletorHTML = (By.ID, "sairAplicacao")

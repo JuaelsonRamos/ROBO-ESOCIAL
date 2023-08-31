@@ -12,7 +12,7 @@ from src.caminhos import Caminhos, DadoNaoEncontrado, FuncionarioCrawlerBase
 from src.erros import FuncionarioNaoEncontradoError
 from src.planilha import ColunaPlanilha, RegistroCPF, RegistroDados
 from src.tipos import CelulaVazia, Int, Float
-from src.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado, erro_procuracao
+from src.utils.acesso import botao_funcionario, ocorreu_erro_funcionario, inicializar_driver, teste_deslogado, erro_procuracao
 from src.utils.selenium import clicar, apertar_teclas, escrever
 from src.erros import ESocialDeslogadoError, LoginCNPJError
 
@@ -62,9 +62,14 @@ def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
     """
     escrever(driver, Caminhos.ESocial.CPF_EMPREGADO_INPUT, Keys.CONTROL + "a", Keys.DELETE)
     escrever(driver, Caminhos.ESocial.CPF_EMPREGADO_INPUT, CPF)
+
     if ocorreu_erro_funcionario(driver):
         raise FuncionarioNaoEncontradoError()
-    apertar_teclas(driver, Keys.ENTER)
+
+    if botao := botao_funcionario(driver, CPF):
+        botao.click()
+    else:
+        raise FuncionarioNaoEncontradoError()
 
 
 def raspar_dados(tabela: pd.DataFrame, registro: RegistroCPF, crawler: FuncionarioCrawlerBase) -> None:
@@ -140,7 +145,7 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                 for j in range(cpf_index, len(funcionarios.CPF_lista)):
                     cpf_index = j
                     registro = funcionarios.CPF_lista[j]
-                    CPF = apenas_digitos(registro.CPF)
+                    CPF = registro.CPF
 
                     try:
                         entrar_com_cpf(driver, CPF)
