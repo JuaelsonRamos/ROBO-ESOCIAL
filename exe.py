@@ -12,6 +12,7 @@ exe_options = {
         "pandas",
         "xlrd",
         "openpyxl",
+        "webdriver_manager",
         "undetected_chromedriver",
         "unidecode",
         "ctypes",

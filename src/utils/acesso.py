@@ -10,6 +10,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 from undetected_chromedriver import Chrome
+from webdriver_manager.chrome import ChromeDriverManager
 
 import src.windows as windows
 from src.caminhos import Caminhos
@@ -59,7 +60,7 @@ def inicializar_driver() -> Chrome:
 
     :return: Instância do webdriver.
     """
-    driver = Chrome()
+    driver = Chrome(driver_executable_path=ChromeDriverManager().install())
     driver.set_window_rect(x=0, y=0, width=1280, height=720)
     if not DEBUG:
         windows.bloquear_janela(driver)
