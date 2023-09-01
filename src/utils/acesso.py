@@ -100,7 +100,7 @@ def ocorreu_erro_funcionario(driver: Chrome) -> bool:
     element: WebElement = driver.find_element(*Caminhos.ESocial.CPF_EMPREGADO_INPUT)
 
     try:
-        esperar_estar_presente(driver, Caminhos.ESocial.CPF_OPCAO, 10)
+        esperar_estar_presente(driver, Caminhos.ESocial.CPF_OPCAO, Float(15))
     except TimeoutException:
         return True
 
