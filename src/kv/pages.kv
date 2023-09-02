@@ -1,6 +1,7 @@
 #:kivy 2.2.1
 
 #:import Sizes src.uix.style_guides.Sizes
+#:import Colors src.uix.style_guides.Colors
 #:import window kivy.core.window.Window
 
 <Page>:
@@ -10,7 +11,7 @@
 
   canvas:
     Color:
-      rgba: 0, 255, 0, 0.7
+      rgba: Colors.main_background
 
     Rectangle:
       size: self.size

@@ -1,13 +1,15 @@
 from kivy.uix.button import Button
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.label import Label
+from kivy.uix.image import Image
+from kivy.properties import StringProperty  # type: ignore
 from kivy.clock import Clock
 from typing import Any, List, Dict, cast
 import math
 
 from src.uix.pages.base import Page
-from src.uix.style_guides import Sizes
-from src.utils.io import loadkv
+from src.uix.style_guides import Sizes, Colors
+from src.utils.io import loadkv, geticon
 
 __all__ = [
     "CertificatesCard",
@@ -16,6 +18,7 @@ __all__ = [
     "HomePage",
     "ManagementSection",
     "PageCard",
+    "PageCardIcon",
     "Section",
     "SectionTitle",
     "StatisticsCard",
@@ -25,30 +28,51 @@ __all__ = [
 loadkv("home")
 
 
+class PageCardIcon(Image):
+    pass
+
+
 class PageCard(Button):
+    icon_path = StringProperty(geticon("icone_desconhecido"))
+
     kv_opts: Dict[str, Any] = dict(size_hint=(None, None))
+
+    def on_press(self):
+        self.background_color_obj.rgba = Colors.black
+        self.color = self.icon.color = self.shadow_color_obj.rgba = Colors.white
+
+    def on_release(self):
+        self.background_color_obj.rgba = Colors.white
+        self.color = self.icon.color = self.shadow_color_obj.rgba = Colors.black
 
     def __init__(self, **kw: Any):
         self.kv_opts.update(kw)
         super().__init__(**self.kv_opts)
 
+        self.icon = PageCardIcon(source=self.icon_path)
+        super().add_widget(self.icon)
+        self.background_color_obj = self.canvas.before.get_group("background_color")[0]
+        self.shadow_color_obj = self.canvas.before.get_group("shadow_color")[0]
+
 
 class FileSelectCard(PageCard):
-    # text = "Planilhas"
-    pass
+    text = "Selecionar planilhas para\nserem processadas"
+    icon_path = geticon("planilha")
 
 
 class CertificatesCard(PageCard):
-    # text = "Certificados"
-    pass
+    text = "Gerencie certificados\ndigitais (procurações)"
+    icon_path = geticon("certificado")
 
 
 class EventsCard(PageCard):
-    text = "Eventos"
+    text = "Visualize ações realizadas\npelo programa"
+    icon_path = geticon("eventos")
 
 
 class StatisticsCard(PageCard):
-    text = "Estatísticas"
+    text = "Estatísticas de uso e\nprocessamento de planilhas"
+    icon_path = geticon("estatisticas")
 
 
 class SectionTitle(Label):
@@ -71,8 +95,6 @@ class Section(RelativeLayout):
             self.card_amount - (row_amount - 1) * Sizes.Page.HomePage.section_max_cards_per_row
         )
         card_row_pos = (index + 1) - (row_num - 1) * Sizes.Page.HomePage.section_max_cards_per_row
-
-        card.text = "{}/{}/{}".format(card_row_pos, cards_in_row, row_num)
 
         # TAMANHO...
         margin_sum = Sizes.Page.HomePage.margin_between_cards * (cards_in_row - 1)
@@ -117,11 +139,11 @@ class Section(RelativeLayout):
         if first_of_row_x_pos <= self.title_widget.x:
             # Se a largura da página diminuir demais, posicione os cards de acordo com o título
             card.x = self.title_widget.x + (
-                card.width + Sizes.Page.HomePage.margin_between_cards
+                card.width + Sizes.Page.HomePage.margin_between_cards * 1.5
             ) * (card_row_pos - 1)
         else:
             card.x = first_of_row_x_pos + (
-                card.width + Sizes.Page.HomePage.margin_between_cards
+                card.width + Sizes.Page.HomePage.margin_between_cards * 1.5
             ) * (card_row_pos - 1)
 
         card.y = cast(int, card.height) * (
@@ -137,6 +159,14 @@ class Section(RelativeLayout):
         else:
             self.title_widget.y += difference
             card.y += difference
+
+        # ICONE...
+        card.icon.center_y = card.y + card.height / 2
+        card.icon.center_x = card.x + Sizes.Page.HomePage.card_icon_area_width / 2
+
+        # TEXTO...
+        card.text_size = card.size
+        card.padding = (Sizes.Page.HomePage.card_icon_area_width, 0, 0, 0)
 
     def render_frame(self) -> None:
         for i, card in enumerate(self.cards):
