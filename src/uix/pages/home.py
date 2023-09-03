@@ -50,7 +50,7 @@ class PageCard(Button):
         super().__init__(**self.kv_opts)
 
         self.icon = PageCardIcon(source=self.icon_path)
-        super().add_widget(self.icon)
+        self.add_widget(self.icon)
         self.background_color_obj = self.canvas.before.get_group("background_color")[0]
         self.shadow_color_obj = self.canvas.before.get_group("shadow_color")[0]
 
