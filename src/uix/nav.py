@@ -84,6 +84,11 @@ class NavButton(ToggleButton):
         self.background_color_obj.rgba = Colors.white
         self.shadow_color_obj.rgba = self.icon.color = Colors.black
 
+    def on_press(self) -> None:
+        if self.state == "down":
+            return None
+        self.state = "down"
+
     def on_state(self, widget, value) -> None:
         if value == "down":
             self._press()
