@@ -6,7 +6,6 @@ from kivy.config import ConfigParser
 from kivy.core.window import Window  # type: ignore
 from os.path import join
 from src.utils.io import PastasProjeto, loadkv
-from src.uix.pages.home import HomePage
 from src.uix.nav import Nav
 
 __all__ = ["CoralApp"]
@@ -28,7 +27,6 @@ class CoralApp(App):
         if not base:
             raise ValueError("No root widget returned from kv file. Can't creat app root widget.")
 
-        base.add_widget(Nav())
-        base.add_widget(HomePage())
+        base.add_widget(Nav(base))
 
         return base

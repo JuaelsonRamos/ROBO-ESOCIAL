@@ -21,6 +21,8 @@ class Sizes:
         button_size = (button_width, button_height)
         button_margin = 10
 
+        icon_max_size = 50
+
     @dataclass(init=False, frozen=True)
     class Page:
         @classmethod

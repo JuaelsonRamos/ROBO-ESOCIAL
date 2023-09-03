@@ -2,20 +2,44 @@
 
 #:import window kivy.core.window.Window
 #:import Sizes src.uix.style_guides.Sizes
+#:import Colors src.uix.style_guides.Colors
 #:set nav_width 70
 #:set nav_width_border 3
 
-<NavButton>:
-  text: str(self.y)
-  x: 5
+<NavButtonIcon>:
+  size_hint: None, None
+  pos_hint: None, None
+  width: Sizes.Nav.icon_max_size if self.width >= self.height else self.texture_size[0]
+  height: Sizes.Nav.icon_max_size if self.height >= self.width else self.texture_size[1]
+  color: Colors.black
 
-<Nav>:
-  size: Sizes.Nav.width, window.height
-  background_color: 0, 255, 0
+<NavButton>:
+  x: 5
+  background_color: 0, 0, 0, 0
+  group: "nav_button"
 
   canvas.before:
     Color:
-      rgb: 226, 226, 226
+      group: "shadow_color"
+      rgba: Colors.black
+    RoundedRectangle:
+      radius: 10, 10
+      size: self.size
+      pos: self.pos[0] + 1.5, self.pos[1] - 1.5
+    Color:
+      group: "background_color"
+      rgba: Colors.white
+    RoundedRectangle:
+      radius: 10, 10
+      size: self.size
+      pos: self.pos
+
+<Nav>:
+  size: Sizes.Nav.width, window.height
+
+  canvas.before:
+    Color:
+      rgb: Colors.main_background
 
     Rectangle:
       size: Sizes.Nav.width, window.height
