@@ -13,9 +13,11 @@ from src.utils.io import loadkv, geticon
 
 __all__ = [
     "CertificatesCard",
+    "CoralSection",
     "EventsCard",
     "FileSelectCard",
     "HomePage",
+    "InfoCard",
     "ManagementSection",
     "PageCard",
     "PageCardIcon",
@@ -75,6 +77,11 @@ class EventsCard(PageCard):
 class StatisticsCard(PageCard):
     text = "Estatísticas de uso e\nprocessamento de planilhas"
     icon_path = geticon("estatisticas")
+
+
+class InfoCard(PageCard):
+    text = "Sobre"
+    icon_path = geticon("info")
 
 
 class SectionTitle(Label):
@@ -191,8 +198,6 @@ class ManagementSection(Section):
         self.cards = [
             FileSelectCard(file_select_button),
             CertificatesCard(certificates_button),
-            FileSelectCard(file_select_button),
-            CertificatesCard(certificates_button),
         ]
         super().__init__(**kw)
 
@@ -202,6 +207,14 @@ class StatisticsSection(Section):
 
     def __init__(self, events_button: Button, statistics_button: Button, **kw: Any) -> None:
         self.cards = [EventsCard(events_button), StatisticsCard(statistics_button)]
+        super().__init__(**kw)
+
+
+class CoralSection(Section):
+    title = "Coral"
+
+    def __init__(self, info_button: Button, **kw: Any) -> None:
+        self.cards = [InfoCard(info_button)]
         super().__init__(**kw)
 
 
@@ -221,10 +234,12 @@ class HomePage(Page):
         file_select_button: Button,
         statistics_button: Button,
         certificates_button: Button,
+        info_button: Button,
         **kw: Any,
     ) -> None:
         super().__init__(**kw)
         self.add_widget(ManagementSection(file_select_button, certificates_button))
         self.add_widget(StatisticsSection(events_button, statistics_button))
+        self.add_widget(CoralSection(info_button))
 
         Clock.schedule_interval(self.render_frame, 1 / 60)

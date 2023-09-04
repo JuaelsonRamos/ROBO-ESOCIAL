@@ -137,6 +137,7 @@ class FileSelectButton(NavButton):
 
     order_position_top = 2
     icon_path = geticon("planilha")
+    page_instance = Page()
 
 
 class CertificatesButton(NavButton):
@@ -144,6 +145,7 @@ class CertificatesButton(NavButton):
 
     order_position_top = 3
     icon_path = geticon("certificado")
+    page_instance = Page()
 
 
 class EventsButton(NavButton):
@@ -151,6 +153,7 @@ class EventsButton(NavButton):
 
     order_position_top = 4
     icon_path = geticon("eventos")
+    page_instance = Page()
 
 
 class StatisticsButton(NavButton):
@@ -158,6 +161,7 @@ class StatisticsButton(NavButton):
 
     order_position_top = 5
     icon_path = geticon("estatisticas")
+    page_instance = Page()
 
 
 class InfoButton(NavButton):
@@ -165,6 +169,7 @@ class InfoButton(NavButton):
 
     order_position_bottom = 1
     icon_path = geticon("info")
+    page_instance = Page()
 
 
 class Nav(FloatLayout):
@@ -178,10 +183,10 @@ class Nav(FloatLayout):
             FileSelectButton(app),
             StatisticsButton(app),
             CertificatesButton(app),
+            InfoButton(app),
         ]
         home = HomeButton(app, *buttons)
 
         self.add_widget(home)
-        self.add_widget(InfoButton(app))
         for b in home.page_buttons:
             self.add_widget(b)
