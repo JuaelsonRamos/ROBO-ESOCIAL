@@ -44,11 +44,13 @@ class PageCard(Button):
     def on_release(self):
         self.background_color_obj.rgba = Colors.white
         self.color = self.icon.color = self.shadow_color_obj.rgba = Colors.black
+        self.button.state = "down"
 
-    def __init__(self, **kw: Any):
+    def __init__(self, button: Button, **kw: Any):
         self.kv_opts.update(kw)
         super().__init__(**self.kv_opts)
 
+        self.button = button
         self.icon = PageCardIcon(source=self.icon_path)
         self.add_widget(self.icon)
         self.background_color_obj = self.canvas.before.get_group("background_color")[0]
@@ -184,12 +186,23 @@ class Section(RelativeLayout):
 
 class ManagementSection(Section):
     title = "Gerenciamento"
-    cards = [FileSelectCard(), CertificatesCard(), FileSelectCard(), CertificatesCard()]
+
+    def __init__(self, file_select_button: Button, certificates_button: Button, **kw: Any) -> None:
+        self.cards = [
+            FileSelectCard(file_select_button),
+            CertificatesCard(certificates_button),
+            FileSelectCard(file_select_button),
+            CertificatesCard(certificates_button),
+        ]
+        super().__init__(**kw)
 
 
 class StatisticsSection(Section):
     title = "Estatísticas"
-    cards = [EventsCard(), StatisticsCard()]
+
+    def __init__(self, events_button: Button, statistics_button: Button, **kw: Any) -> None:
+        self.cards = [EventsCard(events_button), StatisticsCard(statistics_button)]
+        super().__init__(**kw)
 
 
 class HomePage(Page):
@@ -202,9 +215,16 @@ class HomePage(Page):
             section.height = self.height / len(self.children)
             section.render_frame()
 
-    def __init__(self, **kw: Any):
+    def __init__(
+        self,
+        events_button: Button,
+        file_select_button: Button,
+        statistics_button: Button,
+        certificates_button: Button,
+        **kw: Any,
+    ) -> None:
         super().__init__(**kw)
-        self.add_widget(ManagementSection())
-        self.add_widget(StatisticsSection())
+        self.add_widget(ManagementSection(file_select_button, certificates_button))
+        self.add_widget(StatisticsSection(events_button, statistics_button))
 
         Clock.schedule_interval(self.render_frame, 1 / 60)

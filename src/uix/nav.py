@@ -1,13 +1,14 @@
 """Barra de navegação."""
 
 from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.behaviors.togglebutton import ToggleButtonBehavior
 from kivy.core.window import Window  # type: ignore
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
 from kivy.properties import StringProperty  # type: ignore
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from src.local.types import Int
 from src.utils.io import geticon, loadkv
@@ -84,14 +85,23 @@ class NavButton(ToggleButton):
         self.background_color_obj.rgba = Colors.white
         self.shadow_color_obj.rgba = self.icon.color = Colors.black
 
+    def _double_check_states(self) -> None:
+        buttons: List[ToggleButton] = ToggleButtonBehavior.get_widgets("nav_button")
+        for down in (b for b in buttons if b.state == "down" and not isinstance(b, type(self))):
+            down.state = "normal"
+        # Obrigatório de acordo com a documentação do Kivy para
+        # não impedir o objeto de ser garbage collected.
+        del buttons
+
     def on_press(self) -> None:
         if self.state == "down":
             return None
         self.state = "down"
 
-    def on_state(self, widget, value) -> None:
+    def on_state(self, widget: Widget, value: str) -> None:
         if value == "down":
             self._press()
+            self._double_check_states()
         else:
             self._release()
 
@@ -114,10 +124,11 @@ class HomeButton(NavButton):
 
     order_position_top = 1
     icon_path = geticon("home")
-    page_instance = HomePage()
 
-    def __init__(self, app: Widget, **kw: Any) -> None:
+    def __init__(self, app: Widget, *button_instances: ToggleButton, **kw: Any) -> None:
         super().__init__(app, **kw)
+        self.page_buttons = button_instances
+        self.page_instance = HomePage(*self.page_buttons)
         self.state = "down"
 
 
@@ -161,9 +172,16 @@ class Nav(FloatLayout):
 
     def __init__(self, app: Widget, **kwargs: Any):
         super().__init__(**kwargs)
-        self.add_widget(HomeButton(app))
+        buttons = [
+            # ordem de definição de acordo com a classe HomePage
+            EventsButton(app),
+            FileSelectButton(app),
+            StatisticsButton(app),
+            CertificatesButton(app),
+        ]
+        home = HomeButton(app, *buttons)
+
+        self.add_widget(home)
         self.add_widget(InfoButton(app))
-        self.add_widget(EventsButton(app))
-        self.add_widget(FileSelectButton(app))
-        self.add_widget(CertificatesButton(app))
-        self.add_widget(StatisticsButton(app))
+        for b in home.page_buttons:
+            self.add_widget(b)
