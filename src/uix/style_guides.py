@@ -23,6 +23,9 @@ class Sizes:
 
         icon_max_size = 50
 
+        shadow_offset = 1.5
+        on_pressed_border_width = 3
+
     @dataclass(init=False, frozen=True)
     class Page:
         @classmethod
@@ -89,8 +92,12 @@ def rgba(r: float, g: float, b: float, a: float) -> Tuple[float, float, float, f
 @dataclass(init=False, frozen=True)
 class Colors:
     main_background = rgba(239, 239, 239, 1)
-    red_accent = rgba(255, 0, 0, 1)
+    red = rgba(204, 36, 29, 1)
+    light_red = rgba(242, 32, 23, 1)
+    yellow = rgba(255, 191, 0, 1)
+    dark_yellow = rgba(255, 186, 0, 1)
+    green = rgba(26, 152, 26, 1)
     white = rgba(226, 226, 226, 1)
     black = rgba(68, 68, 68, 1)
-    gray = rgba(170, 170, 170, 1)
+    gray = rgba(210, 210, 210, 1)
     page_card_outer_shadow = rgba(*black[:-1], 0.75)

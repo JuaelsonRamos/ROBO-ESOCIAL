@@ -19,7 +19,7 @@
 
   canvas:
     Color:
-      rgb: Colors.black
+      rgb: Colors.light_red
 
     Rectangle:
       group: "title_separator"
@@ -62,7 +62,7 @@
     #   size: self.size
     RoundedRectangle:
       radius: 10, 10
-      pos: self.pos[0] + 1.5, self.pos[1] - 1.5
+      pos: self.pos[0] + Sizes.Nav.shadow_offset, self.pos[1] - Sizes.Nav.shadow_offset
       size: self.size
     Color:
       group: "background_color"

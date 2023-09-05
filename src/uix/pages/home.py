@@ -40,8 +40,8 @@ class PageCard(Button):
     kv_opts: Dict[str, Any] = dict(size_hint=(None, None))
 
     def on_press(self):
-        self.background_color_obj.rgba = Colors.black
-        self.color = self.icon.color = self.shadow_color_obj.rgba = Colors.white
+        self.background_color_obj.rgba = Colors.gray
+        self.color = self.icon.color = self.shadow_color_obj.rgba = Colors.light_red
 
     def on_release(self):
         self.background_color_obj.rgba = Colors.white

@@ -49,9 +49,13 @@ class NavButton(ToggleButton):
     def _calc_y_nocheck(self) -> None:
         order = self.order_position_bottom or self.order_position_top
         if self.order_position_top:
-            self.y = Window.height - (Sizes.Nav.button_margin * order + self.height * order)
+            y = Window.height - (Sizes.Nav.button_margin * order + self.height * order)
+            if y != self.y:
+                self.y = y
         else:
-            self.y = Sizes.Nav.button_margin * order + (self.height * (order - 1))
+            y = Sizes.Nav.button_margin * order + (self.height * (order - 1))
+            if y != self.y:
+                self.y = y
 
     def _calc_y(self) -> None:
         if self.order_position_bottom > 0 and self.order_position_top > 0:
@@ -77,12 +81,18 @@ class NavButton(ToggleButton):
 
     def _press(self) -> None:
         self.app.add_widget(self.page_instance)
-        self.background_color_obj.rgba = Colors.black
-        self.shadow_color_obj.rgba = self.icon.color = Colors.white
+
+        w, h = self.shadow_obj.size
+        self.shadow_obj.size = (
+            w + Sizes.Nav.on_pressed_border_width,
+            h + Sizes.Nav.on_pressed_border_width,
+        )
+
+        self.shadow_color_obj.rgba = self.icon.color = Colors.light_red
 
     def _release(self) -> None:
         self.app.remove_widget(self.page_instance)
-        self.background_color_obj.rgba = Colors.white
+        self.shadow_obj.size = self.background_obj.size
         self.shadow_color_obj.rgba = self.icon.color = Colors.black
 
     def _double_check_states(self) -> None:
@@ -115,6 +125,8 @@ class NavButton(ToggleButton):
         self.add_widget(self.icon)
         self.background_color_obj = self.canvas.before.get_group("background_color")[0]
         self.shadow_color_obj = self.canvas.before.get_group("shadow_color")[0]
+        self.background_obj = self.canvas.before.get_group("background")[0]
+        self.shadow_obj = self.canvas.before.get_group("shadow")[0]
 
         Clock.schedule_interval(self.render_frame, 1 / 60)
 
@@ -124,12 +136,21 @@ class HomeButton(NavButton):
 
     order_position_top = 1
     icon_path = geticon("home")
+    first_state_set = False
+
+    def render_frame(self, delta: float) -> None:
+        if self.background_obj.pos != (0, 0) and not self.first_state_set:
+            # De outra maneira o estado seria definido antes da posição real do
+            # retângulo estar disponível. Assim, a posição do retângulo seria
+            # definida pelo evento de estado e depois sobrescrevida pelo KV.
+            self.state = "down"
+            self.first_state_set = True
+        super().render_frame(delta)
 
     def __init__(self, app: Widget, *button_instances: ToggleButton, **kw: Any) -> None:
-        super().__init__(app, **kw)
         self.page_buttons = button_instances
         self.page_instance = HomePage(*self.page_buttons)
-        self.state = "down"
+        super().__init__(app, **kw)
 
 
 class FileSelectButton(NavButton):

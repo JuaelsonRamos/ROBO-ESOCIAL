@@ -23,13 +23,19 @@
       group: "shadow_color"
       rgba: Colors.black
     RoundedRectangle:
+      group: "shadow"
       radius: 10, 10
       size: self.size
-      pos: self.pos[0] + 1.5, self.pos[1] - 1.5
+      # Essa monstruosidade precisa existir porque durante o tempo em que você mantem
+      # o mouse pressionado enquanto redimensiona a janela o Kivy respeita os valores
+      # definidos em KV ao envés dos valores e eventos definidos no python.
+      # Você acaba precisando definir o mesmo comportamento em ambos. :/
+      pos: self.pos[0] - Sizes.Nav.on_pressed_border_width / 2 if self.state == "down" else self.pos[0] + Sizes.Nav.shadow_offset, self.pos[1] - Sizes.Nav.on_pressed_border_width / 2 if self.state == "down" else self.pos[1] - Sizes.Nav.shadow_offset
     Color:
       group: "background_color"
       rgba: Colors.white
     RoundedRectangle:
+      group: "background"
       radius: 10, 10
       size: self.size
       pos: self.pos
@@ -45,7 +51,7 @@
       size: Sizes.Nav.width, window.height
 
     Color:
-      rgb: 255, 0, 0
+      rgba: Colors.dark_yellow
 
     Rectangle:
       size: Sizes.Nav.border_width, window.height
