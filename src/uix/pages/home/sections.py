@@ -1,94 +1,32 @@
-from kivy.uix.button import Button
-from kivy.uix.relativelayout import RelativeLayout
+"""Seções/containers da página de seleção de páginas."""
+
+
 from kivy.uix.label import Label
-from kivy.uix.image import Image
-from kivy.properties import StringProperty  # type: ignore
-from kivy.clock import Clock
-from typing import Any, List, Dict, cast
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.button import Button
+from typing import Any, List, cast
 import math
 
-from src.uix.pages.base import Page
-from src.uix.style_guides import Sizes, Colors
-from src.utils.io import loadkv, geticon
+from src.uix.style_guides import Sizes
+from src.uix.pages.home.cards import (
+    PageCard,
+    FileSelectCard,
+    StatisticsCard,
+    EventsCard,
+    CertificatesCard,
+    InfoCard,
+)
 
-__all__ = [
-    "CertificatesCard",
-    "CoralSection",
-    "EventsCard",
-    "FileSelectCard",
-    "HomePage",
-    "InfoCard",
-    "ManagementSection",
-    "PageCard",
-    "PageCardIcon",
-    "Section",
-    "SectionTitle",
-    "StatisticsCard",
-    "StatisticsSection",
-]
-
-loadkv("home")
-
-
-class PageCardIcon(Image):
-    pass
-
-
-class PageCard(Button):
-    icon_path = StringProperty(geticon("icone_desconhecido"))
-
-    kv_opts: Dict[str, Any] = dict(size_hint=(None, None))
-
-    def on_press(self):
-        self.background_color_obj.rgba = Colors.gray
-        self.color = self.icon.color = self.shadow_color_obj.rgba = Colors.light_red
-
-    def on_release(self):
-        self.background_color_obj.rgba = Colors.white
-        self.color = self.icon.color = self.shadow_color_obj.rgba = Colors.black
-        self.button.state = "down"
-
-    def __init__(self, button: Button, **kw: Any):
-        self.kv_opts.update(kw)
-        super().__init__(**self.kv_opts)
-
-        self.button = button
-        self.icon = PageCardIcon(source=self.icon_path)
-        self.add_widget(self.icon)
-        self.background_color_obj = self.canvas.before.get_group("background_color")[0]
-        self.shadow_color_obj = self.canvas.before.get_group("shadow_color")[0]
-
-
-class FileSelectCard(PageCard):
-    text = "Selecionar planilhas para\nserem processadas"
-    icon_path = geticon("planilha")
-
-
-class CertificatesCard(PageCard):
-    text = "Gerencie certificados\ndigitais (procurações)"
-    icon_path = geticon("certificado")
-
-
-class EventsCard(PageCard):
-    text = "Visualize ações realizadas\npelo programa"
-    icon_path = geticon("eventos")
-
-
-class StatisticsCard(PageCard):
-    text = "Estatísticas de uso e\nprocessamento de planilhas"
-    icon_path = geticon("estatisticas")
-
-
-class InfoCard(PageCard):
-    text = "Sobre"
-    icon_path = geticon("info")
+__all__ = ["CoralSection", "ManagementSection", "Section", "SectionTitle", "StatisticsSection"]
 
 
 class SectionTitle(Label):
-    pass
+    """Título de uma seção."""
 
 
 class Section(RelativeLayout):
+    """Base para o comportamento das seções da página."""
+
     title: str = ""
     cards: List[PageCard] = []
 
@@ -178,6 +116,7 @@ class Section(RelativeLayout):
         card.padding = (Sizes.Page.HomePage.card_icon_area_width, 0, 0, 0)
 
     def render_frame(self) -> None:
+        """Calculos feitos a cada frame."""
         for i, card in enumerate(self.cards):
             self._card_dimensions(card, i)
 
@@ -192,6 +131,9 @@ class Section(RelativeLayout):
 
 
 class ManagementSection(Section):
+    """Seção/container para os cartões que envolvem o gerenciamento de componentes essenciais para o
+    processamento de planilhas."""
+
     title = "Gerenciamento"
 
     def __init__(self, file_select_button: Button, certificates_button: Button, **kw: Any) -> None:
@@ -203,6 +145,9 @@ class ManagementSection(Section):
 
 
 class StatisticsSection(Section):
+    """Seção/container para cartões que envolvem a visualização/observação de estatísticas de uso do
+    programa."""
+
     title = "Estatísticas"
 
     def __init__(self, events_button: Button, statistics_button: Button, **kw: Any) -> None:
@@ -211,35 +156,10 @@ class StatisticsSection(Section):
 
 
 class CoralSection(Section):
+    """Seção/container pra cartões relacionados a informações sobre o programa."""
+
     title = "Coral"
 
     def __init__(self, info_button: Button, **kw: Any) -> None:
         self.cards = [InfoCard(info_button)]
         super().__init__(**kw)
-
-
-class HomePage(Page):
-    """Página de seleção de páginas."""
-
-    identifier = "home"
-
-    def render_frame(self, delta: float) -> None:
-        for section in self.children:
-            section.height = self.height / len(self.children)
-            section.render_frame()
-
-    def __init__(
-        self,
-        events_button: Button,
-        file_select_button: Button,
-        statistics_button: Button,
-        certificates_button: Button,
-        info_button: Button,
-        **kw: Any,
-    ) -> None:
-        super().__init__(**kw)
-        self.add_widget(ManagementSection(file_select_button, certificates_button))
-        self.add_widget(StatisticsSection(events_button, statistics_button))
-        self.add_widget(CoralSection(info_button))
-
-        Clock.schedule_interval(self.render_frame, 1 / 60)

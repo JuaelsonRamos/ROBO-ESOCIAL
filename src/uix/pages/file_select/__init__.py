@@ -1,3 +1,5 @@
+"""Página de seleção e progresso de processamento de planilhas."""
+
 from kivy.clock import Clock
 from typing import Any
 
@@ -16,7 +18,10 @@ loadkv("file_select")
 
 
 class FileSelectPage(Page):
+    """Página de seleção e progresso de processamento de planilhas."""
+
     def render_frame(self, delta: float) -> None:
+        """Calculos feitos a cada frame."""
         for section in self.children:
             section.render_frame()
 

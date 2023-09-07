@@ -1,3 +1,5 @@
+"""Fila de processamento de planilhas."""
+
 from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from typing import Any
@@ -8,12 +10,16 @@ __all__ = ["QueueElement", "QueueElementNumber", "QueueLayout", "QueueTitle"]
 
 
 class QueueElementNumber(Label):
+    """Número indicador da posição da planilha na fila."""
+
     def __init__(self, **kw: Any) -> None:
         super().__init__(**kw)
         self.background_color_obj = self.canvas.before.get_group("background_color")[0]
 
 
 class QueueElement(Label):
+    """Elemento da que indica uma planilha na fila."""
+
     def __init__(self, order: int, **kw: Any) -> None:
         self.order = order
         self.number_widget = QueueElementNumber(text="{}.".format(self.order))
@@ -27,11 +33,14 @@ class QueueElement(Label):
 
 
 class QueueTitle(Label):
-    pass
+    """Título da fila de processamento."""
 
 
 class QueueLayout(RelativeLayout):
+    """Container contendo todos os widgets da fila."""
+
     def render_frame(self) -> None:
+        """Calculos feitos a cada frame."""
         elements = [e for e in self.children if isinstance(e, QueueElement)]
         for i, elem in enumerate(elements):
             elem.y = elem.number_widget.y = elem.height * i

@@ -1,7 +1,8 @@
+"""Indicadores de progresso no processamento das planilhas."""
+
 from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.progressbar import ProgressBar
-from kivy.properties import NumericProperty  # type: ignore
 from typing import Any
 
 from src.uix.pages.file_select.queue import QueueLayout
@@ -20,11 +21,15 @@ __all__ = [
 
 
 class ProgressCount(Label):
+    """Contador do progresso da barra, como em ``3 de 8``."""
+
     _max = 0
     _value = 0
 
     @property
     def max(self) -> int:
+        """Número máximo do contador e indicador do número total de itens que devem ser
+        processados."""
         return self._max
 
     @max.setter
@@ -36,6 +41,7 @@ class ProgressCount(Label):
 
     @property
     def value(self) -> int:
+        """Número de itens processados atualmente."""
         return self._value
 
     @value.setter
@@ -49,19 +55,26 @@ class ProgressCount(Label):
 
 
 class ProgressLabel(Label):
-    pass
+    """Valor do item atual sendo processado, como o CPF ou CNPJ, por exemplo."""
 
 
 class ProgressDescription(Label):
-    pass
+    """Elemento da descrição do item atual sendo processado, como nome da empresa ou qualquer outra
+    informação descritiva."""
 
 
 class ProgressBarIndicator(ProgressBar):
-    pass
+    """Elemento da barra de progresso."""
 
 
 class ProgressStatusBar(RelativeLayout):
+    """Container de uma barra de progresso contendo a própria barra, texto indicando o progresso,
+    texto indicando o item sendo processado no momento e um texto dando uma descrição do item sendo
+    processado."""
+
     def update(self, position: int, value: str = "", description: str | None = None) -> None:
+        """Atualizar de forma geral as informações que indicam o progresso (aparência da barra e
+        textos indicativos)."""
         if description is None:
             description = "Aguardando planilha..."
 
@@ -87,7 +100,10 @@ class ProgressStatusBar(RelativeLayout):
 
 
 class ProgressLayout(RelativeLayout):
+    """Container com a parte que indica o progresso detalhado do processamento."""
+
     def render_frame(self) -> None:
+        """Calculos feitos a cada frame."""
         self.height = self.cnpj_progress.height + self.cpf_progress.height
         self.cnpj_progress.y = self.cpf_progress.height
 
@@ -100,6 +116,9 @@ class ProgressLayout(RelativeLayout):
 
 
 class ProgressSection(FileSelectSection):
+    """Seção que indica o progresso geral do processamento, como a fila de processamento e os
+    detalhes do progresso."""
+
     def render_frame(self) -> None:
         super().render_frame()
         self.progress_widget.center_y = self.queue_widget.center_y = self.center_y
