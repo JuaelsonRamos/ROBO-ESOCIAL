@@ -59,6 +59,28 @@ class Sizes:
             card_icon_area_width = 80
             card_icon_max_size = 60
 
+        @dataclass(init=False, frozen=True)
+        class FileSelect:
+            select_button_width = 350
+            select_button_height = 100
+            select_button_text_size = 28
+            selected_file_width = 270
+            selected_file_height = 23
+            add_to_queue_width = 200
+            add_to_queue_height = 50
+            add_to_queue_text_size = 20
+            regular_text_size = metrics.pt(12)
+            margin_between = 20
+            amount_queue_elements = 10
+            queue_element_total_width = 350
+            queue_element_height = 20
+            queue_element_number_width = 30
+            text_padding_small = 5
+            progress_label_height = 25
+            progress_bar_width = queue_element_total_width
+            progress_label_value_max_width = progress_bar_width * 0.5
+            progress_bar_height = 10
+
 
 def rgb(r: float, g: float, b: float) -> Tuple[float, float, float]:
     """Converte um valor RGB onde cada valor é ``0 <= x <= 255`` para um valor equivalente em
@@ -92,7 +114,8 @@ def rgba(r: float, g: float, b: float, a: float) -> Tuple[float, float, float, f
 @dataclass(init=False, frozen=True)
 class Colors:
     main_background = rgba(239, 239, 239, 1)
-    red = rgba(204, 36, 29, 1)
+    # red = rgba(204, 36, 29, 1)
+    red = rgba(229, 50, 45, 1)
     light_red = rgba(242, 32, 23, 1)
     yellow = rgba(255, 191, 0, 1)
     dark_yellow = rgba(255, 186, 0, 1)

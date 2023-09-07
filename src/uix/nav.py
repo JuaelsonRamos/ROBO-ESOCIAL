@@ -11,6 +11,7 @@ from kivy.uix.widget import Widget
 from typing import Any, Dict, List
 
 from src.local.types import Int
+from src.uix.pages.file_select import FileSelectPage
 from src.utils.io import geticon, loadkv
 from src.uix.style_guides import Colors, Sizes
 from src.uix.pages.home import HomePage
@@ -158,7 +159,7 @@ class FileSelectButton(NavButton):
 
     order_position_top = 2
     icon_path = geticon("planilha")
-    page_instance = Page()
+    page_instance = FileSelectPage()
 
 
 class CertificatesButton(NavButton):

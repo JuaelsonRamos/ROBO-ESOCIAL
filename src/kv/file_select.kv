@@ -1,0 +1,134 @@
+#:kivy 2.2.1
+
+#:import Sizes src.uix.style_guides.Sizes
+#:import Colors src.uix.style_guides.Colors
+
+<SelectButton>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.select_button_width
+  height: Sizes.Page.FileSelect.select_button_height
+  text: "Selecione um Planilha"
+  color: Colors.white
+  font_size: Sizes.Page.FileSelect.select_button_text_size
+  bold: True
+
+<AddToQueueButton>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.add_to_queue_width
+  height: Sizes.Page.FileSelect.add_to_queue_height
+  text: "Adicionar à Fila"
+  color: Colors.white
+  font_size: Sizes.Page.FileSelect.add_to_queue_text_size
+  bold: True
+
+<SelectedFileLabel>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.selected_file_width
+  height: Sizes.Page.FileSelect.selected_file_height
+  color: Colors.black
+  font_size: Sizes.Page.FileSelect.regular_text_size
+
+<QueueElementNumber>:
+  size_hint: None, None
+  color: Colors.black
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  height: Sizes.Page.FileSelect.queue_element_height
+  width: Sizes.Page.FileSelect.queue_element_number_width
+  text_size: self.size
+  halign: "right"
+  valign: "center"
+  base_direction: "rtl"
+  max_lines: 1
+
+  canvas.before:
+    Color:
+      group: "background_color"
+      rgba: Colors.gray
+    Rectangle:
+      size: self.size
+      pos: self.pos
+
+<QueueElement>:
+  size_hint: None, None
+  color: Colors.black
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  width: Sizes.Page.FileSelect.queue_element_total_width - Sizes.Page.FileSelect.queue_element_number_width
+  height: Sizes.Page.FileSelect.queue_element_height
+  x: Sizes.Page.FileSelect.queue_element_number_width
+  text_size: self.size
+  halign: "left"
+  valign: "center"
+  padding: Sizes.Page.FileSelect.text_padding_small, 0, 0, 0
+  base_direction: "ltr"
+  max_lines: 1
+
+  canvas.before:
+    Color:
+      group: "background_color"
+      rgba: Colors.gray
+    Rectangle:
+      size: self.size
+      pos: self.pos
+
+<QueueTitle>:
+  size_hint: None, None
+  color: Colors.black
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  text: "Fila de Processamento"
+  size: self.texture_size
+  bold: True
+
+<FileSelectSection>:
+  width: Sizes.Page.width()
+  size_hint: None, None
+
+<FileSelectPage>:
+  orientation: "vertical"
+
+<QueueLayout>:
+  size_hint: None, None
+
+<ProgressLayout>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.progress_bar_width
+
+<ProgressStatusBar>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.progress_bar_width
+  height: Sizes.Page.FileSelect.progress_label_height * 2 + Sizes.Page.FileSelect.progress_bar_height
+
+<ProgressCount,ProgressLabel,ProgressDescription>:
+  size_hint: None, None
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  color: Colors.black
+  height: Sizes.Page.FileSelect.progress_label_height
+  text_size: self.size
+  valign: "center"
+  markup: True
+
+<ProgressLabel,ProgressDescription>:
+  halign: "left"
+  base_direction: "ltr"
+  x: Sizes.Page.FileSelect.text_padding_small
+
+<ProgressLabel>:
+  width: Sizes.Page.FileSelect.progress_label_value_max_width
+  y: Sizes.Page.FileSelect.progress_bar_height + Sizes.Page.FileSelect.progress_label_height
+
+<ProgressDescription>:
+  width: Sizes.Page.FileSelect.progress_bar_width - Sizes.Page.FileSelect.text_padding_small * 2
+  y: Sizes.Page.FileSelect.progress_bar_height
+
+<ProgressCount>:
+  width: (Sizes.Page.FileSelect.progress_bar_width - Sizes.Page.FileSelect.progress_label_value_max_width) * 0.9
+  halign: "right"
+  base_direction: "rtl"
+  x: Sizes.Page.FileSelect.progress_bar_width - Sizes.Page.FileSelect.text_padding_small - self.width
+  y: Sizes.Page.FileSelect.progress_bar_height + Sizes.Page.FileSelect.progress_label_height
+  bold: True
+
+<ProgressBarIndicator>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.progress_bar_width
+  height: Sizes.Page.FileSelect.progress_bar_height
+  pos: 0, 0
