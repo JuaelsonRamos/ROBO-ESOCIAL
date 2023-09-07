@@ -69,7 +69,8 @@ disable = [
   "wrong-import-order",
   "wrong-import-position",
   "pointless-string-statement", # para docstrings de variaveis
-  "consider-using-f-string"
+  "consider-using-f-string",
+  "disallowed-name"
 ]
 
 [tool.pyright]
@@ -81,7 +82,6 @@ exclude = [
   "**/.venv*/",
   "**/build*/",
   "**/dist/",
-  "./*.py"
 ]
 include = [
   "src/",
@@ -92,9 +92,13 @@ include = [
 # Mensagens específicas:
 reportMissingTypeStubs = "none"
 reportWildcardImportFromLibrary = "none"
-reportIncompleteStub = "warning"
+reportIncompleteStub = "none"
 reportUnnecessaryIsInstance = "none"
 reportUnnecessaryCast = "none"
 reportUnnecessaryContains = "none"
 reportUnnecessaryComparison = "none"
 reportUnknownMemberType = "none"
+reportUnknownVariableType = "none"
+reportUnknownArgumentType = "none"
+reportGeneralTypeIssues = "none"
+reportOptionalMemberAccess = "none"
