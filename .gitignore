@@ -175,3 +175,5 @@ installer/build/
 # informações legais
 /LEGAL/
 LEGAL_dist/
+
+src/uix/*.ini
