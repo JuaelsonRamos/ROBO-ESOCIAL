@@ -5,7 +5,7 @@ from kivy.uix.button import Button
 from typing import Any
 
 from src.uix.pages.file_select.bases import FileSelectSection
-from src.uix.style_guides import Sizes
+from src.uix.style_guides import Colors, Sizes
 
 __all__ = [
     "AddToQueueButton",
@@ -26,9 +26,29 @@ class SelectedFileLabel(Label):
 class SelectButton(Button):
     """Botão que permite a seleção de arquivos."""
 
+    def on_press(self) -> None:
+        self.background_color_obj.rgba = Colors.dark_red
+
+    def on_release(self) -> None:
+        self.background_color_obj.rgba = Colors.light_red
+
+    def __init__(self, **kw: Any) -> None:
+        super().__init__(**kw)
+        self.background_color_obj = self.canvas.before.get_group("background_color")[0]
+
 
 class AddToQueueButton(Button):
     """Botão que permite a adição de planilhas para o processamento."""
+
+    def on_press(self) -> None:
+        self.background_color_obj.rgba = Colors.dark_blue
+
+    def on_release(self) -> None:
+        self.background_color_obj.rgba = Colors.light_blue
+
+    def __init__(self, **kw: Any) -> None:
+        super().__init__(**kw)
+        self.background_color_obj = self.canvas.before.get_group("background_color")[0]
 
 
 class SelectButtonSection(FileSelectSection):

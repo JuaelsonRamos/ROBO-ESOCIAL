@@ -8,18 +8,38 @@
   width: Sizes.Page.FileSelect.select_button_width
   height: Sizes.Page.FileSelect.select_button_height
   text: "Selecione um Planilha"
-  color: Colors.white
+  color: Colors.painful_white
   font_size: Sizes.Page.FileSelect.select_button_text_size
   bold: True
+  background_color: 0, 0, 0, 0
+
+  canvas.before:
+    Color:
+      group: "background_color"
+      rgba: Colors.light_red
+    RoundedRectangle:
+      radius: 15, 15
+      pos: self.pos
+      size: self.size
 
 <AddToQueueButton>:
   size_hint: None, None
   width: Sizes.Page.FileSelect.add_to_queue_width
   height: Sizes.Page.FileSelect.add_to_queue_height
   text: "Adicionar à Fila"
-  color: Colors.white
+  color: Colors.painful_white
   font_size: Sizes.Page.FileSelect.add_to_queue_text_size
   bold: True
+  background_color: 0, 0, 0, 0
+
+  canvas.before:
+    Color:
+      group: "background_color"
+      rgba: Colors.light_blue
+    RoundedRectangle:
+      radius: 10, 10
+      pos: self.pos
+      size: self.size
 
 <SelectedFileLabel>:
   size_hint: None, None
@@ -27,6 +47,24 @@
   height: Sizes.Page.FileSelect.selected_file_height
   color: Colors.black
   font_size: Sizes.Page.FileSelect.regular_text_size
+  text_size: self.size
+  halign: "left"
+  valign: "center"
+  base_direction: "ltr"
+
+  canvas.before:
+    Color:
+      rgba: Colors.black
+    RoundedRectangle:
+      radius: Sizes.Page.FileSelect.selected_file_height / 2, Sizes.Page.FileSelect.selected_file_height / 2
+      pos: self.pos[0] - Sizes.Page.FileSelect.selected_file_height / 2, self.pos[1] - Sizes.Nav.shadow_offset
+      size: self.size[0] + Sizes.Page.FileSelect.selected_file_height, self.size[1]
+    Color:
+      rgba: Colors.main_background
+    RoundedRectangle:
+      radius: Sizes.Page.FileSelect.selected_file_height / 2, Sizes.Page.FileSelect.selected_file_height / 2
+      pos: self.pos[0] - Sizes.Page.FileSelect.selected_file_height / 2, self.pos[1]
+      size: self.size[0] + Sizes.Page.FileSelect.selected_file_height, self.size[1]
 
 <QueueElementNumber>:
   size_hint: None, None
@@ -132,3 +170,18 @@
   width: Sizes.Page.FileSelect.progress_bar_width
   height: Sizes.Page.FileSelect.progress_bar_height
   pos: 0, 0
+
+  canvas:
+    Color:
+      rgba: Colors.white
+    RoundedRectangle:
+      radius: Sizes.Page.FileSelect.progress_bar_height / 2, Sizes.Page.FileSelect.progress_bar_height / 2
+      pos: self.pos
+      size: self.size
+    Color:
+      rgba: Colors.yellow
+    RoundedRectangle:
+      group: "progress_indicator"
+      radius: Sizes.Page.FileSelect.progress_bar_height / 2, Sizes.Page.FileSelect.progress_bar_height / 2
+      pos: self.pos
+      size: 0, self.size[1]

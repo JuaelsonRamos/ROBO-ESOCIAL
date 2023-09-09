@@ -64,7 +64,7 @@ class Sizes:
             select_button_width = 350
             select_button_height = 100
             select_button_text_size = 28
-            selected_file_width = 270
+            selected_file_width = 300
             selected_file_height = 23
             add_to_queue_width = 200
             add_to_queue_height = 50
@@ -117,10 +117,14 @@ class Colors:
     # red = rgba(204, 36, 29, 1)
     red = rgba(229, 50, 45, 1)
     light_red = rgba(242, 32, 23, 1)
+    dark_red = rgba(209, 30, 25, 1)
     yellow = rgba(255, 191, 0, 1)
     dark_yellow = rgba(255, 186, 0, 1)
     green = rgba(26, 152, 26, 1)
     white = rgba(226, 226, 226, 1)
+    painful_white = rgba(255, 255, 255, 1)
+    light_blue = rgba(45, 91, 229, 1)
+    dark_blue = rgba(21, 66, 204, 1)
     black = rgba(68, 68, 68, 1)
     gray = rgba(210, 210, 210, 1)
     page_card_outer_shadow = rgba(*black[:-1], 0.75)
