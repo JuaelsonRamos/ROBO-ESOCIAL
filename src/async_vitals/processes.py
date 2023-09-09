@@ -4,15 +4,8 @@ from typing import Any, Callable, List, NamedTuple
 
 from aioprocessing import AioProcess as AioProcessFactory
 from aioprocessing.process import AioProcess
-from src.async_vitals.messaging import Queues
 
-from src.local.io import (
-    aguardar_antes_de_salvar,
-    buscar_planilhas,
-    remover_arquivos_nao_excel,
-    salvar_planilha_pronta,
-)
-from src.webdriver.main import main
+from src.uix.process_entrypoint import uix_process_entrypoint
 
 __all__ = ["Fork"]
 
@@ -20,11 +13,7 @@ __all__ = ["Fork"]
 _Processes = NamedTuple(
     "_Processes",
     [
-        ("buscar_arquivos", AioProcess),
-        ("remover_arquivos", AioProcess),
-        ("salvar_arquivos", AioProcess),
-        ("adiar_salvamento", AioProcess),
-        ("main", AioProcess),
+        ("uix", AioProcess),
         ("processes", List[AioProcess]),
     ],
 )
@@ -50,16 +39,6 @@ def Fork() -> _Processes:
         return p
 
     return _Processes(
-        buscar_arquivos=_run_proc(
-            buscar_planilhas, Queues.arquivos_planilhas, Queues.arquivos_nao_planilhas
-        ),
-        remover_arquivos=_run_proc(remover_arquivos_nao_excel, Queues.arquivos_nao_planilhas),
-        salvar_arquivos=_run_proc(
-            salvar_planilha_pronta, Queues.planilhas_prontas, Queues.planilhas_para_depois
-        ),
-        adiar_salvamento=_run_proc(
-            aguardar_antes_de_salvar, Queues.planilhas_prontas, Queues.planilhas_para_depois
-        ),
-        main=_run_proc(main, Queues.arquivos_planilhas, Queues.planilhas_prontas),
+        uix=_run_proc(uix_process_entrypoint),
         processes=_procs_list,
     )
