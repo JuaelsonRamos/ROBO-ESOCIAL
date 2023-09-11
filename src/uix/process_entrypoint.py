@@ -6,10 +6,10 @@ Não importa nenhum código nem aloca nenhuma memória fora da função de entry
 __all__ = ["uix_process_entrypoint"]
 
 
-def uix_process_entrypoint() -> None:
+def uix_process_entrypoint(queues: object) -> None:
     """Entrypoint da interface gráfica."""
     import os
     from src.uix.app import CoralApp
 
     os.environ["KIVY_GL_BACKEND"] = "sdl2"
-    CoralApp().run()
+    CoralApp(queues).run()

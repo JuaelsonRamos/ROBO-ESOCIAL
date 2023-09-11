@@ -1,5 +1,6 @@
 """Definição da aplicação."""
 
+from typing import Any
 import kivy
 from kivy.app import App
 from kivy.config import ConfigParser
@@ -27,6 +28,10 @@ class CoralApp(App):
         if not base:
             raise ValueError("No root widget returned from kv file. Can't creat app root widget.")
 
-        base.add_widget(Nav(base))
+        base.add_widget(Nav(base, self.queues_collection))
 
         return base
+
+    def __init__(self, queues: object, **kw: Any):
+        self.queues_collection = queues
+        super().__init__(**kw)

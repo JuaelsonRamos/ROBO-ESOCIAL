@@ -30,10 +30,23 @@ class FileSelectPage(Page):
                 s.height for s in self.children if not isinstance(s, ProgressSection)
             )
 
-    def __init__(self, **kw: Any):
+    def __init__(self, queues: object, **kw: Any):
         super().__init__(**kw)
-        self.add_widget(SelectButtonSection())
-        self.add_widget(SelectedFileSection())
-        self.add_widget(AddToQueueSection())
-        self.add_widget(ProgressSection())
+        self.queues_collection = queues
+        self.selected_file_section = SelectedFileSection()
+        self.progress_section = ProgressSection()
+        self.add_widget(
+            SelectButtonSection(
+                self.selected_file_section.label, self.progress_section.queue_widget.elements
+            )
+        )
+        self.add_widget(self.selected_file_section)
+        self.add_widget(
+            AddToQueueSection(
+                self.selected_file_section.label,
+                self.progress_section.queue_widget.elements,
+                queues.arquivos_planilhas,
+            )
+        )
+        self.add_widget(self.progress_section)
         Clock.schedule_interval(self.render_frame, 1 / 60)

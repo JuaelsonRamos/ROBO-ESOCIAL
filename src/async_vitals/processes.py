@@ -6,6 +6,7 @@ from aioprocessing import AioProcess as AioProcessFactory
 from aioprocessing.process import AioProcess
 
 from src.uix.process_entrypoint import uix_process_entrypoint
+from src.async_vitals.messaging import Queues
 
 __all__ = ["Fork"]
 
@@ -39,6 +40,6 @@ def Fork() -> _Processes:
         return p
 
     return _Processes(
-        uix=_run_proc(uix_process_entrypoint),
+        uix=_run_proc(uix_process_entrypoint, Queues),
         processes=_procs_list,
     )

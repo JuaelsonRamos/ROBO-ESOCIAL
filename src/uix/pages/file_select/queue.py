@@ -3,6 +3,7 @@
 from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from typing import Any
+from os.path import basename
 
 from src.uix.style_guides import Sizes, Colors
 
@@ -20,8 +21,17 @@ class QueueElementNumber(Label):
 class QueueElement(Label):
     """Elemento da que indica uma planilha na fila."""
 
+    def update(self, path: str | None = None) -> None:
+        if not path:
+            self.full_path = None
+            self.text = ""
+            return None
+        self.full_path = path
+        self.text = basename(path)
+
     def __init__(self, order: int, **kw: Any) -> None:
         self.order = order
+        self.full_path: str | None = None
         self.number_widget = QueueElementNumber(text="{}.".format(self.order))
         super().__init__(**kw)
         self.add_widget(self.number_widget)
@@ -56,6 +66,8 @@ class QueueLayout(RelativeLayout):
     def __init__(self, **kw: Any) -> None:
         super().__init__(**kw)
         self.title_widget = QueueTitle()
+        self.elements = []
         self.add_widget(self.title_widget)
         for i in range(Sizes.Page.FileSelect.amount_queue_elements):
-            self.add_widget(QueueElement(i + 1))
+            self.elements.append(QueueElement(i + 1))
+            self.add_widget(self.elements[i])
