@@ -1,6 +1,7 @@
 """Operações relacionadas ao acesso das páginas web e processamento de planilhas que tem a ver com
 essas páginas."""
 
+import time
 from typing import Optional, Set
 import pandas as pd
 from selenium.common.exceptions import TimeoutException
@@ -17,6 +18,7 @@ from src.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste
 from src.utils.selenium import clicar, apertar_teclas, escrever
 from src.webdriver.erros import ESocialDeslogadoError
 from src.utils.python import LoopState
+from src.async_vitals.messaging import ProgressStateNamespace as progress_values_t, STR_DUMMY
 
 __all__ = [
     "LINK_CNPJ_INPUT",
@@ -112,7 +114,9 @@ def carregar_pagina_ate_cpf_input(driver: Chrome, CNPJ: str) -> None:
     teste_deslogado(driver, logout_timeout)
 
 
-def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.DataFrame:
+def processar_planilha(
+    funcionarios: RegistroDados, tabela: pd.DataFrame, progress_values: progress_values_t
+) -> pd.DataFrame:
     """Inicializa o webdriver, acessa a página de raspagem e raspa os dados.
 
     :param funcionarios: Registro de CPNJs e CPFs.
@@ -136,9 +140,17 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                 try:
                     cnpj_index = Int(next(cnpj_loop.iterator))
                 except StopIteration:
+                    with progress_values.get_lock():
+                        progress_values.cnpj_current += 1
+                        progress_values.cnpj_last_updated_ns = time.time_ns()
                     break
                 cnpj_loop.lock()
 
+            CNPJ = funcionarios.CNPJ_lista[cnpj_index]
+            with progress_values.get_lock():
+                progress_values.cnpj_current = cnpj_index
+                progress_values_t.set_string(progress_values.cnpj_msg, CNPJ)
+                progress_values.cnpj_last_updated_ns = time.time_ns()
             CNPJ = apenas_digitos(funcionarios.CNPJ_lista[cnpj_index])
 
             if driver:
@@ -156,7 +168,16 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
 
             if Caminhos.ESocial.Lista.testar(driver):
                 crawler = Caminhos.ESocial.Lista(driver)
+                with progress_values.get_lock():
+                    progress_values.cpf_max = crawler.quantos
+                    progress_values.cpf_current = 0
+                    progress_values.cpf_max_last_updated_ns = time.time_ns()
+                    progress_values.cpf_last_updated_ns = time.time_ns()
                 for cpf in crawler.proximo_funcionario():
+                    with progress_values.get_lock():
+                        progress_values.cpf_current += 1
+                        progress_values_t.set_string(progress_values.cpf_msg, cpf)
+                        progress_values.cpf_last_updated_ns = time.time_ns()
                     generator = (r for r in funcionarios.CPF_lista if r.CPF == cpf)
                     for registro in generator:
                         if registro.CPF in cpfs_ja_vistos:
@@ -164,6 +185,12 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                         raspar_dados(tabela, registro, crawler)
                         cpfs_ja_vistos.add(registro.CPF)
                 cnpj_loop.unlock()
+                with progress_values.get_lock():
+                    progress_values.cpf_max = len(funcionarios.CPF_lista)
+                    progress_values.cpf_current = 0
+                    progress_values_t.set_string(progress_values.cpf_msg, STR_DUMMY)
+                    progress_values.cpf_max_last_updated_ns = time.time_ns()
+                    progress_values.cpf_last_updated_ns = time.time_ns()
                 continue
 
             # else: assumir formulário
@@ -184,12 +211,20 @@ def processar_planilha(funcionarios: RegistroDados, tabela: pd.DataFrame) -> pd.
                     try:
                         cpf_index = Int(next(cpf_form_loop.iterator))
                     except StopIteration:
+                        with progress_values.get_lock():
+                            progress_values.cpf_current += 1
+                            progress_values.cpf_last_updated_ns = time.time_ns()
                         break
                     cpf_form_loop.lock()
 
                 registro = funcionarios.CPF_lista[cpf_index]
                 if registro.CPF in cpfs_ja_vistos:
                     continue
+
+                with progress_values.get_lock():
+                    progress_values.cpf_current = cpf_index
+                    progress_values_t.set_string(progress_values.cpf_msg, registro.CPF)
+                    progress_values.cpf_last_updated_ns = time.time_ns()
                 CPF = apenas_digitos(registro.CPF)
 
                 try:
