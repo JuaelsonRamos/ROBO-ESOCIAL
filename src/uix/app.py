@@ -28,10 +28,25 @@ class CoralApp(App):
         if not base:
             raise ValueError("No root widget returned from kv file. Can't creat app root widget.")
 
-        base.add_widget(Nav(base, self.queues_collection))
+        base.add_widget(
+            Nav(
+                base,
+                self.to_process_queue,
+                self.started_event,
+                self.progress_values,
+            )
+        )
 
         return base
 
-    def __init__(self, queues: object, **kw: Any):
-        self.queues_collection = queues
+    def __init__(
+        self,
+        to_process_queue: object,
+        started_event: object,
+        progress_values: object,
+        **kw: Any,
+    ):
+        self.to_process_queue = to_process_queue
+        self.started_event = started_event
+        self.progress_values = progress_values
         super().__init__(**kw)

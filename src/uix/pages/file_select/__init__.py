@@ -24,17 +24,24 @@ class FileSelectPage(Page):
         """Calculos feitos a cada frame."""
         for section in self.children:
             section.render_frame()
+            # TODO Rodar render_frame da seção de progresso menos vezes (1 / 30?)
 
         for section in (s for s in self.children if isinstance(s, ProgressSection)):
             section.height = self.height - sum(
                 s.height for s in self.children if not isinstance(s, ProgressSection)
             )
 
-    def __init__(self, queues: object, **kw: Any):
+    def __init__(
+        self,
+        to_process_queue: object,
+        started_event: object,
+        progress_values: object,
+        **kw: Any,
+    ):
         super().__init__(**kw)
-        self.queues_collection = queues
+        self.to_process_queue = to_process_queue
         self.selected_file_section = SelectedFileSection()
-        self.progress_section = ProgressSection()
+        self.progress_section = ProgressSection(started_event, progress_values)
         self.add_widget(
             SelectButtonSection(
                 self.selected_file_section.label, self.progress_section.queue_widget.elements
@@ -45,7 +52,7 @@ class FileSelectPage(Page):
             AddToQueueSection(
                 self.selected_file_section.label,
                 self.progress_section.queue_widget.elements,
-                queues.arquivos_planilhas,
+                to_process_queue,
             )
         )
         self.add_widget(self.progress_section)

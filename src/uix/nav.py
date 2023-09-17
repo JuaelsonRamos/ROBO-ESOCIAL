@@ -160,8 +160,17 @@ class FileSelectButton(NavButton):
     order_position_top = 2
     icon_path = geticon("planilha")
 
-    def __init__(self, app: Widget, queues: object, **kw: Any) -> None:
-        self.page_instance = FileSelectPage(queues)
+    def __init__(
+        self,
+        app: Widget,
+        to_process_queue: object,
+        started_event: object,
+        progress_values: object,
+        **kw: Any,
+    ) -> None:
+        self.page_instance = FileSelectPage(
+            to_process_queue, started_event, progress_values
+        )
         super().__init__(app, **kw)
 
 
@@ -200,12 +209,21 @@ class InfoButton(NavButton):
 class Nav(FloatLayout):
     """Barra de navegação."""
 
-    def __init__(self, app: Widget, queues_collection: object, **kwargs: Any):
+    def __init__(
+        self,
+        app: Widget,
+        to_process_queue: object,
+        started_event: object,
+        progress_values: object,
+        **kwargs: Any,
+    ):
         super().__init__(**kwargs)
         buttons = [
             # ordem de definição de acordo com a classe HomePage
             EventsButton(app),
-            FileSelectButton(app, queues_collection),
+            FileSelectButton(
+                app, to_process_queue, started_event, progress_values
+            ),
             StatisticsButton(app),
             CertificatesButton(app),
             InfoButton(app),
