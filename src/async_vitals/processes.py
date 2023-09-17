@@ -4,9 +4,11 @@ from typing import Any, Callable, List, NamedTuple
 
 from aioprocessing import AioProcess as AioProcessFactory
 from aioprocessing.process import AioProcess
+from multiprocessing import Event, Value
 
 from src.uix.process_entrypoint import uix_process_entrypoint
-from src.async_vitals.messaging import Queues
+from src.webdriver.process_entrypoint import webdriver_process_entrypoint
+from src.async_vitals.messaging import ProgressStateNamespace, Queues, STR_DUMMY
 
 __all__ = ["Fork"]
 
@@ -15,6 +17,7 @@ _Processes = NamedTuple(
     "_Processes",
     [
         ("uix", AioProcess),
+        ("webdriver", AioProcess),
         ("processes", List[AioProcess]),
     ],
 )
@@ -39,7 +42,37 @@ def Fork() -> _Processes:
         _procs_list.append(p)
         return p
 
+    started_event = Event()
+    progress_values = Value(
+        ProgressStateNamespace,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        STR_DUMMY,
+        STR_DUMMY,
+        STR_DUMMY,
+        STR_DUMMY,
+        STR_DUMMY,
+    )
+
     return _Processes(
-        uix=_run_proc(uix_process_entrypoint, Queues),
+        uix=_run_proc(
+            uix_process_entrypoint,
+            Queues.arquivos_planilhas,
+            started_event,
+            progress_values,
+        ),
+        webdriver=_run_proc(
+            webdriver_process_entrypoint,
+            Queues.arquivos_planilhas,
+            Queues.planilhas_prontas,
+            started_event,
+            progress_values,
+        ),
         processes=_procs_list,
     )
