@@ -1,13 +1,16 @@
 """Indicadores de progresso no processamento das planilhas."""
 
+import time
 from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.progressbar import ProgressBar
 from typing import Any
+from multiprocessing import RLock
 
 from src.uix.pages.file_select.queue import QueueLayout
 from src.uix.pages.file_select.bases import FileSelectSection
 from src.uix.style_guides import Sizes
+from src.async_vitals.messaging import ProgressStateNamespace as progress_values_t
 
 __all__ = [
     "ProgressBarIndicator",
@@ -72,9 +75,14 @@ class ProgressStatusBar(RelativeLayout):
     texto indicando o item sendo processado no momento e um texto dando uma descrição do item sendo
     processado."""
 
-    def update(self, position: int, value: str = "", description: str | None = None) -> None:
+    def update(
+        self, position: int, value: str = "", description: str | None = None, lock: bool = True
+    ) -> None:
         """Atualizar de forma geral as informações que indicam o progresso (aparência da barra e
         textos indicativos)."""
+        if lock:
+            self.lock.acquire()
+
         if description is None:
             description = "Aguardando planilha..."
 
@@ -83,8 +91,23 @@ class ProgressStatusBar(RelativeLayout):
         self.description_label.text = description
         self.count_label.value = position
 
+        if lock:
+            self.lock.release()
+
+    def reset(self, max_count: int = 0, lock: bool = True) -> None:
+        """Resetar progresso."""
+        if lock:
+            self.lock.acquire()
+
+        self.count_label.max = max_count
+        self.update(0, lock=False)
+
+        if lock:
+            self.lock.release()
+
     def __init__(self, prefix: str, **kw: Any) -> None:
         super().__init__(**kw)
+        self.lock = RLock()
         self.prefix = prefix
         self.value_label = ProgressLabel()
         self.description_label = ProgressDescription()
@@ -119,6 +142,74 @@ class ProgressSection(FileSelectSection):
     """Seção que indica o progresso geral do processamento, como a fila de processamento e os
     detalhes do progresso."""
 
+    def update_progress(self) -> None:
+        """Atualizar progresso do processamento com base nas propriedades compartilhadas entre os
+        processos."""
+        if self._was_previously_set and not self.started_event.is_set():
+            self.progress_widget.cnpj_progress.reset()
+            self.progress_widget.cpf_progress.reset()
+            self._was_previously_set = False
+            return None
+        elif not self.started_event.is_set():
+            return None
+        elif (not self._was_previously_set) and self.started_event.is_set():
+            with self.progress_values.get_lock():
+                self.progress_widget.cnpj_progress.reset(self.progress_values.cnpj_max)
+                self.progress_widget.cpf_progress.reset(self.progress_values.cpf_max)
+                self.progress_widget.cnpj_progress.update(
+                    self.progress_values.cnpj_current,
+                    progress_values_t.get_string(self.progress_values.cnpj_msg),
+                    progress_values_t.get_string(self.progress_values.cnpj_long_msg),
+                )
+                self.progress_widget.cpf_progress.update(
+                    self.progress_values.cpf_current,
+                    progress_values_t.get_string(self.progress_values.cpf_msg),
+                    progress_values_t.get_string(self.progress_values.cpf_long_msg),
+                )
+            t = time.time_ns()
+            self._last_updated_cnpj = t
+            self._last_updated_cpf = t
+            self._last_updated_cnpj_max = t
+            self._last_updated_cpf_max = t
+            self._was_previously_set = True
+            return None
+
+        with self.progress_widget.cnpj_progress.lock, self.progress_values.get_lock():
+            if (
+                self.progress_widget.cnpj_progress.count_label.max != self.progress_values.cnpj_max
+                and self.progress_values.cnpj_max_last_updated_ns > self._last_updated_cnpj_max
+            ):
+                if self.progress_values.cnpj_max < 0:
+                    raise ValueError("Número máximo de itens não pode ser negativo.")
+                self.progress_widget.cnpj_progress.reset(self.progress_values.cnpj_max, lock=False)
+                self._last_updated_cnpj_max = time.time_ns()
+
+        with self.progress_widget.cpf_progress.lock, self.progress_values.get_lock():
+            if (
+                self.progress_widget.cpf_progress.count_label.max != self.progress_values.cpf_max
+                and self.progress_values.cpf_max_last_updated_ns > self._last_updated_cpf_max
+            ):
+                if self.progress_values.cpf_max < 0:
+                    raise ValueError("Número máximo de itens não pode ser negativo.")
+                self.progress_widget.cpf_progress.reset(self.progress_values.cpf_max, lock=False)
+                self._last_updated_cpf_max = time.time_ns()
+
+        with self.progress_values.get_lock():
+            if self.progress_values.cnpj_last_updated_ns > self._last_updated_cnpj:
+                self.progress_widget.cnpj_progress.update(
+                    self.progress_values.cnpj_current,
+                    progress_values_t.get_string(self.progress_values.cnpj_msg),
+                    progress_values_t.get_string(self.progress_values.cnpj_long_msg),
+                )
+                self._last_updated_cnpj = time.time_ns()
+            if self.progress_values.cpf_last_updated_ns > self._last_updated_cpf:
+                self.progress_widget.cpf_progress.update(
+                    self.progress_values.cpf_current,
+                    progress_values_t.get_string(self.progress_values.cpf_msg),
+                    progress_values_t.get_string(self.progress_values.cpf_long_msg),
+                )
+                self._last_updated_cpf = time.time_ns()
+
     def render_frame(self) -> None:
         super().render_frame()
         self.progress_widget.center_y = self.queue_widget.center_y = self.center_y
@@ -132,8 +223,22 @@ class ProgressSection(FileSelectSection):
         self.queue_widget.render_frame()
         self.progress_widget.render_frame()
 
-    def __init__(self, **kw: Any) -> None:
+        self.update_progress()
+
+    def __init__(
+        self,
+        started_event: object,
+        progress_values: progress_values_t,
+        **kw: Any,
+    ) -> None:
+        self._was_previously_set: bool = False
+        self._last_updated_cnpj: int = 0
+        self._last_updated_cpf: int = 0
+        self._last_updated_cnpj_max: int = 0
+        self._last_updated_cpf_max: int = 0
         super().__init__(**kw)
+        self.started_event = started_event
+        self.progress_values = progress_values
         self.queue_widget = QueueLayout()
         self.progress_widget = ProgressLayout()
         self.add_widget(self.queue_widget)
