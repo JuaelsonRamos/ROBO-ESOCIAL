@@ -75,17 +75,17 @@ class AddToQueueButton(Button):
         next(e for e in self.elements if e.order == lowest_not_populated).update(
             self.label.full_path
         )
+        self.to_process_queue.put(self.label.full_path)
         self.label.update()
-        self.schedulling_queue.put(self.label.full_path)
 
     def __init__(
-        self, label: Label, queue_elements: List[Widget], schedulling_queue: AioQueue, **kw: Any
+        self, label: Label, queue_elements: List[Widget], to_process_queue: AioQueue, **kw: Any
     ) -> None:
         super().__init__(**kw)
         self.background_color_obj = self.canvas.before.get_group("background_color")[0]
         self.label = label
         self.elements = queue_elements
-        self.schedulling_queue = schedulling_queue
+        self.to_process_queue = to_process_queue
 
 
 class SelectButtonSection(FileSelectSection):
@@ -128,8 +128,8 @@ class AddToQueueSection(FileSelectSection):
         self.button.center = (self.width / 2, self.height / 2)
 
     def __init__(
-        self, label: Label, queue_elements: List[Widget], schedulling_queue: AioQueue, **kw: Any
+        self, label: Label, queue_elements: List[Widget], to_process_queue: AioQueue, **kw: Any
     ) -> None:
-        self.button = AddToQueueButton(label, queue_elements, schedulling_queue)
+        self.button = AddToQueueButton(label, queue_elements, to_process_queue)
         super().__init__(**kw)
         self.add_widget(self.button)
