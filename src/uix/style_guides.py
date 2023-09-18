@@ -78,7 +78,7 @@ class Sizes:
             text_padding_small = 5
             progress_label_height = 25
             progress_bar_width = queue_element_total_width
-            progress_label_value_max_width = progress_bar_width * 0.5
+            progress_label_value_max_width = progress_bar_width * 0.7
             progress_bar_height = 10
 
 
