@@ -1,7 +1,7 @@
-""" Erros genéricos ou que devem ser acessíveis de todos os módulos, evitando erros de dependências
+"""Erros genéricos ou que devem ser acessíveis de todos os módulos, evitando erros de dependências
 circulares."""
 
-__all__ = ["ESocialDeslogadoError", "FuncionarioNaoEncontradoError"]
+__all__ = ["ESocialDeslogadoError", "ErroInternoSistema", "FuncionarioNaoEncontradoError"]
 
 
 class FuncionarioNaoEncontradoError(Exception):
@@ -10,3 +10,7 @@ class FuncionarioNaoEncontradoError(Exception):
 
 class ESocialDeslogadoError(Exception):
     """Erro para quando o site do ESocial é deslogado por quaisquer motivos."""
+
+
+class ErroInternoSistema(Exception):
+    """Erro genérico do sistema que impede o progresso do acesso."""

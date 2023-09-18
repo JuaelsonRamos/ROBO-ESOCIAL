@@ -14,7 +14,12 @@ from src.webdriver.erros import FuncionarioNaoEncontradoError
 from src.webdriver.planilha import ColunaPlanilha, RegistroCPF, RegistroDados
 from src.webdriver.types import CelulaVazia
 from src.local.types import Int
-from src.utils.acesso import ocorreu_erro_funcionario, inicializar_driver, teste_deslogado
+from src.utils.acesso import (
+    botao_funcionario,
+    ocorreu_erro_funcionario,
+    inicializar_driver,
+    teste_deslogado,
+)
 from src.utils.selenium import clicar, apertar_teclas, escrever
 from src.webdriver.erros import ESocialDeslogadoError
 from src.utils.python import LoopState
@@ -76,7 +81,11 @@ def entrar_com_cpf(driver: Chrome, CPF: str) -> None:
     escrever(driver, Caminhos.ESocial.CPF_EMPREGADO_INPUT, CPF)
     if ocorreu_erro_funcionario(driver):
         raise FuncionarioNaoEncontradoError()
-    apertar_teclas(driver, Keys.ENTER)
+
+    if botao := botao_funcionario(driver, CPF):
+        botao.click()
+    else:
+        raise FuncionarioNaoEncontradoError()
 
 
 def raspar_dados(
@@ -146,19 +155,19 @@ def processar_planilha(
                     break
                 cnpj_loop.lock()
 
-            CNPJ = funcionarios.CNPJ_lista[cnpj_index]
+            cnpj = funcionarios.CNPJ_lista[cnpj_index]
             with progress_values.get_lock():
                 progress_values.cnpj_current = cnpj_index
-                progress_values_t.set_string(progress_values.cnpj_msg, CNPJ)
+                progress_values_t.set_string(progress_values.cnpj_msg, cnpj)
                 progress_values.cnpj_last_updated_ns = time.time_ns()
-            CNPJ = apenas_digitos(funcionarios.CNPJ_lista[cnpj_index])
+            cnpj = apenas_digitos(cnpj)
 
             if driver:
                 # É necessário reiniciar o driver para cada CNPJ
                 driver.quit()
             driver = inicializar_driver()
             try:
-                carregar_pagina_ate_cpf_input(driver, CNPJ)
+                carregar_pagina_ate_cpf_input(driver, cnpj)
             except (ESocialDeslogadoError, TimeoutException):
                 # Capturando TimeoutException para caso a pagina carregue tanto que
                 # exceda o tempo de espera para as operações de clicar, escrever, etc.
@@ -202,7 +211,7 @@ def processar_planilha(
                     if driver:
                         driver.quit()
                     try:
-                        carregar_pagina_ate_cpf_input(driver, CNPJ)
+                        carregar_pagina_ate_cpf_input(driver, cnpj)
                     except (ESocialDeslogadoError, TimeoutException):
                         continue
                     restart = False
@@ -225,7 +234,7 @@ def processar_planilha(
                     progress_values.cpf_current = cpf_index
                     progress_values_t.set_string(progress_values.cpf_msg, registro.CPF)
                     progress_values.cpf_last_updated_ns = time.time_ns()
-                CPF = apenas_digitos(registro.CPF)
+                CPF = registro.CPF
 
                 try:
                     entrar_com_cpf(driver, CPF)

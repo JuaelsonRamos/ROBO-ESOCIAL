@@ -3,10 +3,9 @@
 import datetime
 import time
 from sys import maxsize as MAX_INT
-from typing import cast
+from typing import cast, List
 
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
@@ -18,9 +17,10 @@ from src.webdriver.caminhos import Caminhos
 from src.webdriver.erros import ESocialDeslogadoError
 from src.utils.python import DEBUG
 from src.utils.selenium import esperar_estar_presente
-from src.local.types import Int
+from src.local.types import Int, Float
 
 __all__ = [
+    "botao_funcionario",
     "deslogado",
     "inicializar_driver",
     "ocorreu_erro_funcionario",
@@ -85,49 +85,36 @@ def teste_deslogado(driver: Chrome, timeout: Int) -> None:
         raise ESocialDeslogadoError()
 
 
+def botao_funcionario(driver: Chrome, CPF: str) -> WebElement | None:
+    """Seleciona o botão que vai levar para a página de dados do funcionário referente ao CPF
+    especificado na seleção por formulário.
+
+    :param driver: Webdriver.
+    :param CPF: CPF do funcionário cujos dados devem ser acessados.
+    """
+    esperar_estar_presente(driver, Caminhos.ESocial.CPF_OPCAO)
+    opcoes: List[WebElement] = driver.find_elements(*Caminhos.ESocial.CPF_OPCAO)
+    if len(botoes_corretos := [o for o in opcoes if CPF in o.text]) > 0:
+        return botoes_corretos[0]
+    return None
+
+
 def ocorreu_erro_funcionario(driver: Chrome) -> bool:
     """Checa se algum erro relacionado ao funcionário ocorreu.
 
     :param driver: Webdriver ativo na hora da checagem.
     :return: Se o erro ocorreu ou não.
     """
-    # Guardando por precau
-    # def mensagem_de_erro_existe() -> bool:
-    #     mensagem_de_erro = "Não foi encontrado empregado com o CPF informado."
-    #     try:
-    #         WebDriverWait(driver, 3).until(
-    #             ec.all_of(
-    #                 ec.presence_of_element_located(Caminhos.ESocial.Formulario.ERRO_FUNCIONARIO),
-    #                 ec.text_to_be_present_in_element(Caminhos.ESocial.Formulario.ERRO_FUNCIONARIO, mensagem_de_erro),
-    #             )
-    #         )
-    #     except TimeoutException:
-    #         return False
-    #     else:
-    #         return True
 
-    def resultado_cpf_encontrado() -> bool:
-        """Checa se algum resultado na pesquisa do CPF no formulário foi encontrado.
+    esperar_estar_presente(driver, Caminhos.ESocial.CPF_EMPREGADO_INPUT)
+    element: WebElement = driver.find_element(*Caminhos.ESocial.CPF_EMPREGADO_INPUT)
 
-        :return: Se algum resultado foi encontrado.
-        """
-        esperar_estar_presente(driver, Caminhos.ESocial.CPF_EMPREGADO_INPUT)
-        element: WebElement = driver.find_element(*Caminhos.ESocial.CPF_EMPREGADO_INPUT)
-        ID = cast(str, element.get_attribute("aria-controls"))
-        cpf = cast(str, element.get_attribute("value"))
-        css_selector: str = cast(str, f"#{ID} > li:nth-child(1)".encode().decode())
-        try:
-            WebDriverWait(driver, 5).until(
-                ec.all_of(
-                    ec.presence_of_element_located((By.CSS_SELECTOR, css_selector)),
-                    ec.text_to_be_present_in_element((By.CSS_SELECTOR, css_selector), cpf),
-                )
-            )
-        except TimeoutException:
-            return False
-        else:
-            return True
+    try:
+        esperar_estar_presente(driver, Caminhos.ESocial.CPF_OPCAO, Float(15))
+    except TimeoutException:
+        return True
 
-    if resultado_cpf_encontrado():
+    cpf = cast(str, element.get_attribute("value"))
+    if botao_funcionario(driver, cpf):
         return False
     return True
