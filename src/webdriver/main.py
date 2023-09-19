@@ -71,3 +71,5 @@ def main(
         queue_prontas.put(
             PlanilhaPronta(dataframe, basename(caminho_arquivo_excel), caminho_arquivo_excel)
         )
+
+        started_event.clear()
