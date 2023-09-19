@@ -4,6 +4,7 @@ import time
 from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.progressbar import ProgressBar
+from kivy.uix.widget import Widget
 from typing import Any
 from multiprocessing import RLock
 
@@ -69,6 +70,21 @@ class ProgressDescription(Label):
 class ProgressBarIndicator(ProgressBar):
     """Elemento da barra de progresso."""
 
+    def on_value(self, widget: Widget, value: int) -> None:
+        if self.count_label.max == 0:
+            # Número absurdamente pequeno pq 0 não funciona
+            self.bar_filling.size = (1e-12, self.bar_filling.size[1])
+            return None
+        self.bar_filling.size = (
+            value * (self.width / self.count_label.max),
+            self.bar_filling.size[1],
+        )
+
+    def __init__(self, count_label: Label, **kw: Any) -> None:
+        super().__init__(**kw)
+        self.count_label = count_label
+        self.bar_filling = self.canvas.get_group("progress_indicator")[0]
+
 
 class ProgressStatusBar(RelativeLayout):
     """Container de uma barra de progresso contendo a própria barra, texto indicando o progresso,
@@ -112,7 +128,7 @@ class ProgressStatusBar(RelativeLayout):
         self.value_label = ProgressLabel()
         self.description_label = ProgressDescription()
         self.count_label = ProgressCount()
-        self.bar = ProgressBarIndicator()
+        self.bar = ProgressBarIndicator(self.count_label)
 
         self.add_widget(self.value_label)
         self.add_widget(self.description_label)
