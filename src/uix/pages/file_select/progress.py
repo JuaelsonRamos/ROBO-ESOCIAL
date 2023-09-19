@@ -164,6 +164,19 @@ class ProgressSection(FileSelectSection):
         if self._was_previously_set and not self.started_event.is_set():
             self.progress_widget.cnpj_progress.reset()
             self.progress_widget.cpf_progress.reset()
+
+            # MOVING TEXTS
+            for i in range(len(self.queue_widget.elements)):
+                next_one = next(el for el in self.queue_widget.elements if el.order == i + 1)
+                if next_one.order == 1:
+                    next_one.update()
+                    continue
+                elif next_one.full_path is None:
+                    continue
+                previous_one = next(el for el in self.queue_widget.elements if el.order == i)
+                previous_one.update(next_one.full_path)
+                next_one.update()
+
             self._was_previously_set = False
             return None
         elif not self.started_event.is_set():
