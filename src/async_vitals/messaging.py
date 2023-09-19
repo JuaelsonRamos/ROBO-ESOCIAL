@@ -62,12 +62,14 @@ class ProgressStateNamespace(Structure):
         return string_at(value, sizeof(value)).decode("utf-32").replace("\0", "")
 
     @classmethod
-    def set_string(cls, original_value: STR_TYPE, value: str) -> None:
+    def set_string(cls, original_value: STR_TYPE, value: str | STR_TYPE) -> None:
         size = len(value)
         if size > STR_BUFSIZE:
             raise ValueError("String é muito grande para o buffer.")
         memmove(
             original_value,
-            (STR_BASE_TYPE * size)(*[ord(c) for c in value]),
+            value
+            if isinstance(value, STR_TYPE)
+            else (STR_BASE_TYPE * size)(*[ord(c) for c in value]),
             sizeof(STR_BASE_TYPE) * size,
         )

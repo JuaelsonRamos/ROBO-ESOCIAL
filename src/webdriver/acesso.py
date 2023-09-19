@@ -160,6 +160,8 @@ def processar_planilha(
                 progress_values.cnpj_current = cnpj_index
                 progress_values_t.set_string(progress_values.cnpj_msg, cnpj)
                 progress_values.cnpj_last_updated_ns = time.time_ns()
+                progress_values_t.set_string(progress_values.cpf_msg, STR_DUMMY)
+                progress_values.cpf_last_updated_ns = time.time_ns()
             cnpj = apenas_digitos(cnpj)
 
             if driver:
