@@ -71,6 +71,8 @@ def main(
             progress_values.cpf_last_updated_ns = time.time_ns()
             progress_values_t.set_string(progress_values.cnpj_msg, STR_DUMMY)
             progress_values_t.set_string(progress_values.cpf_msg, STR_DUMMY)
+            progress_values_t.set_string(progress_values.cnpj_long_msg, STR_DUMMY)
+            progress_values_t.set_string(progress_values.cpf_long_msg, STR_DUMMY)
 
         queue_prontas.put(
             PlanilhaPronta(dataframe, basename(caminho_arquivo_excel), caminho_arquivo_excel)
