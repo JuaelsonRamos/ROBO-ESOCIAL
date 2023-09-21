@@ -44,10 +44,14 @@ def main(
         )
         coluna_cnpj = cast(Iterable[Any], tabela.iloc[DELTA:, ColunaPlanilha.CNPJ].values)
         coluna_cpf = cast(Iterable[Any], tabela.iloc[DELTA:, ColunaPlanilha.CPF].values)
+        coluna_cnpj_nomes = cast(Iterable[Any], tabela.iloc[DELTA:, ColunaPlanilha.NOME_UNIDADE])
+        coluna_cpf_nomes = cast(Iterable[Any], tabela.iloc[DELTA:, ColunaPlanilha.NOME_FUNCIONARIO])
 
         checar_cpfs_cnpjs(coluna_cpf, coluna_cnpj, coluna_cnpj_unidade)
 
-        funcionarios = registro_de_dados_relevantes(coluna_cnpj_unidade, coluna_cnpj, coluna_cpf)
+        funcionarios = registro_de_dados_relevantes(
+            coluna_cnpj_unidade, coluna_cnpj, coluna_cpf, coluna_cnpj_nomes, coluna_cpf_nomes
+        )
         with progress_values.get_lock():
             progress_values.cnpj_max = len(funcionarios.CNPJ_lista)
             progress_values.cpf_max = len(funcionarios.CPF_lista)

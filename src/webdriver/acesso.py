@@ -155,14 +155,15 @@ def processar_planilha(
                     break
                 cnpj_loop.lock()
 
-            cnpj = funcionarios.CNPJ_lista[cnpj_index]
+            cnpj_registro = funcionarios.CNPJ_lista[cnpj_index]
             with progress_values.get_lock():
                 progress_values.cnpj_current = cnpj_index
-                progress_values_t.set_string(progress_values.cnpj_msg, cnpj)
+                progress_values_t.set_string(progress_values.cnpj_msg, cnpj_registro.CNPJ)
+                progress_values_t.set_string(progress_values.cnpj_long_msg, cnpj_registro.nome)
                 progress_values.cnpj_last_updated_ns = time.time_ns()
                 progress_values_t.set_string(progress_values.cpf_msg, STR_DUMMY)
                 progress_values.cpf_last_updated_ns = time.time_ns()
-            cnpj = apenas_digitos(cnpj)
+            cnpj = apenas_digitos(cnpj_registro.CNPJ)
 
             if driver:
                 # É necessário reiniciar o driver para cada CNPJ
@@ -184,10 +185,11 @@ def processar_planilha(
                     progress_values.cpf_current = 0
                     progress_values.cpf_max_last_updated_ns = time.time_ns()
                     progress_values.cpf_last_updated_ns = time.time_ns()
-                for cpf in crawler.proximo_funcionario():
+                for cpf, nome in crawler.proximo_funcionario():
                     with progress_values.get_lock():
                         progress_values.cpf_current += 1
                         progress_values_t.set_string(progress_values.cpf_msg, cpf)
+                        progress_values_t.set_string(progress_values.cpf_long_msg, nome)
                         progress_values.cpf_last_updated_ns = time.time_ns()
                     generator = (r for r in funcionarios.CPF_lista if r.CPF == cpf)
                     for registro in generator:
@@ -200,6 +202,7 @@ def processar_planilha(
                     progress_values.cpf_max = len(funcionarios.CPF_lista)
                     progress_values.cpf_current = 0
                     progress_values_t.set_string(progress_values.cpf_msg, STR_DUMMY)
+                    progress_values_t.set_string(progress_values.cpf_long_msg, STR_DUMMY)
                     progress_values.cpf_max_last_updated_ns = time.time_ns()
                     progress_values.cpf_last_updated_ns = time.time_ns()
                 continue
@@ -235,6 +238,7 @@ def processar_planilha(
                 with progress_values.get_lock():
                     progress_values.cpf_current = cpf_index
                     progress_values_t.set_string(progress_values.cpf_msg, registro.CPF)
+                    progress_values_t.set_string(progress_values.cpf_long_msg, registro.nome)
                     progress_values.cpf_last_updated_ns = time.time_ns()
                 CPF = registro.CPF
 

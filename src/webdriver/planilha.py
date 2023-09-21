@@ -11,6 +11,7 @@ from src.local.types import Int
 __all__ = [
     "ColunaPlanilha",
     "DELTA",
+    "RegistroCNPJ",
     "RegistroCPF",
     "RegistroDados",
     "celulas_preenchidas",
@@ -54,6 +55,8 @@ class ColunaPlanilha:
     CPF: Int = letra_para_numero_coluna("T")
     CNPJ_UNIDADE: Int = letra_para_numero_coluna("AM")
     CNPJ: Int = letra_para_numero_coluna("BC")
+    NOME_FUNCIONARIO: Int = letra_para_numero_coluna("I")
+    NOME_UNIDADE: Int = letra_para_numero_coluna("B")
 
 
 # catalogando cpf para cada cnpj
@@ -64,11 +67,27 @@ class RegistroCPF:
     :final:
     :param CPF: CPF do funcionário com pontuação.
     :param linha: Posição vertical do CPF.
+    :param nome: Nome do funcionário a quem pertence o CPF.
     """
 
     # cpf com pontuação
     CPF: str
     linha: Int
+    nome: str
+
+
+@dataclass(init=True, frozen=True)
+class RegistroCNPJ:
+    """Dados relevantes ao CNPJ da empresa matriz ou unidade.
+
+    :final:
+    :param CNPJ: CNPJ da empresa com pontuação.
+    :param nome: Nome da empresa a quem o CNPJ pertence.
+    """
+
+    # cpf com pontuação
+    CNPJ: str
+    nome: str
 
 
 @dataclass(init=True, frozen=True)
@@ -80,7 +99,7 @@ class RegistroDados:
     :param CPF_lista: Lista onde cada objeto contém informações sobre o CPF de um funcionário.
     """
 
-    CNPJ_lista: List[str] = field(init=False, default_factory=list)
+    CNPJ_lista: List[RegistroCNPJ] = field(init=False, default_factory=list)
     CPF_lista: List[RegistroCPF] = field(init=False, default_factory=list)
 
 
@@ -110,7 +129,11 @@ def filtrar_cpfs_apenas_matriz(
 
 
 def registro_de_dados_relevantes(
-    coluna_cnpj_unidade: Iterable[str], coluna_cnpj: Iterable[str], coluna_cpf: Iterable[str]
+    coluna_cnpj_unidade: Iterable[str],
+    coluna_cnpj: Iterable[str],
+    coluna_cpf: Iterable[str],
+    coluna_cnpj_nomes: Iterable[str],
+    coluna_cpf_nomes: Iterable[str],
 ) -> RegistroDados:
     """Cria um registro de todos os cpnjs da MATRIZ e TODOS os cpfs.
 
@@ -121,20 +144,24 @@ def registro_de_dados_relevantes(
         próprio CPF e informações adicionais relevantes (confira).
     """
     registro = RegistroDados()
-    for index, CPF in enumerate(coluna_cpf):
+    for index, info in enumerate(zip(coluna_cpf, coluna_cpf_nomes)):
+        CPF, nome = info
         if not isinstance(CPF, str):
             continue
         pos_linha = Int(DELTA + index)
-        registro.CPF_lista.append(RegistroCPF(CPF, pos_linha))
+        registro.CPF_lista.append(RegistroCPF(CPF, pos_linha, nome.strip()))
 
-    for CNPJ in [*coluna_cnpj_unidade, *coluna_cnpj]:
+    cnpj_nomes = coluna_cnpj_nomes.to_list()
+    cnpj_length = len(cnpj_nomes)
+    for index, CNPJ in enumerate([*coluna_cnpj_unidade, *coluna_cnpj]):
+        nome = cnpj_nomes[index - cnpj_length] if index >= cnpj_length else cnpj_nomes[index]
         if not isinstance(CNPJ, str):
             continue
         if not re.split("[\\/-]", CNPJ)[1] == "0001":
             continue
-        if CNPJ in registro.CNPJ_lista:
+        if len(registro.CNPJ_lista) != 0 and CNPJ in (r.CNPJ for r in registro.CNPJ_lista):
             continue
-        registro.CNPJ_lista.append(CNPJ)
+        registro.CNPJ_lista.append(RegistroCNPJ(CNPJ, nome.strip()))
 
     return registro
 

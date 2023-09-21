@@ -145,6 +145,10 @@ class Caminhos:
                 By.CSS_SELECTOR,
                 "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item",
             )
+            _cpfs_nomes_seletor: SeletorHTML = (
+                By.CSS_SELECTOR,
+                "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item .MuiCardContent-root p:first-child",
+            )
             _cpfs_seletor: SeletorHTML = (
                 By.CSS_SELECTOR,
                 "#div-gestao-trabalhadores fieldset:first-child .MuiGrid-item .MuiCardContent-root p:last-child",
@@ -161,11 +165,15 @@ class Caminhos:
             def __init__(self, driver: Chrome) -> None:  # pylint: disable=super-init-not-called
                 esperar_estar_presente(driver, self._clicaveis_seletor)
                 esperar_estar_presente(driver, self._cpfs_seletor)
+                esperar_estar_presente(driver, self._cpfs_nomes_seletor)
                 self.driver = driver
                 self.clicaveis: List[WebElement] = driver.find_elements(*self._clicaveis_seletor)
                 self.quantos = Int(len(self.clicaveis))
                 self.cpfs: List[str] = [
                     elem.text for elem in driver.find_elements(*self._cpfs_seletor)
+                ]
+                self.cpfs_nomes: List[str] = [
+                    elem.text for elem in driver.find_elements(*self._cpfs_nomes_seletor)
                 ]
 
             def proximo_funcionario(self) -> Generator[str, None, None]:
@@ -173,7 +181,7 @@ class Caminhos:
                 for i in range(self.quantos):
                     self.clicaveis[i].click()
                     super().__init__(self.driver)
-                    yield self.cpfs[i]
+                    yield self.cpfs[i], self.cpfs_nomes[i]
 
             @classmethod
             def testar(cls, driver: Chrome) -> bool:
