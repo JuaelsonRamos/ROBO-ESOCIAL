@@ -71,7 +71,7 @@ class ProgressBarIndicator(ProgressBar):
     """Elemento da barra de progresso."""
 
     def on_value(self, widget: Widget, value: int) -> None:
-        if self.count_label.max == 0:
+        if self.count_label.max == 0 or value == 0:
             # Número absurdamente pequeno pq 0 não funciona
             self.bar_filling.size = (1e-12, self.bar_filling.size[1])
             return None
