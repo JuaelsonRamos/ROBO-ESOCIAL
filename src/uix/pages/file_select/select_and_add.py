@@ -10,6 +10,7 @@ from os.path import basename
 
 from src.uix.pages.file_select.bases import FileSelectSection
 from src.uix.style_guides import Colors, Sizes
+from src.uix.popup.message import ask_ok
 
 __all__ = [
     "AddToQueueButton",
@@ -46,18 +47,29 @@ class SelectButton(Button):
 
     def on_release(self) -> None:
         self.background_color_obj.rgba = Colors.light_red
+        if self.to_process_queue.full():
+            ask_ok.error("A fila de processamento está cheia!")
+            return None
         filename = askopenfilename(
             filetypes=(("Excel 2007 ou superior", ".xlsx"), ("Excel pré-2007", ".xls"))
         )
         if filename and filename in [elem.full_path for elem in self.elements]:
+            ask_ok.error(
+                "A planilha {} já foi selecionada e está na fila de processamento.".format(
+                    basename(filename)
+                )
+            )
             return None
         if filename and filename != self.label.full_path:
             self.label.update(filename)
 
-    def __init__(self, label: Label, queue_elements: List[Widget], **kw: Any) -> None:
+    def __init__(
+        self, label: Label, queue_elements: List[Widget], to_process_queue: AioQueue, **kw: Any
+    ) -> None:
         super().__init__(**kw)
         self.background_color_obj = self.canvas.before.get_group("background_color")[0]
         self.label = label
+        self.to_process_queue = to_process_queue
         self.elements = queue_elements
 
 
@@ -97,8 +109,10 @@ class SelectButtonSection(FileSelectSection):
         self.height = self.button.height + Sizes.Page.FileSelect.margin_between * 2
         self.button.center = (self.width / 2, self.height / 2)
 
-    def __init__(self, label: Label, queue_elements: List[Widget], **kw: Any) -> None:
-        self.button = SelectButton(label, queue_elements)
+    def __init__(
+        self, label: Label, queue_elements: List[Widget], to_process_queue: AioQueue, **kw: Any
+    ) -> None:
+        self.button = SelectButton(label, queue_elements, to_process_queue)
         super().__init__(**kw)
         self.add_widget(self.button)
 

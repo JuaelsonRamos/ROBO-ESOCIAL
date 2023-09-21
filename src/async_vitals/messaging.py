@@ -19,7 +19,7 @@ __all__ = [
 class Queues:
     """Filas de acesso de dados entre diversas threads."""
 
-    arquivos_planilhas = AioQueue()
+    arquivos_planilhas = AioQueue(10)
     """Fila de arquivos de planilhas."""
 
     arquivos_nao_planilhas = AioQueue()

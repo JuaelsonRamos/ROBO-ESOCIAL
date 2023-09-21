@@ -44,7 +44,9 @@ class FileSelectPage(Page):
         self.progress_section = ProgressSection(started_event, progress_values)
         self.add_widget(
             SelectButtonSection(
-                self.selected_file_section.label, self.progress_section.queue_widget.elements
+                self.selected_file_section.label,
+                self.progress_section.queue_widget.elements,
+                to_process_queue,
             )
         )
         self.add_widget(self.selected_file_section)
