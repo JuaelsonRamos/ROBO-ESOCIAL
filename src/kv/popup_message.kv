@@ -1,0 +1,70 @@
+#:kivy 2.2.1
+
+#:import Sizes src.uix.style_guides.Sizes
+#:import Colors src.uix.style_guides.Colors
+
+<PopUpLayout,PopUpMessage>:
+  size_hint: None, None
+  size: Sizes.PopUpMessage.window_width, Sizes.PopUpMessage.window_height
+
+<PopUpMessage>:
+  anchor_x: "center"
+  anchor_y: "center"
+  background_color: 0, 0, 0, 0
+
+  canvas:
+    Color:
+      rgba: Colors.main_background
+
+    RoundedRectangle:
+      radius: 10, 10
+      size: self.size
+      pos: self.pos
+
+<PopUpButton>:
+  size_hint: None, None
+  size: Sizes.PopUpMessage.max_button_width, Sizes.PopUpMessage.max_button_height
+  background_color: 0, 0, 0, 0
+  bold: True
+  color: Colors.black
+  font_size: pt(12)
+  halign: "center"
+  valign: "center"
+  text_size: self.size
+
+  canvas.before:
+    Color:
+      rgba: Colors.black
+
+    RoundedRectangle:
+      radius: 10, 10
+      size: self.size
+      pos: self.pos[0] + Sizes.Nav.shadow_offset, self.pos[1] - Sizes.Nav.shadow_offset
+
+    Color:
+      group: "background_color"
+      rgba: Colors.white
+
+    RoundedRectangle:
+      radius: 10, 10
+      size: self.size
+      pos: self.pos
+
+<PopUpIcon>:
+  size_hint: None, None
+  color: Colors.black
+  fit_mode: "contain"
+  width: Sizes.PopUpMessage.max_icon_size if self.texture_size[0] >= self.texture_size[1] else self.texture_size[0]
+  height: Sizes.PopUpMessage.max_icon_size if self.texture_size[1] >= self.texture_size[0] else self.texture_size[1]
+  texture_size: self.size
+
+<PopUpLabel>:
+  size_hint: None, None
+  color: Colors.black
+  text_size: self.size
+  font_size: pt(12)
+  halign: "center"
+  valign: "center"
+  width: Sizes.PopUpMessage.window_width * 0.9
+  # margin * 2 == margin bellow button + margin above icon
+  height: Sizes.PopUpMessage.window_height - Sizes.PopUpMessage.margin * 2 - Sizes.PopUpMessage.max_icon_size - Sizes.PopUpMessage.max_button_height

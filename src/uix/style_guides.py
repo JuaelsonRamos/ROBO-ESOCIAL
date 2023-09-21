@@ -81,6 +81,15 @@ class Sizes:
             progress_label_value_max_width = progress_bar_width * 0.7
             progress_bar_height = 10
 
+    @dataclass(init=False, frozen=True)
+    class PopUpMessage:
+        max_icon_size = 120
+        window_width = 400
+        window_height = 300
+        margin = 10
+        max_button_width = 90
+        max_button_height = 45
+
 
 def rgb(r: float, g: float, b: float) -> Tuple[float, float, float]:
     """Converte um valor RGB onde cada valor é ``0 <= x <= 255`` para um valor equivalente em
