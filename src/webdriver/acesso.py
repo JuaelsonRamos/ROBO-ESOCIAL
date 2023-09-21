@@ -247,6 +247,7 @@ def processar_planilha(
                     teste_deslogado(driver, logout_timeout)
                 except FuncionarioNaoEncontradoError:
                     tabela[ColunaPlanilha.MATRICULA][registro.linha] = "OFF"
+                    cpf_form_loop.unlock()
                     continue
                 except (ESocialDeslogadoError, TimeoutException):
                     restart = True
