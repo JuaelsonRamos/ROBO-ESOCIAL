@@ -8,3 +8,4 @@ Unidecode
 cython == 3.0.*
 cx-Freeze == 6.15.*
 kivy[base] == 2.2.1
+aioprocessing == 2.0.1
