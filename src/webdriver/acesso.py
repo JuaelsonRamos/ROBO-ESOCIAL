@@ -137,6 +137,8 @@ def processar_planilha(
         """Remove todos os caracteres que não sao números de um texto."""
         return "".join([s for s in texto if s in digits])
 
+    progress_values_t.update_general_msg(progress_values, "Iniciando etapa de processamento.")
+
     cnpj_index = Int(0)
     cpf_index = Int(0)
     cpfs_ja_vistos: Set[str] = set()
@@ -168,8 +170,14 @@ def processar_planilha(
             if driver:
                 # É necessário reiniciar o driver para cada CNPJ
                 driver.quit()
+            progress_values_t.update_general_msg(
+                progress_values, "Inicializando motor de busca e recolhimento de dados."
+            )
             driver = inicializar_driver()
             try:
+                progress_values_t.update_general_msg(
+                    progress_values, "Acessando perfil da empresa utilizando o CNPJ."
+                )
                 carregar_pagina_ate_cpf_input(driver, cnpj)
             except (ESocialDeslogadoError, TimeoutException):
                 # Capturando TimeoutException para caso a pagina carregue tanto que
@@ -179,6 +187,10 @@ def processar_planilha(
                 continue
 
             if Caminhos.ESocial.Lista.testar(driver):
+                progress_values_t.update_general_msg(
+                    progress_values,
+                    "Encontrada lista pré-definida de funcionários. Coletando dados apenas de funcionários presentes na planilha especificada.",
+                )
                 crawler = Caminhos.ESocial.Lista(driver)
                 with progress_values.get_lock():
                     progress_values.cpf_max = crawler.quantos
@@ -216,6 +228,9 @@ def processar_planilha(
                     if driver:
                         driver.quit()
                     try:
+                        progress_values_t.update_general_msg(
+                            progress_values, "Inicializando motor de busca e recolhimento de dados."
+                        )
                         carregar_pagina_ate_cpf_input(driver, cnpj)
                     except (ESocialDeslogadoError, TimeoutException):
                         continue
@@ -230,6 +245,11 @@ def processar_planilha(
                             progress_values.cpf_last_updated_ns = time.time_ns()
                         break
                     cpf_form_loop.lock()
+
+                progress_values_t.update_general_msg(
+                    progress_values,
+                    "Encontrado sistema de busca individual de funcionários. Buscando apenas funcionários listados na planilha especificada.",
+                )
 
                 registro = funcionarios.CPF_lista[cpf_index]
                 if registro.CPF in cpfs_ja_vistos:
@@ -250,6 +270,10 @@ def processar_planilha(
                     cpf_form_loop.unlock()
                     continue
                 except (ESocialDeslogadoError, TimeoutException):
+                    progress_values_t.update_general_msg(
+                        progress_values,
+                        "Acesso revogado pelo sistema. Reiniciando motor de busca e coleta.",
+                    )
                     restart = True
                     continue
 

@@ -33,6 +33,7 @@ def main(
     while True:
         caminho_arquivo_excel: str = queue_planilhas.get()
         started_event.set()
+        progress_values_t.update_general_msg(progress_values, "Lendo planilha.")
         tabela: pd.DataFrame
         if Path(caminho_arquivo_excel).suffix == ".xls":
             tabela = pd.read_excel(caminho_arquivo_excel, header=None, engine="xlrd")
@@ -49,6 +50,9 @@ def main(
 
         checar_cpfs_cnpjs(coluna_cpf, coluna_cnpj, coluna_cnpj_unidade)
 
+        progress_values_t.update_general_msg(
+            progress_values, "Separando dados de empresas e funcionários."
+        )
         funcionarios = registro_de_dados_relevantes(
             coluna_cnpj_unidade, coluna_cnpj, coluna_cpf, coluna_cnpj_nomes, coluna_cpf_nomes
         )
@@ -59,6 +63,11 @@ def main(
             progress_values.cpf_max_last_updated_ns = time.time_ns()
 
         dataframe: pd.DataFrame = processar_planilha(funcionarios, tabela, progress_values)
+
+        progress_values_t.update_general_msg(
+            progress_values,
+            "Etapa de processamento concluída. Agendando geração e salvamento da nova planilha.",
+        )
 
         with progress_values.get_lock():
             progress_values.cnpj_max = 0

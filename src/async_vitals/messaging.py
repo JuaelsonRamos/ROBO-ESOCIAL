@@ -2,6 +2,7 @@
 processos, coroutines)."""
 
 from ctypes import Structure, c_int32, c_long, c_longlong, string_at, sizeof, memmove
+import time
 from aioprocessing import AioQueue
 from dataclasses import dataclass
 
@@ -50,6 +51,7 @@ class ProgressStateNamespace(Structure):
         ("cpf_max_last_updated_ns", c_longlong),
         ("cpf_current", c_long),
         ("cpf_max", c_long),
+        ("general_msg_last_updated_ns", c_longlong),
         ("cnpj_msg", STR_TYPE),
         ("cnpj_long_msg", STR_TYPE),
         ("cpf_msg", STR_TYPE),
@@ -73,3 +75,16 @@ class ProgressStateNamespace(Structure):
             else (STR_BASE_TYPE * size)(*[ord(c) for c in value]),
             sizeof(STR_BASE_TYPE) * size,
         )
+
+    @classmethod
+    def update_general_msg(
+        cls, instance: Structure, text: str | STR_TYPE, lock: bool = True
+    ) -> None:
+        if lock:
+            instance.acquire()
+
+        cls.set_string(instance.general_msg, text)
+        instance.general_msg_last_updated_ns = time.time_ns()
+
+        if lock:
+            instance.release()

@@ -76,10 +76,12 @@ class Sizes:
             queue_element_height = 20
             queue_element_number_width = 30
             text_padding_small = 5
+            text_padding_medium = 10
             progress_label_height = 25
             progress_bar_width = queue_element_total_width
             progress_label_value_max_width = progress_bar_width * 0.7
             progress_bar_height = 10
+            general_message_label_height = 60
 
     @dataclass(init=False, frozen=True)
     class PopUpMessage:

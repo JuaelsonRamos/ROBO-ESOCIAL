@@ -17,6 +17,7 @@ __all__ = [
     "ProgressBarIndicator",
     "ProgressCount",
     "ProgressDescription",
+    "ProgressGeneralMessage",
     "ProgressLabel",
     "ProgressLayout",
     "ProgressSection",
@@ -65,6 +66,25 @@ class ProgressLabel(Label):
 class ProgressDescription(Label):
     """Elemento da descrição do item atual sendo processado, como nome da empresa ou qualquer outra
     informação descritiva."""
+
+
+class ProgressGeneralMessage(Label):
+    """Mensagem sobre o que está acontecendo durante cada fase do processamento."""
+
+    no_message_text = "Aguardando planilha..."
+
+    def update(self, text: str | None = None) -> None:
+        if text:
+            self.text = text
+            return None
+        self.text = ""
+
+    def reset(self) -> None:
+        self.text = self.no_message_text
+
+    def __init__(self, **kw: Any) -> None:
+        kw["text"] = self.no_message_text
+        super().__init__(**kw)
 
 
 class ProgressBarIndicator(ProgressBar):
@@ -143,15 +163,20 @@ class ProgressLayout(RelativeLayout):
 
     def render_frame(self) -> None:
         """Calculos feitos a cada frame."""
-        self.height = self.cnpj_progress.height + self.cpf_progress.height
-        self.cnpj_progress.y = self.cpf_progress.height
+        self.cpf_progress.y = (
+            self.general_message.height + Sizes.Page.FileSelect.text_padding_medium
+        )
+        self.cnpj_progress.y = self.cpf_progress.top
+        self.height = self.cnpj_progress.top
 
     def __init__(self, **kw: Any) -> None:
         super().__init__(**kw)
         self.cnpj_progress = ProgressStatusBar("CNPJ: ")
         self.cpf_progress = ProgressStatusBar("CPF: ")
+        self.general_message = ProgressGeneralMessage()
         self.add_widget(self.cnpj_progress)
         self.add_widget(self.cpf_progress)
+        self.add_widget(self.general_message)
 
 
 class ProgressSection(FileSelectSection):
@@ -164,6 +189,7 @@ class ProgressSection(FileSelectSection):
         if self._was_previously_set and not self.started_event.is_set():
             self.progress_widget.cnpj_progress.reset()
             self.progress_widget.cpf_progress.reset()
+            self.progress_widget.general_message.reset()
 
             # MOVING TEXTS
             for i in range(len(self.queue_widget.elements)):
@@ -195,11 +221,15 @@ class ProgressSection(FileSelectSection):
                     progress_values_t.get_string(self.progress_values.cpf_msg),
                     progress_values_t.get_string(self.progress_values.cpf_long_msg),
                 )
+                self.progress_widget.general_message.update(
+                    progress_values_t.get_string(self.progress_values.general_msg)
+                )
             t = time.time_ns()
             self._last_updated_cnpj = t
             self._last_updated_cpf = t
             self._last_updated_cnpj_max = t
             self._last_updated_cpf_max = t
+            self._last_updated_general_msg = t
             self._was_previously_set = True
             return None
 
@@ -239,6 +269,13 @@ class ProgressSection(FileSelectSection):
                 )
                 self._last_updated_cpf = time.time_ns()
 
+        with self.progress_values.get_lock():
+            if self.progress_values.general_msg_last_updated_ns > self._last_updated_general_msg:
+                self.progress_widget.general_message.update(
+                    progress_values_t.get_string(self.progress_values.general_msg)
+                )
+                self._last_updated_general_msg = time.time_ns()
+
     def render_frame(self) -> None:
         super().render_frame()
         self.progress_widget.center_y = self.queue_widget.center_y = self.center_y
@@ -265,6 +302,7 @@ class ProgressSection(FileSelectSection):
         self._last_updated_cpf: int = 0
         self._last_updated_cnpj_max: int = 0
         self._last_updated_cpf_max: int = 0
+        self._last_updated_general_msg: int = 0
         super().__init__(**kw)
         self.started_event = started_event
         self.progress_values = progress_values

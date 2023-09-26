@@ -185,3 +185,21 @@
       radius: Sizes.Page.FileSelect.progress_bar_height / 2, Sizes.Page.FileSelect.progress_bar_height / 2
       pos: self.pos
       size: 0, self.size[1]
+
+<ProgressGeneralMessage>:
+  size_hint: None, None
+  color: Colors.black
+  halign: "center"
+  valign: "center"
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  width: Sizes.Page.FileSelect.progress_bar_width
+  height: Sizes.Page.FileSelect.general_message_label_height
+  text_size: self.size
+
+  canvas.before:
+    Color:
+      rgba: Colors.white
+    RoundedRectangle:
+      radius: 5, 5
+      size: self.size
+      pos: self.pos
