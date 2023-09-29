@@ -2,12 +2,21 @@
 
 from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.scrollview import ScrollView
 from typing import Any
 from os.path import basename
 
+
 from src.uix.style_guides import Sizes, Colors
 
-__all__ = ["QueueElement", "QueueElementNumber", "QueueLayout", "QueueTitle"]
+__all__ = [
+    "QueueElement",
+    "QueueElementNumber",
+    "QueueLayout",
+    "QueueScroll",
+    "QueueScrollLayout",
+    "QueueTitle",
+]
 
 
 class QueueElementNumber(Label):
@@ -46,28 +55,40 @@ class QueueTitle(Label):
     """Título da fila de processamento."""
 
 
+class QueueScrollLayout(RelativeLayout):
+    pass
+
+
+class QueueScroll(ScrollView):
+    def __init__(self, **kw: Any) -> None:
+        super().__init__(**kw)
+        self.layout = QueueScrollLayout()
+        self.add_widget(self.layout)
+
+
 class QueueLayout(RelativeLayout):
     """Container contendo todos os widgets da fila."""
 
     def render_frame(self) -> None:
         """Calculos feitos a cada frame."""
-        elements = [e for e in self.children if isinstance(e, QueueElement)]
-        for i, elem in enumerate(elements):
-            elem.y = elem.number_widget.y = elem.height * i
+        for elem in self.elements:
+            elem.y = elem.number_widget.y = elem.height * (len(self.elements) - elem.order)
 
         self.title_widget.x = Sizes.Page.FileSelect.text_padding_small
-        self.title_widget.y = (
-            sum(elem.height for elem in elements) + Sizes.Page.FileSelect.text_padding_small
-        )
+        self.title_widget.y = self.scroll.height + Sizes.Page.FileSelect.text_padding_small
 
         self.width = Sizes.Page.FileSelect.queue_element_total_width
         self.height = self.title_widget.top
+
+        self.scroll.layout.height = sum(el.height for el in self.scroll.layout.children)
 
     def __init__(self, **kw: Any) -> None:
         super().__init__(**kw)
         self.title_widget = QueueTitle()
         self.elements = []
+        self.scroll = QueueScroll()
         self.add_widget(self.title_widget)
+        self.add_widget(self.scroll)
         for i in range(Sizes.Page.FileSelect.amount_queue_elements):
             self.elements.append(QueueElement(i + 1))
-            self.add_widget(self.elements[i])
+            self.scroll.layout.add_widget(self.elements[i])

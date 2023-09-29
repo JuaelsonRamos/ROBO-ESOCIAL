@@ -203,3 +203,13 @@
       radius: 5, 5
       size: self.size
       pos: self.pos
+
+<QueueScrollLayout>:
+  size_hint: 1, None
+
+<QueueScroll>:
+  do_scroll_x: False
+  do_scroll_y: True
+  size_hint: 1, None
+  width: Sizes.Page.FileSelect.queue_element_total_width
+  height: Sizes.Page.FileSelect.queue_element_height * Sizes.Page.FileSelect.amount_queue_elements
