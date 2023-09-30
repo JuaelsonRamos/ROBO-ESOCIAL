@@ -1,3 +1,4 @@
+from threading import Lock
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
 from kivy.uix.label import Label
@@ -5,8 +6,9 @@ from kivy.uix.button import Button
 from kivy.uix.modalview import ModalView
 
 from typing import Any, List, Tuple
-from src.uix.style_guides import Colors, Sizes
 
+from src.local.types import LockType
+from src.uix.style_guides import Colors, Sizes
 from src.utils.io import geticon, loadkv
 
 
@@ -100,28 +102,45 @@ class PopUpLayout(RelativeLayout):
 class PopUpMessage(ModalView):
     """Classe base para qualquer mensagem de Pop Up."""
 
-    def _open(self, icon_path: str, message: str, color: Tuple[float, ...] = Colors.black) -> None:
+    def _open(
+        self,
+        icon_path: str,
+        message: str,
+        color: Tuple[float, ...] = Colors.black,
+        lock: bool = True,
+    ) -> LockType | None:
         self.layout_widget.set_message_and_icon(icon_path, message)
         self.layout_widget.position_widgets()
         self.layout_widget.icon_widget.color = color
         self.open()
+        if lock:
+            self._lock.acquire()
+            return self._lock
 
-    def info(self, message: str) -> None:
-        self._open(geticon("info"), message, Colors.dark_blue)
+    def info(self, message: str, lock: bool = True) -> LockType | None:
+        return self._open(geticon("info"), message, Colors.dark_blue, lock)
 
-    def error(self, message: str) -> None:
-        self._open(geticon("erro"), message, Colors.dark_red)
+    def error(self, message: str, lock: bool = True) -> LockType | None:
+        return self._open(geticon("erro"), message, Colors.dark_red, lock)
 
-    def __init__(self, buttons: List[PopUpButton], **kw: Any) -> None:
+    def __init__(self, buttons: List[PopUpButton], lock: LockType, **kw: Any) -> None:
+        self._lock = lock
         self.layout_widget = PopUpLayout(buttons)
         super().__init__(**kw)
         self.add_widget(self.layout_widget)
 
 
 def _ask_ok_factory() -> PopUpMessage:
+    lock = Lock()
     ok_btn = PopUpButton(text="Ok!")
-    popup = PopUpMessage([ok_btn])
-    ok_btn.bind(on_release=popup.dismiss)
+    popup = PopUpMessage([ok_btn], lock)
+
+    def dismiss() -> None:
+        popup.dismiss()
+        if lock.locked():
+            lock.release()
+
+    ok_btn.bind(on_release=dismiss)
     return popup
 
 

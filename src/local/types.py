@@ -1,8 +1,9 @@
-__all__ = ["Float", "Int", "KvFile"]
+__all__ = ["Float", "Int", "KvFile", "LockType"]
 
-from typing import NamedTuple
+from typing import NamedTuple, TypeAlias
 from kivy.uix.widget import Widget
 from kivy.lang import Builder
+import _thread
 
 
 class Int(int):
@@ -34,3 +35,6 @@ class KvFile(_KvFileBase):
     def has_widget(self) -> bool:
         """Retorna se um Widget root foi retornado do arquivo KV ou não."""
         return bool(self.root_widget)
+
+
+LockType: TypeAlias = _thread.LockType

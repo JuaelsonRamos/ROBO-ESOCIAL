@@ -55,6 +55,8 @@ class FileSelectPage(Page):
                 self.selected_file_section.label,
                 self.progress_section.queue_widget.elements,
                 to_process_queue,
+                self.progress_section.queue_widget.element_count,
+                self.progress_section.queue_widget.lock,
             )
         )
         self.add_widget(self.progress_section)

@@ -190,6 +190,7 @@ class ProgressSection(FileSelectSection):
             self.progress_widget.cnpj_progress.reset()
             self.progress_widget.cpf_progress.reset()
             self.progress_widget.general_message.reset()
+            self.queue_widget.lock.acquire()
 
             # MOVING TEXTS
             for i in range(len(self.queue_widget.elements)):
@@ -203,11 +204,39 @@ class ProgressSection(FileSelectSection):
                 previous_one.update(next_one.full_path)
                 next_one.update()
 
+            highest_empty = max(
+                (el for el in self.queue_widget.elements if el.full_path is None),
+                default=None,
+                key=lambda el: el.order,
+            )
+
+            if not highest_empty:
+                pass
+            elif highest_empty.order > Sizes.Page.FileSelect.amount_queue_elements:
+                self.queue_widget.scroll.layout.remove_widget(highest_empty)
+                self.queue_widget.elements.remove(highest_empty)
+
+            self.queue_widget.element_count.update(
+                sum(1 for el in self.queue_widget.elements if el.full_path is not None)
+            )
+
             self._was_previously_set = False
+            self.queue_widget.lock.release()
             return None
         elif not self.started_event.is_set():
             return None
         elif (not self._was_previously_set) and self.started_event.is_set():
+            self.queue_widget.lock.acquire()
+            if len(self.queue_widget.elements) > len(self.queue_widget.scroll.layout.children):
+                highest = max(el.order for el in self.queue_widget.scroll.layout.children)
+                for i in range(len(self.queue_widget.elements) - highest):
+                    # Sendo específico para não acabar adicionando o mesmo widget multiplas vezes
+                    new_element = next(
+                        el for el in self.queue_widget.elements if el.order == highest + 1 + i
+                    )
+                    self.queue_widget.scroll.layout.add_widget(new_element)
+            self.queue_widget.lock.release()
+
             with self.progress_values.get_lock():
                 self.progress_widget.cnpj_progress.reset(self.progress_values.cnpj_max)
                 self.progress_widget.cpf_progress.reset(self.progress_values.cpf_max)

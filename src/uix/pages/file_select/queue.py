@@ -5,13 +5,14 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.scrollview import ScrollView
 from typing import Any
 from os.path import basename
-
+from threading import Lock
 
 from src.uix.style_guides import Sizes, Colors
 
 __all__ = [
     "QueueElement",
     "QueueElementNumber",
+    "QueueElementsCount",
     "QueueLayout",
     "QueueScroll",
     "QueueScrollLayout",
@@ -59,6 +60,17 @@ class QueueScrollLayout(RelativeLayout):
     pass
 
 
+class QueueElementsCount(Label):
+    prefix = "Itens na fila: "
+
+    def update(self, amount: int) -> None:
+        self.text = "[b]{}[/b]{}".format(self.prefix, amount)
+
+    def __init__(self, **kw: Any) -> None:
+        super().__init__(**kw)
+        self.update(0)
+
+
 class QueueScroll(ScrollView):
     def __init__(self, **kw: Any) -> None:
         super().__init__(**kw)
@@ -75,11 +87,12 @@ class QueueLayout(RelativeLayout):
             elem.y = elem.number_widget.y = elem.height * (len(self.elements) - elem.order)
 
         self.title_widget.x = Sizes.Page.FileSelect.text_padding_small
-        self.title_widget.y = self.scroll.height + Sizes.Page.FileSelect.text_padding_small
+        self.title_widget.y = self.scroll.top + Sizes.Page.FileSelect.text_padding_small
 
         self.width = Sizes.Page.FileSelect.queue_element_total_width
         self.height = self.title_widget.top
 
+        self.scroll.y = self.element_count.top + Sizes.Page.FileSelect.text_padding_small
         self.scroll.layout.height = sum(el.height for el in self.scroll.layout.children)
 
     def __init__(self, **kw: Any) -> None:
@@ -87,8 +100,11 @@ class QueueLayout(RelativeLayout):
         self.title_widget = QueueTitle()
         self.elements = []
         self.scroll = QueueScroll()
+        self.element_count = QueueElementsCount()
+        self.lock = Lock()
         self.add_widget(self.title_widget)
         self.add_widget(self.scroll)
+        self.add_widget(self.element_count)
         for i in range(Sizes.Page.FileSelect.amount_queue_elements):
             self.elements.append(QueueElement(i + 1))
             self.scroll.layout.add_widget(self.elements[i])

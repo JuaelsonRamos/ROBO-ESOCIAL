@@ -213,3 +213,16 @@
   size_hint: 1, None
   width: Sizes.Page.FileSelect.queue_element_total_width
   height: Sizes.Page.FileSelect.queue_element_height * Sizes.Page.FileSelect.amount_queue_elements
+
+<QueueElementsCount>:
+  size_hint: None, None
+  halign: "left"
+  valign: "center"
+  color: Colors.black
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  width: Sizes.Page.FileSelect.queue_element_total_width
+  height: Sizes.Page.FileSelect.queue_element_height
+  text_size: self.size
+  markup: True
+  base_direction: "ltr"
+  padding: Sizes.Page.FileSelect.text_padding_small, 0, 0, 0
