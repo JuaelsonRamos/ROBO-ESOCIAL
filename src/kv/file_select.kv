@@ -226,3 +226,14 @@
   markup: True
   base_direction: "ltr"
   padding: Sizes.Page.FileSelect.text_padding_small, 0, 0, 0
+
+<SelectedFileLabel,QueueElementNumber,QueueElement,ProgressLabel,ProgressDescription>:
+  shorten: True
+  split_str: ""
+  strip: True
+
+<QueueElementNumber,ProgressLabel,ProgressDescription>:
+  shorten_from: "right"
+
+<QueueElement,SelectedFileLabel>:
+  shorten_from: "center"
