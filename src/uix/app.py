@@ -23,6 +23,12 @@ class CoralApp(App):
         Window.size = size
         Window.minimum_width, Window.minimum_height = size
 
+        def touch_down(touch):
+            if "multitouch_sim" in touch.profile:
+                touch.multitouch_sim = False
+
+        Window.on_touch_down = Window.on_touch_move = touch_down
+
     def build(self):
         base = loadkv("app").root_widget
         if not base:
