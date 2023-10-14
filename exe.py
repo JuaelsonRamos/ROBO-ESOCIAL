@@ -24,6 +24,9 @@ exe_options = {
         "undetected_chromedriver",
         "unidecode",
         "ctypes",
+        "aioprocessing",
+        "kivy",
+        "webdriver_manager",
     ],
     "path": [
         "C:\\Program Files\\Python311\\Lib",

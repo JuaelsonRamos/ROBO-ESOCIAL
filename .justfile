@@ -29,7 +29,7 @@ clean_cython:
 
 clean: clean_cython
   #! powershell.exe
-  Remove-Item -Recurse -ErrorAction:Ignore -Path ./{{dist_venv}},./dist,./installer/build,./LEGAL,./LEGAL_dist
+  Remove-Item -Recurse -ErrorAction:Ignore -Path ./dist,./installer/build,./LEGAL,./LEGAL_dist
 
 make_venv:
   #! powershell.exe
@@ -70,7 +70,7 @@ exe: clean
   python setup.py build
   pip install .
   just licenses
-  python exe.py
+  python exe.py build_exe
 
 build:
   just make_venv
