@@ -1,0 +1,5 @@
+ruff==0.6.8
+pyright==1.1.383
+pylint==3.3.1
+bandit[toml]==1.7.10
+pytest==8.3.3
