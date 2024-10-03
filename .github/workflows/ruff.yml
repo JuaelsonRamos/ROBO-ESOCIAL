@@ -1,23 +1,24 @@
-name: Ruff formatting
+name: Ruff
 on:
   push:
   pull_request:
     types: [opened, edited, reopened, ready_for_review, converted_to_draft]
-env:
-  RUFF_VERSION: "0.6.8"
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
     steps:
       - uses: actions/checkout@v4
-      - name: Install Python
+      - name: Install Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff==$RUFF_VERSION
+          pip install -r ci-requirements.txt
       - name: Run Ruff
         # 1. Update output format to enable automatic inline annotations.
         # 2. From documentation: "Currently, the Ruff formatter does not
