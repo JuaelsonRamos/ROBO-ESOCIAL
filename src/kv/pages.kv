@@ -1,0 +1,18 @@
+#:kivy 2.2.1
+
+#:import Sizes src.uix.style_guides.Sizes
+#:import Colors src.uix.style_guides.Colors
+#:import window kivy.core.window.Window
+
+<Page>:
+  size: Sizes.Page.width(), window.height
+  pos: Sizes.Page.x(), self.y
+  orientation: "vertical"
+
+  canvas:
+    Color:
+      rgba: Colors.main_background
+
+    Rectangle:
+      size: self.size
+      pos: self.pos

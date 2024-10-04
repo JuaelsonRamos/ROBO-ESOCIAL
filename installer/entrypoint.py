@@ -1,4 +1,6 @@
-from src.main import main
+"""Entrypoint do executável."""
+
+from src import app
 
 if __name__ == "__main__":
-    main()
+    app()

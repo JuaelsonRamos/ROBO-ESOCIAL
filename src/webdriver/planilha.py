@@ -1,4 +1,4 @@
-""" Operações de manipulação de planilhas, processamento de dados que vem de planilhas e dados
+"""Operações de manipulação de planilhas, processamento de dados que vem de planilhas e dados
 relevantes para interações complanilhas."""
 
 import re
@@ -6,15 +6,27 @@ from dataclasses import dataclass, field
 from math import isnan
 from string import ascii_letters
 from typing import Any, Iterable, List, Dict
-from src.tipos import Int
+from src.local.types import Int
 
-__all__ = ["ColunaPlanilha", "DELTA", "RegistroCPF", "RegistroDados", "celulas_preenchidas", "checar_cpfs_cnpjs", "filtrar_cpfs_apenas_matriz", "letra_para_numero_coluna", "registro_de_dados_relevantes"]
+__all__ = [
+    "ColunaPlanilha",
+    "DELTA",
+    "RegistroCNPJ",
+    "RegistroCPF",
+    "RegistroDados",
+    "celulas_preenchidas",
+    "checar_cpfs_cnpjs",
+    "filtrar_cpfs_apenas_matriz",
+    "letra_para_numero_coluna",
+    "registro_de_dados_relevantes",
+]
 
 DELTA = Int(2)
-""" Quantidade de linhas da planilha a serem ignoradas de cima para baixo."""
+"""Quantidade de linhas da planilha a serem ignoradas de cima para baixo."""
+
 
 def letra_para_numero_coluna(char: str) -> Int:
-    """ Retorna o número correspondente a uma lista de letras em formato de index para o pandas.
+    """Retorna o número correspondente a uma lista de letras em formato de index para o pandas.
 
     Exemplo: ``'L' == 12``, portanto esta função retorna 11 (12-1).
 
@@ -29,11 +41,12 @@ def letra_para_numero_coluna(char: str) -> Int:
 
 @dataclass(init=False, frozen=True)
 class ColunaPlanilha:
-    """ Registro de coordenadas numéricas (otimizadas para indexação de listas) de certas colunas da
+    """Registro de coordenadas numéricas (otimizadas para indexação de listas) de certas colunas da
     planilha.
 
     :final:
     """
+
     SITUACAO: Int = letra_para_numero_coluna("L")
     NASCIMENTO: Int = letra_para_numero_coluna("J")
     DEMISSAO: Int = letra_para_numero_coluna("N")
@@ -42,37 +55,59 @@ class ColunaPlanilha:
     CPF: Int = letra_para_numero_coluna("T")
     CNPJ_UNIDADE: Int = letra_para_numero_coluna("AM")
     CNPJ: Int = letra_para_numero_coluna("BC")
+    NOME_FUNCIONARIO: Int = letra_para_numero_coluna("I")
+    NOME_UNIDADE: Int = letra_para_numero_coluna("B")
 
 
 # catalogando cpf para cada cnpj
 @dataclass(init=True, frozen=True)
 class RegistroCPF:
-    """ Dados relevantes ao CPF do funcionário e informações da posição do CPF na planilha.
+    """Dados relevantes ao CPF do funcionário e informações da posição do CPF na planilha.
 
     :final:
     :param CPF: CPF do funcionário com pontuação.
     :param linha: Posição vertical do CPF.
+    :param nome: Nome do funcionário a quem pertence o CPF.
     """
+
     # cpf com pontuação
     CPF: str
     linha: Int
+    nome: str
+
+
+@dataclass(init=True, frozen=True)
+class RegistroCNPJ:
+    """Dados relevantes ao CNPJ da empresa matriz ou unidade.
+
+    :final:
+    :param CNPJ: CNPJ da empresa com pontuação.
+    :param nome: Nome da empresa a quem o CNPJ pertence.
+    """
+
+    # cpf com pontuação
+    CNPJ: str
+    nome: str
 
 
 @dataclass(init=True, frozen=True)
 class RegistroDados:
-    """ Dados da empresa que são relevantes a raspagem de dados.
+    """Dados da empresa que são relevantes a raspagem de dados.
 
     :final:
     :param CNPJ_lista: Lista de CNPJs com pontuação.
     :param CPF_lista: Lista onde cada objeto contém informações sobre o CPF de um funcionário.
     """
-    CNPJ_lista: List[str] = field(init=False, default_factory=list)
+
+    CNPJ_lista: List[RegistroCNPJ] = field(init=False, default_factory=list)
     CPF_lista: List[RegistroCPF] = field(init=False, default_factory=list)
 
 
 # ESSA FUNÇÃO NÃO ESTÁ MAIS SENDO USADA; MANTIDA AQUI CASO MUDE DE IDEA
-def filtrar_cpfs_apenas_matriz(coluna_cnpj: Iterable[str], coluna_cpf: Iterable[str]) -> Dict[str, List[RegistroCPF]]:
-    """ Cria um dicionário apenas com os cnpjs da matriz e os cpfs correspondentes a esses cpnjs.
+def filtrar_cpfs_apenas_matriz(
+    coluna_cnpj: Iterable[str], coluna_cpf: Iterable[str]
+) -> Dict[str, List[RegistroCPF]]:
+    """Cria um dicionário apenas com os cnpjs da matriz e os cpfs correspondentes a esses cpnjs.
 
     :param coluna_cnpj: Coluna da planilha com todos os CNPJs da matriz.
     :param coluna_cpf: Coluna da planilha com todos os CPFs de funcionários.
@@ -93,8 +128,14 @@ def filtrar_cpfs_apenas_matriz(coluna_cnpj: Iterable[str], coluna_cpf: Iterable[
     return CATALOGO_FUNCIONARIOS
 
 
-def registro_de_dados_relevantes(coluna_cnpj_unidade: Iterable[str], coluna_cnpj: Iterable[str], coluna_cpf: Iterable[str]) -> RegistroDados:
-    """ Cria um registro de todos os cpnjs da MATRIZ e TODOS os cpfs.
+def registro_de_dados_relevantes(
+    coluna_cnpj_unidade: Iterable[str],
+    coluna_cnpj: Iterable[str],
+    coluna_cpf: Iterable[str],
+    coluna_cnpj_nomes: Iterable[str],
+    coluna_cpf_nomes: Iterable[str],
+) -> RegistroDados:
+    """Cria um registro de todos os cpnjs da MATRIZ e TODOS os cpfs.
 
     :param coluna_cnpj_unidade: Objeto iterável contendo CNPJs.
     :param coluna_cnpj: Objeto iterável contendo CNPJs.
@@ -103,30 +144,35 @@ def registro_de_dados_relevantes(coluna_cnpj_unidade: Iterable[str], coluna_cnpj
         próprio CPF e informações adicionais relevantes (confira).
     """
     registro = RegistroDados()
-    for index, CPF in enumerate(coluna_cpf):
+    for index, info in enumerate(zip(coluna_cpf, coluna_cpf_nomes)):
+        CPF, nome = info
         if not isinstance(CPF, str):
             continue
         pos_linha = Int(DELTA + index)
-        registro.CPF_lista.append(RegistroCPF(CPF, pos_linha))
+        registro.CPF_lista.append(RegistroCPF(CPF, pos_linha, nome.strip()))
 
-    for CNPJ in [*coluna_cnpj_unidade, *coluna_cnpj]:
+    cnpj_nomes = coluna_cnpj_nomes.to_list()
+    cnpj_length = len(cnpj_nomes)
+    for index, CNPJ in enumerate([*coluna_cnpj_unidade, *coluna_cnpj]):
+        nome = cnpj_nomes[index - cnpj_length] if index >= cnpj_length else cnpj_nomes[index]
         if not isinstance(CNPJ, str):
             continue
         if not re.split("[\\/-]", CNPJ)[1] == "0001":
             continue
-        if CNPJ in registro.CNPJ_lista:
+        if len(registro.CNPJ_lista) != 0 and CNPJ in (r.CNPJ for r in registro.CNPJ_lista):
             continue
-        registro.CNPJ_lista.append(CNPJ)
+        registro.CNPJ_lista.append(RegistroCNPJ(CNPJ, nome.strip()))
 
     return registro
 
 
 def celulas_preenchidas(array: Iterable[Any]) -> Int:
-    """ Pede uma lista de valores de celulas e retorna quantas estão preenchidos.
+    """Pede uma lista de valores de celulas e retorna quantas estão preenchidos.
 
     :param array: Objeto iterável contendo um conjunto de células de planilha.
     :return: Quantidade de células que estão preenchidas com qualquer valor que seja.
     """
+
     # celulas vazias são NaN
     def is_nan(n: Any) -> bool:
         if isinstance(n, float):
@@ -136,8 +182,10 @@ def celulas_preenchidas(array: Iterable[Any]) -> Int:
     return Int(len([x for x in array if not is_nan(x)]))
 
 
-def checar_cpfs_cnpjs(cpfs: Iterable[Any], cnpjs: Iterable[Any], cnpjs_unidade: Iterable[Any]) -> None:
-    """ Checa se existem CPFs e CNPJs.
+def checar_cpfs_cnpjs(
+    cpfs: Iterable[Any], cnpjs: Iterable[Any], cnpjs_unidade: Iterable[Any]
+) -> None:
+    """Checa se existem CPFs e CNPJs.
 
     :param cpfs: Objeto iterável contendo células da coluna da planilhas que guarda CPFs.
     :param cnpjs: Objeto iterável contendo CNPJs.

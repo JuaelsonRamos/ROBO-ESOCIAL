@@ -1,0 +1,12 @@
+h1, h2, h3, h4, p, li {
+  font-family: "Arial", sans-serif;
+}
+
+code {
+  font-family: monospace;
+}
+
+h1 {
+  page-break-before: always;
+  page-break-inside: avoid;
+}

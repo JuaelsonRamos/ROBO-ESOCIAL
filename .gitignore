@@ -127,6 +127,7 @@ celerybeat.pid
 .venv
 .venv-dev
 .venv-dist
+.venv-build
 env/
 venv/
 ENV/
@@ -171,6 +172,12 @@ installer/build/
 
 # arquivos compactados
 *.zip
+
+# informações legais
+/LEGAL/
+LEGAL_dist/
+
+src/uix/*.ini
 
 # lockfiles
 !package-lock.json

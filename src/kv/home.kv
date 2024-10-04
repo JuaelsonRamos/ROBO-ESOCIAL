@@ -1,0 +1,73 @@
+#:kivy 2.2.1
+
+#:import Sizes src.uix.style_guides.Sizes
+#:import Colors src.uix.style_guides.Colors
+#:import window kivy.core.window.Window
+
+<Section>:
+  width: Sizes.Page.width()
+  size_hint: None, None
+
+<SectionTitle>:
+  bold: True
+  font_size: pt(18)
+  size: self.texture_size
+  size_hint: None, None
+  max_lines: 1
+  valign: "middle"
+  color: Colors.black
+
+  canvas:
+    Color:
+      rgb: Colors.light_red
+
+    Rectangle:
+      group: "title_separator"
+      size: self.size[0], 1.5
+      pos: self.pos[0], self.pos[1] - Sizes.Page.HomePage.title_separator_margin
+
+<PageCardIcon>:
+  size_hint: None, None
+  pos_hint: None, None
+  color: Colors.black
+  height: Sizes.Page.HomePage.card_icon_max_size if self.height >= self.width else self.texture_size[1]
+  width: Sizes.Page.HomePage.card_icon_max_size if self.width >= self.height else self.texture_size[0]
+
+<PageCard>:
+  color: Colors.black
+  background_color: 0, 0, 0, 0
+  font_size: pt(14)
+  bold: True
+  halign: "left"
+  valign: "center"
+  base_direction: None
+  line_height: 1.15
+  max_lines: 2
+  outline_width: None
+  always_release: True
+  height: Sizes.Page.HomePage.card_min_height
+
+  canvas.before:
+    Color:
+      group: "shadow_color"
+      rgba: Colors.page_card_outer_shadow
+    # BoxShadow:
+    #   group: "background_shadow"
+    #   blur_radius: 3
+    #   # spread_radius: 1.5, 1.5
+    #   border_radius: 10, 10, 10, 10
+    #   offset: 1, -1
+    #   inset: False
+    #   pos: self.pos
+    #   size: self.size
+    RoundedRectangle:
+      radius: 10, 10
+      pos: self.pos[0] + Sizes.Nav.shadow_offset, self.pos[1] - Sizes.Nav.shadow_offset
+      size: self.size
+    Color:
+      group: "background_color"
+      rgba: Colors.white
+    RoundedRectangle:
+      radius: 10, 10
+      pos: self.pos
+      size: self.size

@@ -1,19 +1,64 @@
 [build-system]
 requires = ["setuptools ~= 58.0", "cython ~= 3.0.0"]
 
-[tool.black]
-line-length = 100
-target-version = ["py311"]
-safe = true
-include = '\.py$'
-workers = 3
+[project]
+name = "ROBO-ESOCIAL"
+requires-python = "==3.11"
+dynamic = ["version"]
 
-[tool.isort]
-profile = "black"
+[tool.ruff]
+cache-dir = ".cache/ruff"
+respect-gitignore = true
+fix = true
+indent-width = 4
+line-length = 88
+output-format = "github"
+required-version = ">=0.6.8"
+show-fixes = true
+src = ["src"]
+unsafe-fixes = false
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 64
+indent-style = "space"
+line-ending = "lf"
+quote-style = "single"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+task-tags = ["TODO", "FIXME", "HACK", "NOTE"]
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+combine-as-imports = true
+force-wrap-aliases = true
+from-first = false
+force-to-top = ["src"]
+known-first-party = ["src"]
+length-sort-straight = true
+lines-after-imports = 2
+lines-between-types = 1
+relative-imports-order = "closest-to-furthest"
+required-imports = ["from __future__ import annotations"]
+section-order = ["future", "local-folder", "testing", "first-party", "standard-library", "third-party"]
+split-on-trailing-comma = false
+
+[tool.ruff.lint.isort.sections]
+testing = ["pytest"]
+# maybe? webdriver
+
+[tool.ruff.lint.pycodestyle]
+ignore-overlong-task-comments = true
+max-doc-length = 88
+max-line-length = 120
+
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
 
 [tool.docformatter]
 # black opts modificadas
-pre-summary-space = true
+pre-summary-space = false
 wrap-descriptions = 100
 wrap-summaries = 100
 # outras
@@ -67,7 +112,10 @@ disable = [
   "consider-using-enumerate",
   "not-an-iterable",
   "wrong-import-order",
-  "wrong-import-position"
+  "wrong-import-position",
+  "pointless-string-statement", # para docstrings de variaveis
+  "consider-using-f-string",
+  "disallowed-name"
 ]
 
 [tool.pyright]
@@ -79,7 +127,6 @@ exclude = [
   "**/.venv*/",
   "**/build*/",
   "**/dist/",
-  "./*.py"
 ]
 include = [
   "src/",
@@ -90,9 +137,13 @@ include = [
 # Mensagens específicas:
 reportMissingTypeStubs = "none"
 reportWildcardImportFromLibrary = "none"
-reportIncompleteStub = "warning"
+reportIncompleteStub = "none"
 reportUnnecessaryIsInstance = "none"
 reportUnnecessaryCast = "none"
 reportUnnecessaryContains = "none"
 reportUnnecessaryComparison = "none"
 reportUnknownMemberType = "none"
+reportUnknownVariableType = "none"
+reportUnknownArgumentType = "none"
+reportGeneralTypeIssues = "none"
+reportOptionalMemberAccess = "none"

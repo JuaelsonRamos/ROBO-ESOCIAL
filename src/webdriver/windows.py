@@ -1,4 +1,4 @@
-""" Operações que só funcionam na plataforma Windows."""
+"""Operações que só funcionam na plataforma Windows."""
 
 import ctypes as ct
 import ctypes.wintypes as wintypes
@@ -8,14 +8,14 @@ from pathlib import PurePath
 from selenium.webdriver.common.by import By
 from undetected_chromedriver import Chrome
 
-from src.local.io import PastasProjeto
+from src.utils.io import PastasProjeto
 from src.utils.selenium import esperar_estar_presente
 
 __all__ = ["bloquear_janela"]
 
 
 def bloquear_janela(driver: Chrome) -> None:
-    """ Bloqueia input de mouse e teclado à janela do chrome.
+    """Bloqueia input de mouse e teclado à janela do chrome.
 
     :param driver: Instância do driver dono da janela deve ser bloqueada
     """
@@ -32,7 +32,7 @@ def bloquear_janela(driver: Chrome) -> None:
     esperar_estar_presente(driver, (By.ID, "paginaCarregada"))
 
     def callback(hwnd: wintypes.HWND, lParam: wintypes.LPARAM) -> wintypes.BOOL:
-        """ Função que vai ser executada para cada janela do windows.
+        """Função que vai ser executada para cada janela do windows.
 
         :param hwnd: ID da janela que é diferente do ID de processo
         :param lParam: Argumento arbritrário passado para essa função pela função envolvente

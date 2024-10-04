@@ -1,0 +1,239 @@
+#:kivy 2.2.1
+
+#:import Sizes src.uix.style_guides.Sizes
+#:import Colors src.uix.style_guides.Colors
+
+<SelectButton>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.select_button_width
+  height: Sizes.Page.FileSelect.select_button_height
+  text: "Selecione um Planilha"
+  color: Colors.painful_white
+  font_size: Sizes.Page.FileSelect.select_button_text_size
+  bold: True
+  background_color: 0, 0, 0, 0
+
+  canvas.before:
+    Color:
+      group: "background_color"
+      rgba: Colors.light_red
+    RoundedRectangle:
+      radius: 15, 15
+      pos: self.pos
+      size: self.size
+
+<AddToQueueButton>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.add_to_queue_width
+  height: Sizes.Page.FileSelect.add_to_queue_height
+  text: "Adicionar à Fila"
+  color: Colors.painful_white
+  font_size: Sizes.Page.FileSelect.add_to_queue_text_size
+  bold: True
+  background_color: 0, 0, 0, 0
+
+  canvas.before:
+    Color:
+      group: "background_color"
+      rgba: Colors.light_blue
+    RoundedRectangle:
+      radius: 10, 10
+      pos: self.pos
+      size: self.size
+
+<SelectedFileLabel>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.selected_file_width
+  height: Sizes.Page.FileSelect.selected_file_height
+  color: Colors.black
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  text_size: self.size
+  halign: "left"
+  valign: "center"
+  base_direction: "ltr"
+
+  canvas.before:
+    Color:
+      rgba: Colors.black
+    RoundedRectangle:
+      radius: Sizes.Page.FileSelect.selected_file_height / 2, Sizes.Page.FileSelect.selected_file_height / 2
+      pos: self.pos[0] - Sizes.Page.FileSelect.selected_file_height / 2, self.pos[1] - Sizes.Nav.shadow_offset
+      size: self.size[0] + Sizes.Page.FileSelect.selected_file_height, self.size[1]
+    Color:
+      rgba: Colors.main_background
+    RoundedRectangle:
+      radius: Sizes.Page.FileSelect.selected_file_height / 2, Sizes.Page.FileSelect.selected_file_height / 2
+      pos: self.pos[0] - Sizes.Page.FileSelect.selected_file_height / 2, self.pos[1]
+      size: self.size[0] + Sizes.Page.FileSelect.selected_file_height, self.size[1]
+
+<QueueElementNumber>:
+  size_hint: None, None
+  color: Colors.black
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  height: Sizes.Page.FileSelect.queue_element_height
+  width: Sizes.Page.FileSelect.queue_element_number_width
+  text_size: self.size
+  halign: "right"
+  valign: "center"
+  base_direction: "rtl"
+  max_lines: 1
+
+  canvas.before:
+    Color:
+      group: "background_color"
+      rgba: Colors.gray
+    Rectangle:
+      size: self.size
+      pos: self.pos
+
+<QueueElement>:
+  size_hint: None, None
+  color: Colors.black
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  width: Sizes.Page.FileSelect.queue_element_total_width - Sizes.Page.FileSelect.queue_element_number_width
+  height: Sizes.Page.FileSelect.queue_element_height
+  x: Sizes.Page.FileSelect.queue_element_number_width
+  text_size: self.size
+  halign: "left"
+  valign: "center"
+  padding: Sizes.Page.FileSelect.text_padding_small, 0, 0, 0
+  base_direction: "ltr"
+  max_lines: 1
+
+  canvas.before:
+    Color:
+      group: "background_color"
+      rgba: Colors.gray
+    Rectangle:
+      size: self.size
+      pos: self.pos
+
+<QueueTitle>:
+  size_hint: None, None
+  color: Colors.black
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  text: "Fila de Processamento"
+  size: self.texture_size
+  bold: True
+
+<FileSelectSection>:
+  width: Sizes.Page.width()
+  size_hint: None, None
+
+<FileSelectPage>:
+  orientation: "vertical"
+
+<QueueLayout>:
+  size_hint: None, None
+
+<ProgressLayout>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.progress_bar_width
+
+<ProgressStatusBar>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.progress_bar_width
+  height: Sizes.Page.FileSelect.progress_label_height * 2 + Sizes.Page.FileSelect.progress_bar_height
+
+<ProgressCount,ProgressLabel,ProgressDescription>:
+  size_hint: None, None
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  color: Colors.black
+  height: Sizes.Page.FileSelect.progress_label_height
+  text_size: self.size
+  valign: "center"
+  markup: True
+
+<ProgressLabel,ProgressDescription>:
+  halign: "left"
+  base_direction: "ltr"
+  x: Sizes.Page.FileSelect.text_padding_small
+
+<ProgressLabel>:
+  width: Sizes.Page.FileSelect.progress_label_value_max_width
+  y: Sizes.Page.FileSelect.progress_bar_height + Sizes.Page.FileSelect.progress_label_height
+
+<ProgressDescription>:
+  width: Sizes.Page.FileSelect.progress_bar_width - Sizes.Page.FileSelect.text_padding_small * 2
+  y: Sizes.Page.FileSelect.progress_bar_height
+
+<ProgressCount>:
+  width: (Sizes.Page.FileSelect.progress_bar_width - Sizes.Page.FileSelect.progress_label_value_max_width) * 0.9
+  halign: "right"
+  base_direction: "rtl"
+  x: Sizes.Page.FileSelect.progress_bar_width - Sizes.Page.FileSelect.text_padding_small - self.width
+  y: Sizes.Page.FileSelect.progress_bar_height + Sizes.Page.FileSelect.progress_label_height
+  bold: True
+
+<ProgressBarIndicator>:
+  size_hint: None, None
+  width: Sizes.Page.FileSelect.progress_bar_width
+  height: Sizes.Page.FileSelect.progress_bar_height
+  pos: 0, 0
+
+  canvas:
+    Color:
+      rgba: Colors.white
+    RoundedRectangle:
+      radius: Sizes.Page.FileSelect.progress_bar_height / 2, Sizes.Page.FileSelect.progress_bar_height / 2
+      pos: self.pos
+      size: self.size
+    Color:
+      rgba: Colors.yellow
+    RoundedRectangle:
+      group: "progress_indicator"
+      radius: Sizes.Page.FileSelect.progress_bar_height / 2, Sizes.Page.FileSelect.progress_bar_height / 2
+      pos: self.pos
+      size: 0, self.size[1]
+
+<ProgressGeneralMessage>:
+  size_hint: None, None
+  color: Colors.black
+  halign: "center"
+  valign: "center"
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  width: Sizes.Page.FileSelect.progress_bar_width
+  height: Sizes.Page.FileSelect.general_message_label_height
+  text_size: self.size
+
+  canvas.before:
+    Color:
+      rgba: Colors.white
+    RoundedRectangle:
+      radius: 5, 5
+      size: self.size
+      pos: self.pos
+
+<QueueScrollLayout>:
+  size_hint: 1, None
+
+<QueueScroll>:
+  do_scroll_x: False
+  do_scroll_y: True
+  size_hint: 1, None
+  width: Sizes.Page.FileSelect.queue_element_total_width
+  height: Sizes.Page.FileSelect.queue_element_height * Sizes.Page.FileSelect.amount_queue_elements
+
+<QueueElementsCount>:
+  size_hint: None, None
+  halign: "left"
+  valign: "center"
+  color: Colors.black
+  font_size: Sizes.Page.FileSelect.regular_text_size
+  width: Sizes.Page.FileSelect.queue_element_total_width
+  height: Sizes.Page.FileSelect.queue_element_height
+  text_size: self.size
+  markup: True
+  base_direction: "ltr"
+  padding: Sizes.Page.FileSelect.text_padding_small, 0, 0, 0
+
+<SelectedFileLabel,QueueElementNumber,QueueElement,ProgressLabel,ProgressDescription>:
+  shorten: True
+  split_str: ""
+  strip: True
+
+<QueueElementNumber,ProgressLabel,ProgressDescription>:
+  shorten_from: "right"
+
+<QueueElement,SelectedFileLabel>:
+  shorten_from: "center"

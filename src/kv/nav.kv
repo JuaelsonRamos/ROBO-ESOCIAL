@@ -1,0 +1,58 @@
+#:kivy 2.2.1
+
+#:import window kivy.core.window.Window
+#:import Sizes src.uix.style_guides.Sizes
+#:import Colors src.uix.style_guides.Colors
+#:set nav_width 70
+#:set nav_width_border 3
+
+<NavButtonIcon>:
+  size_hint: None, None
+  pos_hint: None, None
+  width: Sizes.Nav.icon_max_size if self.width >= self.height else self.texture_size[0]
+  height: Sizes.Nav.icon_max_size if self.height >= self.width else self.texture_size[1]
+  color: Colors.black
+
+<NavButton>:
+  x: 5
+  background_color: 0, 0, 0, 0
+  group: "nav_button"
+
+  canvas.before:
+    Color:
+      group: "shadow_color"
+      rgba: Colors.black
+    RoundedRectangle:
+      group: "shadow"
+      radius: 10, 10
+      size: self.size
+      # Essa monstruosidade precisa existir porque durante o tempo em que você mantem
+      # o mouse pressionado enquanto redimensiona a janela o Kivy respeita os valores
+      # definidos em KV ao envés dos valores e eventos definidos no python.
+      # Você acaba precisando definir o mesmo comportamento em ambos. :/
+      pos: self.pos[0] - Sizes.Nav.on_pressed_border_width / 2 if self.state == "down" else self.pos[0] + Sizes.Nav.shadow_offset, self.pos[1] - Sizes.Nav.on_pressed_border_width / 2 if self.state == "down" else self.pos[1] - Sizes.Nav.shadow_offset
+    Color:
+      group: "background_color"
+      rgba: Colors.white
+    RoundedRectangle:
+      group: "background"
+      radius: 10, 10
+      size: self.size
+      pos: self.pos
+
+<Nav>:
+  size: Sizes.Nav.width, window.height
+
+  canvas.before:
+    Color:
+      rgb: Colors.main_background
+
+    Rectangle:
+      size: Sizes.Nav.width, window.height
+
+    Color:
+      rgba: Colors.dark_yellow
+
+    Rectangle:
+      size: Sizes.Nav.border_width, window.height
+      pos: Sizes.Nav.width, self.pos[1]
