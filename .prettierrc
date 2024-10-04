@@ -1,0 +1,9 @@
+{
+  "plugins": ["prettier-plugin-sh", "@prettier/plugin-xml", "prettier-plugin-sql-cst"],
+  "singleQuote": true,
+  "printWidth": 88,
+  "sqlKeywordCase": "upper",
+  "sqlCanonicalSyntax": true,
+  "xmlQuoteAttributes": "double",
+  "xmlWhitespaceSensitivity": "ignore"
+}
