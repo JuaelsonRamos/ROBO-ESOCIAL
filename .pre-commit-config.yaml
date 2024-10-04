@@ -1,0 +1,31 @@
+default_language_version:
+  python: '3.11'
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: Ruff
+        description: Formata arquivos Python
+        language: script
+        always_run: false
+        verbose: false
+        fail_fast: true
+        types: [text]
+        files: '\.py$'
+        pass_filenames: false
+        require_serial: true
+        stages: [pre-commit]
+        entry: hooks/ruff.sh
+      - id: prettier-format
+        name: Prettier
+        description: Formata arquivos não-Python
+        language: system
+        always_run: false
+        fail_fast: true
+        type: [text]
+        files: '\.(ya?ml|md|jsonc?|xml|sh|sql)$'
+        pass_filenames: true
+        require_serial: false
+        stafes: [pre-commit]
+        entry: npx prettier --write
