@@ -132,6 +132,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+node_modules
 
 # Spyder project settings
 .spyderproject
@@ -170,3 +171,8 @@ installer/build/
 
 # arquivos compactados
 *.zip
+
+# lockfiles
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
