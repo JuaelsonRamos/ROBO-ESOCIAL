@@ -1,0 +1,31 @@
+PY_REGEX="\\.py$"
+STAGED="$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g')"
+
+py_files() {
+  # Grep will return non-zero and husky will exit immediately,
+  # even inside inline expressions. Keep this a function for multiple calls.
+  echo "$STAGED" | grep -G "$PY_REGEX"
+}
+
+other() {
+  # See reasoning for py_files function
+  echo "$STAGED" | grep -v -G "$PY_REGEX"
+}
+
+# Ruff Options Summary
+# 1. Update output format to enable automatic inline annotations.
+# 2. From documentation: "Currently, the Ruff formatter does not
+#    sort imports. In order to both sort imports and format, call
+#    the Ruff linter and then the formatter"
+if py_files; then
+  FILES="$(py_files)"
+  echo "$FILES" | xargs ruff check --quiet --select I --fix --output-format=github
+  echo "$FILES" | xargs ruff format --quiet
+fi
+
+if other; then
+  # Unnecessary branching, but arguably not bad expressiveness for bash
+  FILES="$(other)"
+  echo "$FILES" | xargs npx prettier --log-level warn --write --ignore-unknown
+fi
+
