@@ -21,17 +21,17 @@ Importe as configurações do shell do seu ambiente virtual:
 . ./.venv/Scripts/Activate.ps1 # Powershell
 ```
 
-Depois, instalar todas as dependências:
+Depois, instalar todas as dependências Python:
 
 ```powershell
 python -m pip install -U pip
 pip install -r requirements.txt
 ```
 
-Por fim, instalar os [hooks](./.pre-commit-config.yaml) que serão executados a cada commit.
+E as dependências Node:
 
 ```powershell
-pre-commit install
+npm install
 ```
 
 ## Configurando o Visual Studio Code
