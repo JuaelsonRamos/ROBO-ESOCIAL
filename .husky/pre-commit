@@ -29,3 +29,5 @@ if other; then
   echo "$FILES" | xargs npx prettier --log-level warn --write --ignore-unknown
 fi
 
+# Update git index before committing
+git update-index --again
