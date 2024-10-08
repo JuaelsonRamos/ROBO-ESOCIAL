@@ -16,10 +16,14 @@
       }
     ]
   },
+  "ruff.importStrategy": "fromEnvironment",
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.formatOnSave": true
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
   },
-  "pylint.importStrategy":"fromEnvironment",
+  "pylint.importStrategy": "fromEnvironment",
   "python.analysis.typeCheckingMode": "strict"
 }
