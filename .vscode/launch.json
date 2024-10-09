@@ -2,6 +2,22 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "GUI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "gui",
+      "showReturnValue": true,
+      "justMyCode": true
+    },
+    {
+      "name": "GUI (all packages)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "gui",
+      "showReturnValue": true,
+      "justMyCode": false
+    },
+    {
       "name": "Programa principal",
       "type": "python",
       "request": "launch",
