@@ -35,8 +35,11 @@ class ViewNavigator(ttk.Frame):
         super().__init__(master, style=const.VIEW_NAVIGATOR)
         self.pack(side=tk.LEFT, anchor=tk.W, expand=tk.TRUE, fill=tk.Y)
 
-    def add_button(self, text: str = 'Placeholder'):
-        self._buttons.append(ViewButton(self, text, index=len(self._buttons)))
+    def add_button(self, text: str = 'Placeholder', *, active=False):
+        index = len(self._buttons)
+        self._buttons.append(ViewButton(self, text, index=index))
+        if active:
+            self.switch_view(index)
 
     def switch_view(self, index: int):
         for btn in self._buttons:

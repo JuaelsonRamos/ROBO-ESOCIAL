@@ -16,7 +16,7 @@ class App(tk.Tk):
     def create_widgets(self):
         view_nav = ViewNavigator(self)
         view_nav.add_button('Certificados')
-        view_nav.add_button('Processar')
+        view_nav.add_button('Processar', active=True)
         view_nav.add_button('Histórico')
         view_nav.add_button('Visualizar')
         view_nav.add_button('Ferramentas')
