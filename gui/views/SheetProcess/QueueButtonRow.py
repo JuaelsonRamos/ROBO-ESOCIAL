@@ -17,10 +17,9 @@ class QueueButton(ttk.Button):
 
 
 class QueueButtonRow(ttk.Frame):
-    _buttons: list[ttk.Button] = []
-
     def __init__(self, master, text: str):
         super().__init__(master)
+        self._buttons: list[ttk.Button] = []
         self.text = text
         self.pack(anchor=tk.NE, side=tk.TOP, fill=tk.X)
         self.create_widgets()
