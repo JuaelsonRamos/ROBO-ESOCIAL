@@ -1,6 +1,6 @@
 [project]
 name = "ROBO-ESOCIAL"
-version = "0.0.1"
+version = "0.0.2"
 
 [tool.cxfreeze]
 executables = [
@@ -8,7 +8,7 @@ executables = [
 ]
 
 [tool.cxfreeze.build_exe]
-build_exe = "build/RoboEsocial-win-amd64-py311-v0.0.1"
+build_exe = "build/RoboEsocial-win-amd64-py311-v0.0.2"
 packages = [
   "tkinter",
   "selenium",
