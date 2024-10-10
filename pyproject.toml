@@ -20,7 +20,16 @@ packages = [
   "unidecode",
   "ctypes",
 ]
-include_files = [["assets", "lib/assets"]]
+include_files = [
+  [
+    "assets",
+    "lib/assets",
+  ],
+  [
+    "assets/certificado.reg",
+    "certificado_automatico.reg",
+  ],
+]
 optimize = 2
 include_msvcr = true
 
