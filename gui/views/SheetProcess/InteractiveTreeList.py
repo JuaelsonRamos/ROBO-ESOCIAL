@@ -12,7 +12,7 @@ class InteractiveTreeList(ttk.Frame):
     def __init__(self, master, title: str, *, columns: list[Heading]):
         super().__init__(master)
         self.title = title
-        self.pack(fill=tk.X, side=tk.TOP, anchor=tk.NW)
+        self.pack(fill=tk.BOTH, expand=tk.TRUE, side=tk.TOP, anchor=tk.NW)
         self.button_row = QueueButtonRow(self, self.title)
         self.tree = ShortTree(self, columns=columns)
 

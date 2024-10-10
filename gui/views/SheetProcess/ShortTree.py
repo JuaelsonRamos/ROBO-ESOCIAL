@@ -27,7 +27,7 @@ class ShortTree(ttk.Treeview):
             padding=2,
             show='headings',
         )
-        self.pack(side=tk.TOP, fill=tk.X)
+        self.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.TRUE)
 
         for col in columns:
             self.heading(col['text'], text=col['text'], anchor=col['anchor'])
@@ -38,6 +38,6 @@ class ShortTree(ttk.Treeview):
                 width=col['minwidth'],
             )
 
-        empty = ['' for _ in range(self.min_height)]
-        for i in range(self.min_height):
-            self.insert('', i, values=empty.copy())
+        # empty = ['' for _ in range(self.min_height)]
+        # for i in range(self.min_height):
+        #     self.insert('', i, values=empty.copy())
