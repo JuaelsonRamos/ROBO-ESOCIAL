@@ -170,3 +170,6 @@ installer/build/
 
 # arquivos compactados
 *.zip
+
+# Ignorar Python extraído localmente
+/Python3*/
