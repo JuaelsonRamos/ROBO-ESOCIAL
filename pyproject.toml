@@ -1,10 +1,36 @@
+[project]
+name = "ROBO-ESOCIAL"
+version = "0.0.1"
+
+[tool.cxfreeze]
+executables = [
+  { script = "./src/__main__.py", base = "console", target_name = "robo", shortcut_dir = "~/Desktop" },
+]
+
+[tool.cxfreeze.build_exe]
+packages = [
+  "tkinter",
+  "selenium",
+  "pandas",
+  "xlrd",
+  "openpyxl",
+  "webdriver_manager",
+  "undetected_chromedriver",
+  "unidecode",
+  "ctypes",
+]
+include_files = [["assets", "lib/assets"]]
+zip_filename = "robo-esocial"
+optimize = 2
+include_msvcr = true
+
 [build-system]
 requires = ["setuptools ~= 58.0", "cython ~= 3.0.0"]
 
 [tool.black]
 line-length = 100
 target-version = ["py311"]
-safe = true
+# safe = true
 include = '\.py$'
 workers = 3
 
@@ -37,12 +63,9 @@ exclude_dirs = [
   ".venv-dist",
   "build",
   "build_cython",
-  "dist"
+  "dist",
 ]
-targets = [
-  "src",
-  "installer"
-]
+targets = ["src", "installer"]
 
 # Aviso para futuras modificações:
 #   No pylint seções de configuração são puramente uma ferramenta
@@ -57,7 +80,7 @@ load-plugins = [
   "pylint.extensions.empty_comment",
   "pylint.extensions.eq_without_hash",
   "pylint.extensions.private_import",
-  "pylint.extensions.docparams"
+  "pylint.extensions.docparams",
 ]
 
 [tool.pylint."messages control"]
@@ -67,7 +90,7 @@ disable = [
   "consider-using-enumerate",
   "not-an-iterable",
   "wrong-import-order",
-  "wrong-import-position"
+  "wrong-import-position",
 ]
 
 [tool.pyright]
@@ -75,16 +98,8 @@ pythonVersion = "3.11"
 pythonPlatform = "Windows"
 typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
-exclude = [
-  "**/.venv*/",
-  "**/build*/",
-  "**/dist/",
-  "./*.py"
-]
-include = [
-  "src/",
-  "installer/"
-]
+exclude = ["**/.venv*/", "**/build*/", "**/dist/", "./*.py"]
+include = ["src/", "installer/"]
 # Bibliotecas importantes estão apenas parcialmente ou totalmente sem tipos.
 # Alguns desses avisos são importantes, mas em bao parte da codebase, inevitáveis, infelizmente.
 # Mensagens específicas:
