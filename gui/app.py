@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from gui.views.SheetProcess import SheetProcess
-from gui.widgets import ProcessingSheetsCounter, StatusBar, ViewNavigator
+from gui.widgets import ViewNavigator
+from gui.widgets.StatusBar import ProgressCounter, StatusBar
 
 import tkinter as tk
 
@@ -18,7 +19,11 @@ class App(tk.Tk):
     def create_widgets(self):
         # Adicionar primeiro para que as dimensões tenham precedência sob as outras
         status_bar = StatusBar(self)
-        ProcessingSheetsCounter(status_bar)
+        ProgressCounter(
+            status_bar,
+            idle='Aguardando Processamento',
+            template='Processando Planilhas ({current}/{total})',
+        )
         view_nav = ViewNavigator(self)
         view_nav.add_button('Certificados')
         view_nav.add_button('Processar', active=True)

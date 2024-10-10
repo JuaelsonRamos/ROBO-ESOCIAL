@@ -25,18 +25,26 @@ class Counter:
 
 
 class LabelCounter(ttk.Label, Counter):
-    def __init__(self, master):
+    def __init__(self, master, *, idle: str, template: str):
+        """
+        :param idle: Texto para quando o contador for resetado
+        :param template: Identificadores: current, total
+            Examplo: "Meu texto aqui ({current}/{total})
+        """
+        # TODO Transformar argumentos de widgets custom em keyword arguments
         super().__init__(master, padding=padding(right=5))
+        self.idle = idle
+        self.template = template
         self.pack(side=tk.LEFT, anchor=tk.W)
         self.reset()
 
     def set_counter(self, current: int):
         super().set_counter(current)
-        self.config(text=f'Processando ({self.current}/{self.total})')
+        self.config(text=self.template.format(current=self.current, total=self.total))
 
     def reset(self):
         super().reset()
-        self.config(text='Aguardando Processamento')
+        self.config(text=self.idle)
 
 
 class Progress(ttk.Progressbar, Counter):
@@ -57,9 +65,9 @@ class Progress(ttk.Progressbar, Counter):
         self.config(maximum=0)
 
 
-class ProcessingSheetsCounter(ttk.Frame):
-    def __init__(self, master):
+class ProgressCounter(ttk.Frame):
+    def __init__(self, master, *, idle: str, template: str):
         super().__init__(master)
         self.pack(side=tk.LEFT, anchor=tk.W)
-        self.conter = LabelCounter(self)
+        self.conter = LabelCounter(self, idle=idle, template=template)
         self.progressbar = Progress(self)
