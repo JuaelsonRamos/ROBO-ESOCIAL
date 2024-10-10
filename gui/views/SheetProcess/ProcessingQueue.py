@@ -16,7 +16,7 @@ class ProcessingQueue(ttk.Frame):
         self.create_widgets()
 
     def create_widgets(self):
-        button_row = QueueButtonRow(self)
+        button_row = QueueButtonRow(self, 'Fila de Processamento')
         button_row.add_button('Adicionar')
         button_row.add_button('Remover')
         button_row.add_button('Começar')

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from gui.utils.units import padding
+
 import tkinter as tk
 import tkinter.ttk as ttk
 
@@ -17,9 +19,11 @@ class QueueButton(ttk.Button):
 class QueueButtonRow(ttk.Frame):
     _buttons: list[ttk.Button] = []
 
-    def __init__(self, master):
+    def __init__(self, master, text: str):
         super().__init__(master)
+        self.text = text
         self.pack(anchor=tk.NE, side=tk.TOP, fill=tk.X)
+        self.create_widgets()
 
     def add_button(self, text: str = 'Placeholder') -> ttk.Button:
         btn = QueueButton(self, text)
@@ -27,3 +31,7 @@ class QueueButtonRow(ttk.Frame):
             btn.before(self._buttons[-1])
         self._buttons.append(btn)
         return btn
+
+    def create_widgets(self):
+        label = ttk.Label(self, text=self.text.upper(), padding=padding(left=5))
+        label.pack(side=tk.LEFT, anchor=tk.W, fill=tk.Y)
