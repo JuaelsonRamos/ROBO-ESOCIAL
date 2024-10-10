@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from gui.views.SheetProcess import SheetProcess
-from gui.widgets import ViewNavigator
+from gui.widgets import StatusBar, ViewNavigator
 
 import tkinter as tk
 
@@ -16,6 +16,8 @@ class App(tk.Tk):
         self.propagate(tk.FALSE)
 
     def create_widgets(self):
+        # Adicionar primeiro para que as dimensões tenham precedência sob as outras
+        StatusBar(self)
         view_nav = ViewNavigator(self)
         view_nav.add_button('Certificados')
         view_nav.add_button('Processar', active=True)
