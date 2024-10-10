@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from gui.views import SheetProcess
+from gui.views.SheetProcess import SheetProcess
 from gui.widgets import ViewNavigator
 
 import tkinter as tk
