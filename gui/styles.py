@@ -21,3 +21,4 @@ def default_theme():
     style.configure(const.VIEW_BUTTON, anchor=tk.W, width=15, relief=tk.RAISED)
     style.configure(const.ACTIVE_VIEW_BUTTON, anchor=tk.W, width=15, relief=tk.SUNKEN)
     style.configure(const.VIEW_NAVIGATOR)
+    style.configure(const.VIEW, background='black')

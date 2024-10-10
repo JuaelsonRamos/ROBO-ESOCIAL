@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from gui.views import SheetProcess
 from gui.widgets import ViewNavigator
 
 import tkinter as tk
@@ -12,6 +13,7 @@ class App(tk.Tk):
         self.geometry('1280x720')
         self.title('ROBO-ESOCIAL')
         self.create_widgets()
+        self.propagate(tk.FALSE)
 
     def create_widgets(self):
         view_nav = ViewNavigator(self)
@@ -20,3 +22,4 @@ class App(tk.Tk):
         view_nav.add_button('Histórico')
         view_nav.add_button('Visualizar')
         view_nav.add_button('Ferramentas')
+        SheetProcess(self)

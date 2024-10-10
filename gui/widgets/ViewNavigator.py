@@ -33,7 +33,7 @@ class ViewNavigator(ttk.Frame):
 
     def __init__(self, master):
         super().__init__(master, style=const.VIEW_NAVIGATOR)
-        self.pack(side=tk.LEFT, anchor=tk.W, expand=tk.TRUE, fill=tk.Y)
+        self.pack(side=tk.LEFT, anchor=tk.W, fill=tk.Y)
 
     def add_button(self, text: str = 'Placeholder', *, active=False):
         index = len(self._buttons)
