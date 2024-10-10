@@ -62,8 +62,8 @@ def inicializar_driver() -> Chrome:
     """
     driver = Chrome(driver_executable_path=ChromeDriverManager().install())
     driver.set_window_rect(x=0, y=0, width=1280, height=720)
-    if not DEBUG:
-        windows.bloquear_janela(driver)
+    # if not DEBUG:
+    #     windows.bloquear_janela(driver)
     return driver
 
 
