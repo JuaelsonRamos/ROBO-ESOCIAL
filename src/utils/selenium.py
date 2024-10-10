@@ -29,7 +29,7 @@ def pagina_de_erro(driver: Chrome) -> bool:
     """
     return urlparse(driver.current_url).path.split("/")[-1].lower() == "erro"
 
-def checar_erros_entre_esperas(driver: Chrome, condition: Callable[[ec.AnyDriver], WebElement | bool], timeout: Float = TIMEOUT_SECS) -> None:
+def checar_erros_entre_esperas(driver: Chrome, condition: Callable[[ec.WebDriver], WebElement | bool], timeout: Float = TIMEOUT_SECS) -> None:
     """ Espera a condição especificada ser cumprida.
 
     A cada dado intervalo de tempo esta função checa por possíveis erros. Se um erro ocorrer, a
