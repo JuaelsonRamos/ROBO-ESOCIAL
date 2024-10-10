@@ -5,6 +5,7 @@
 - [Cursores](https://www.tcl.tk/man/tcl8.4/TkCmd/cursors.htm)
 - [Documentação Python do TKinter](https://docs.python.org/3/library/tkinter.html)
 - [Ótimo livro sobre Tcl/Tk](https://www.amazon.com/exec/obidos/ASIN/032133633X)
+- [Exemplos de estilo](https://wiki.tcl-lang.org/page/ttk::style+examples)
 
 ## Questões Frequentes
 
