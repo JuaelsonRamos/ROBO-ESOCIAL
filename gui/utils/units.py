@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 
 def padding(
     *,
@@ -26,3 +28,22 @@ def padding(
         padding[1] = padding[3] = vertical
 
     return padding
+
+
+@dataclass(frozen=True, init=False)
+class length:
+    @classmethod
+    def centimiter(cls, size: int = 0) -> str:
+        return f'{size}c'
+
+    @classmethod
+    def point(cls, size: int = 0) -> str:
+        return f'{size}p'
+
+    @classmethod
+    def inch(cls, size: int = 0) -> str:
+        return f'{size}i'
+
+    @classmethod
+    def milimiter(cls, size: int = 0) -> str:
+        return f'{size}m'
