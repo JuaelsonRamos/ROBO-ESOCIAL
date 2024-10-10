@@ -12,10 +12,10 @@ class ShortTree(ttk.Treeview):
     min_height = 10
     """Altura mínima em células."""
 
-    def __init__(self, master, *, columns: list[Heading]):
+    def __init__(self, master, *, columns: dict[str, Heading]):
         self._columns_order = []
-        for col in columns:
-            self._columns_order.insert(col['index'], col['text'])
+        for col_id, col in columns.items():
+            self._columns_order.insert(col['index'], col_id)
 
         super().__init__(
             master,
@@ -28,10 +28,10 @@ class ShortTree(ttk.Treeview):
         )
         self.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.TRUE)
 
-        for col in columns:
-            self.heading(col['text'], text=col['text'], anchor=col['anchor'])
+        for col_id, col in columns.items():
+            self.heading(col_id, text=col['text'], anchor=col['anchor'])
             self.column(
-                col['text'],
+                col_id,
                 stretch=tk.FALSE,
                 minwidth=col['minwidth'],
                 width=col['minwidth'],
