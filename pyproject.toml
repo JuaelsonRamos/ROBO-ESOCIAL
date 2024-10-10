@@ -8,6 +8,7 @@ executables = [
 ]
 
 [tool.cxfreeze.build_exe]
+build_exe = "build/RoboEsocial-win-amd64-py311-v0.0.1"
 packages = [
   "tkinter",
   "selenium",
@@ -20,7 +21,6 @@ packages = [
   "ctypes",
 ]
 include_files = [["assets", "lib/assets"]]
-zip_filename = "robo-esocial"
 optimize = 2
 include_msvcr = true
 
