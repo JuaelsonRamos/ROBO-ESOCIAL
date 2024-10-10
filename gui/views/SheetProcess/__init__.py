@@ -5,6 +5,7 @@ __all__ = ['SheetProcess']
 
 import gui.constants as const
 
+from gui.views.SheetProcess.HistoryList import HistoryList
 from gui.views.SheetProcess.ProcessingQueue import ProcessingQueue
 
 import tkinter as tk
@@ -19,3 +20,4 @@ class SheetProcess(ttk.Frame):
 
     def create_widgets(self):
         ProcessingQueue(self)
+        HistoryList(self)
