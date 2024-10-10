@@ -24,7 +24,6 @@ class ShortTree(ttk.Treeview):
             selectmode=tk.EXTENDED,
             takefocus=tk.TRUE,
             columns=self._columns_order,
-            padding=2,
             show='headings',
         )
         self.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.TRUE)
