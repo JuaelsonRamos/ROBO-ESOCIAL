@@ -7,11 +7,13 @@ def main():
     root = App()
 
     # Precisa ser importado depois da inicialização da janela
+    import gui.state as state
     import gui.styles as style
 
     style.default()
 
     root.mainloop()
+    state.thread.stop_all()
 
 
 if __name__ == '__main__':

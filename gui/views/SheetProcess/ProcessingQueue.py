@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gui.state as state
 import gui.views.SheetProcess.data as data
 
 from gui.views.SheetProcess.InteractiveTreeList import InteractiveTreeList
@@ -28,6 +29,8 @@ class ProcessingQueue(InteractiveTreeList):
         self.files_event = threading.Event()
         self.files_lock = threading.Lock()
         self.files_add_event = threading.Event()
+        self.files_stop_event = threading.Event()
+        self.files_add_stop = threading.Event()
 
         add_btn = self.add_button('Adicionar')
 
@@ -39,12 +42,19 @@ class ProcessingQueue(InteractiveTreeList):
             name='files_add', target=self.add_files
         )
 
-        # FIXME stop threads on close
+        state.thread.register(
+            thread=self._files_thread, stop_event=self.files_stop_event
+        )
+        state.thread.register(
+            thread=self._files_add_thread, stop_event=self.files_add_stop
+        )
         self._files_thread.start()
         self._files_add_thread.start()
 
     def wait_files(self):
         while True:
+            if self.files_stop_event.is_set():
+                return
             if not self.files_event.is_set():
                 time.sleep(0.5)
                 continue
@@ -55,6 +65,8 @@ class ProcessingQueue(InteractiveTreeList):
 
     def add_files(self):
         while True:
+            if self.files_add_stop.is_set():
+                return
             if not self.files_add_event.is_set():
                 time.sleep(1)
                 continue
