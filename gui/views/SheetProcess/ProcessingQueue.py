@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import gui.state as state
 import gui.views.SheetProcess.data as data
 
+from gui.asyncio import Thread
 from gui.views.SheetProcess.InteractiveTreeList import InteractiveTreeList
 
 import time
@@ -26,55 +26,32 @@ class ProcessingQueue(InteractiveTreeList):
         self.add_button('Parar')
 
     def create_add_button(self):
-        self.files_event = threading.Event()
         self.files_lock = threading.Lock()
-        self.files_add_event = threading.Event()
-        self.files_stop_event = threading.Event()
-        self.files_add_stop = threading.Event()
 
         add_btn = self.add_button('Adicionar')
 
-        add_btn.config(command=self.files_event.set)
-        self._files_thread = threading.Thread(
-            name='files_choose', target=self.wait_files
+        self._files_thread = Thread(
+            name='files_choose', target=self.wait_files, attempt_delay=1.0
         )
-        self._files_add_thread = threading.Thread(
-            name='files_add', target=self.add_files
+        self._files_add_thread = Thread(
+            name='files_add', target=self.add_files, attempt_delay=0.5
         )
 
-        state.thread.register(
-            thread=self._files_thread, stop_event=self.files_stop_event
-        )
-        state.thread.register(
-            thread=self._files_add_thread, stop_event=self.files_add_stop
-        )
+        add_btn.config(command=self._files_thread.events.start.set)
+
         self._files_thread.start()
         self._files_add_thread.start()
 
     def wait_files(self):
-        while True:
-            if self.files_stop_event.is_set():
-                return
-            if not self.files_event.is_set():
-                time.sleep(0.5)
-                continue
-            with self.files_lock:
-                self.files = filedialog.askopenfilenames()
-                self.files_add_event.set()
-                self.files_event.clear()
+        with self.files_lock:
+            self.files = filedialog.askopenfilenames()
+            self._files_add_thread.events.start.set()
 
     def add_files(self):
-        while True:
-            if self.files_add_stop.is_set():
-                return
-            if not self.files_add_event.is_set():
-                time.sleep(1)
-                continue
-            with self.files_lock:
-                for filename in self.files:
-                    data = self.make_row_data(filename)
-                    self.tree.insert('', 'end', values=data)
-            self.files_add_event.clear()
+        with self.files_lock:
+            for filename in self.files:
+                data = self.make_row_data(filename)
+                self.tree.insert('', 'end', values=data)
 
     def make_row_data(self, filename: str):
         path = Path(filename)
