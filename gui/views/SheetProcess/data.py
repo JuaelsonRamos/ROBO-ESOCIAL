@@ -11,7 +11,6 @@ class Heading(TypedDict):
     anchor: str
     width: int
     minwidth: int
-    id: str
 
 
 class input_queue:

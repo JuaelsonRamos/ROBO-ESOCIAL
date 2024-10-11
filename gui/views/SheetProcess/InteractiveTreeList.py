@@ -11,6 +11,7 @@ import tkinter.ttk as ttk
 class InteractiveTreeList(ttk.Frame):
     def __init__(self, master, title: str, *, columns: dict[str, Heading]):
         super().__init__(master)
+        self.columns = columns
         self.title = title
         self.pack(fill=tk.BOTH, expand=tk.TRUE, side=tk.TOP, anchor=tk.NW)
         self.button_row = QueueButtonRow(self, self.title)
