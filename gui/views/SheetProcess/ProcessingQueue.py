@@ -19,6 +19,8 @@ class ProcessingQueue(InteractiveTreeList):
             master, 'Fila de Processamento', columns=data.input_queue.columns
         )
 
+        self._index = self._gen_next_index()
+
         self.create_add_button()
         self.add_button('Remover')
         self.add_button('Começar')
@@ -53,14 +55,21 @@ class ProcessingQueue(InteractiveTreeList):
                 data = self.make_row_data(filename)
                 self.tree.insert('', 'end', values=data)
 
+    def _gen_next_index(self):
+        i = 1
+        while True:
+            yield i
+            i += 1
+
     def make_row_data(self, filename: str):
+        # TODO generic, inherited way of making row data
         path = Path(filename)
         data = []
 
         def add(key: str, value):
             data.insert(self.columns[key]['index'], value)
 
-        add('list_order', 0)
+        add('list_order', next(self._index))
         add('file_name', path.stem)
         add('file_type', path.suffix)
         add('storage_size', str(path.stat().st_size))
