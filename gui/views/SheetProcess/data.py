@@ -16,11 +16,11 @@ class Heading(TypedDict):
 class input_queue:
     columns: dict[str, Heading] = {
         'list_order': {
-            'text': 'Ordem',
+            'text': '#',
             'index': 0,
-            'anchor': tk.E,
-            'minwidth': 50,
-            'width': 80,
+            'anchor': tk.CENTER,
+            'minwidth': 28,
+            'width': 28,
         },
         'file_name': {
             'text': 'Nome',
