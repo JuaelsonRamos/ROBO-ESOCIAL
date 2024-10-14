@@ -22,7 +22,7 @@ class ProcessingQueue(InteractiveTreeList):
         self._index = self._gen_next_index()
 
         self.create_add_button()
-        self.add_button('Remover')
+        self.create_delete_button()
         self.add_button('Começar')
         self.add_button('Pausar')
         self.add_button('Parar')
@@ -43,6 +43,17 @@ class ProcessingQueue(InteractiveTreeList):
 
         self._files_thread.start()
         self._files_add_thread.start()
+
+    def create_delete_button(self):
+        btn = self.add_button('Remover')
+
+        def delete_focused():
+            cell = self.tree.focus()
+            if not cell or not self.tree.exists(cell):
+                return
+            self.tree.delete(cell)
+
+        btn.config(command=delete_focused)
 
     def wait_files(self):
         with self.files_lock:
