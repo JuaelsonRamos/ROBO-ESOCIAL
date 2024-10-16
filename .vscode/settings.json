@@ -24,6 +24,7 @@
       "source.organizeImports": "explicit"
     }
   },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "pylint.importStrategy": "fromEnvironment",
   "python.analysis.typeCheckingMode": "strict",
   "files.exclude": {
