@@ -29,19 +29,29 @@ skip-magic-trailing-comma = false
 [tool.ruff.lint]
 task-tags = ["TODO", "FIXME", "HACK", "NOTE"]
 
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
 [tool.ruff.lint.isort]
 case-sensitive = true
 combine-as-imports = true
 force-wrap-aliases = true
 from-first = false
 force-to-top = ["src"]
-known-first-party = ["src"]
+known-first-party = ["src", "gui", "crawl", "sistema"]
 length-sort-straight = true
 lines-after-imports = 2
 lines-between-types = 1
 relative-imports-order = "closest-to-furthest"
 required-imports = ["from __future__ import annotations"]
-section-order = ["future", "local-folder", "testing", "first-party", "standard-library", "third-party"]
+section-order = [
+  "future",
+  "local-folder",
+  "testing",
+  "first-party",
+  "standard-library",
+  "third-party",
+]
 split-on-trailing-comma = false
 
 [tool.ruff.lint.isort.sections]
@@ -82,12 +92,9 @@ exclude_dirs = [
   ".venv-dist",
   "build",
   "build_cython",
-  "dist"
+  "dist",
 ]
-targets = [
-  "src",
-  "installer"
-]
+targets = ["src", "installer"]
 
 # Aviso para futuras modificações:
 #   No pylint seções de configuração são puramente uma ferramenta
@@ -102,7 +109,7 @@ load-plugins = [
   "pylint.extensions.empty_comment",
   "pylint.extensions.eq_without_hash",
   "pylint.extensions.private_import",
-  "pylint.extensions.docparams"
+  "pylint.extensions.docparams",
 ]
 
 [tool.pylint."messages control"]
@@ -115,7 +122,7 @@ disable = [
   "wrong-import-position",
   "pointless-string-statement", # para docstrings de variaveis
   "consider-using-f-string",
-  "disallowed-name"
+  "disallowed-name",
 ]
 
 [tool.pyright]
@@ -123,15 +130,8 @@ pythonVersion = "3.11"
 pythonPlatform = "Windows"
 typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
-exclude = [
-  "**/.venv*/",
-  "**/build*/",
-  "**/dist/",
-]
-include = [
-  "src/",
-  "installer/"
-]
+exclude = ["**/.venv*/", "**/build*/", "**/dist/"]
+include = ["src/", "installer/"]
 # Bibliotecas importantes estão apenas parcialmente ou totalmente sem tipos.
 # Alguns desses avisos são importantes, mas em bao parte da codebase, inevitáveis, infelizmente.
 # Mensagens específicas:
