@@ -5,7 +5,7 @@ from sistema.models.types import Coluna
 import re
 import math
 
-from typing import Any, ClassVar, Never, Pattern, cast, get_type_hints
+from typing import Any, Never, cast, get_type_hints
 
 from pydantic import BaseModel, model_validator
 from unidecode import unidecode_expect_nonascii
@@ -30,9 +30,6 @@ class ColunaModel(BaseModel):
         - assert coluna == propriedade
     """
 
-    alpha: ClassVar[Pattern] = re.compile(r'[a-zA-Z0-9]')
-    non_alpha: ClassVar[Pattern] = re.compile(r'[^a-zA-Z0-9]')
-
     @model_validator(mode='before')
     @classmethod
     def _input(cls, data: Any) -> list[str] | Never:
@@ -48,8 +45,8 @@ class ColunaModel(BaseModel):
             prop = text.strip()
             assert prop != '', 'texto da célula está vazio'
             prop = unidecode_expect_nonascii(prop).lower()
-            assert cls.alpha.search(prop), 'texto da célula não contém letras'
-            prop = '_'.join(cls.non_alpha.split(prop))
+            assert re.search(r'[a-zA-Z]', prop), 'texto da célula não contém letras'
+            prop = re.sub(r'[^a-zA-Z0-9]+', '_', prop).strip('_')
             assert (
                 prop in fields
             ), f"modelo {cls.__name__} não contém propriedade '{prop}' referente à coluna '{text}'"
