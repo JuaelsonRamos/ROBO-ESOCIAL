@@ -5,7 +5,7 @@ from sistema.models.types import Coluna
 import re
 import math
 
-from typing import Any, ClassVar, Never, cast, get_type_hints
+from typing import Any, ClassVar, Never, Pattern, cast, get_type_hints
 
 from pydantic import BaseModel, model_validator
 from unidecode import unidecode_expect_nonascii
@@ -30,8 +30,8 @@ class ColunaModel(BaseModel):
         - assert coluna == propriedade
     """
 
-    alpha: ClassVar = re.compile(r'[a-zA-Z0-9]')
-    non_alpha: ClassVar = re.compile(r'[^a-zA-Z0-9]')
+    alpha: ClassVar[Pattern] = re.compile(r'[a-zA-Z0-9]')
+    non_alpha: ClassVar[Pattern] = re.compile(r'[^a-zA-Z0-9]')
 
     @model_validator(mode='before')
     @classmethod
