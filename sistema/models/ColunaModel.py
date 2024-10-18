@@ -39,7 +39,8 @@ class ColunaModel(BaseModel):
         ), 'dados providos não representam uma linha da planilha (lista de células)'
         data = cast(list, data)
         fields = get_type_hints(cls)
-        for i, text in enumerate(data):
+        valid_data = {}
+        for text in data:
             assert text != math.nan, 'valor representa célula vazia'
             assert isinstance(text, str), 'valor da célula não é uma string'
             prop = text.strip()
@@ -53,5 +54,5 @@ class ColunaModel(BaseModel):
             assert (
                 fields[prop] is Coluna
             ), f"propriedade '{prop}' referente à coluna '{text}' existe, mas não foi definida com o tipo de coluna"
-            data[i] = text
-        return cast(list[str], data)
+            valid_data[prop] = prop
+        return valid_data
