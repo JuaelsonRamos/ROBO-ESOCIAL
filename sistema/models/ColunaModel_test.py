@@ -9,32 +9,26 @@ import random
 
 from typing import Any
 
-import faker
-
 from pydantic import ValidationError
 
 
-columns: list[str] = [
-    'Etiam consectetur, lacus.',
-    'Sed lectus ex.',
-    'Vivamus pharetra libero.',
-    'Suspendisse semper eros.',
-    'Donec bibendum urna.',
-    'Pellentesque eu nisl.',
-]
-
-
-class MyModel(ColunaModel):
-    etiam_consectetur_lacus: Coluna
-    sed_lectus_ex: Coluna
-    vivamus_pharetra_libero: Coluna
-    suspendisse_semper_eros: Coluna
-    donec_bibendum_urna: Coluna
-    pellentesque_eu_nisl: Coluna
-
-
 def test_input_parsing():
-    global columns
+    columns: list[str] = [
+        'Etiam consectetur, lacus.',
+        'Sed lectus ex.',
+        'Vivamus pharetra libero.',
+        'Suspendisse semper eros.',
+        'Donec bibendum urna.',
+        'Pellentesque eu nisl.',
+    ]
+
+    class MyModel(ColunaModel):
+        etiam_consectetur_lacus: Coluna
+        sed_lectus_ex: Coluna
+        vivamus_pharetra_libero: Coluna
+        suspendisse_semper_eros: Coluna
+        donec_bibendum_urna: Coluna
+        pellentesque_eu_nisl: Coluna
 
     with pytest.raises(ValidationError):
         MyModel.model_validate(None)
@@ -67,3 +61,19 @@ def test_input_parsing():
     with pytest.raises(ValidationError):
         # Valores válidos, conteúdo inválido
         MyModel.model_validate(change_random(columns, '., -'))
+
+    column: list[str] = ['Lorem Ipsum dolor sit amet']
+
+    class MissingModel(ColunaModel):
+        pass
+
+    class TypeErrorModel(ColunaModel):
+        lorem_ipsum_dolor_sit_amet: str
+
+    with pytest.raises(ValidationError):
+        # Coluna na lista não está presente no modelo
+        MissingModel.model_validate(column)
+
+    with pytest.raises(ValidationError):
+        # Coluna está presente no module mas não foi declarado com tipo Coluna
+        TypeErrorModel.model_validate(column)
