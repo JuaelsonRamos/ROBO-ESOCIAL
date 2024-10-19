@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sistema.models.types import Coluna
+from sistema.models.Coluna import Coluna, Required
 
 import re
 import math
@@ -39,8 +39,8 @@ class ColunaModel(BaseModel):
         ), 'dados providos não representam uma linha da planilha (lista de células)'
         data = cast(list, data)
         fields = get_type_hints(cls)
-        valid_data = {}
-        for text in data:
+        metadata = {}
+        for i, text in enumerate(data):
             assert text != math.nan, 'valor representa célula vazia'
             assert isinstance(text, str), 'valor da célula não é uma string'
             prop = text.strip()
@@ -54,5 +54,9 @@ class ColunaModel(BaseModel):
             assert (
                 fields[prop] is Coluna
             ), f"propriedade '{prop}' referente à coluna '{text}' existe, mas não foi definida com o tipo de coluna"
-            valid_data[prop] = prop
-        return valid_data
+            metadata[prop] = {
+                'index': i,
+                'original_text': text,
+                'required': Required.OPCIONAL,  # TODO Identificar se a coluna é necessária
+            }
+        return metadata
