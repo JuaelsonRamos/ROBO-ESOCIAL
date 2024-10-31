@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import openpyxl.styles.fonts as xl_fonts
 import openpyxl.styles.colors as xl_colors
 import openpyxl.styles.alignment as xl_alignment
+
+from openpyxl.styles.fonts import Font as _Font
 
 
 @dataclass(frozen=True, init=False)
@@ -24,17 +25,15 @@ class Color:
 
 @dataclass(frozen=True, init=False)
 class Font:
-    HEADER = xl_fonts.Font(
+    HEADER = _Font(
         color=Color.BLACK,
         bold=True,
-        underline=True,
-        charset='utf-8',
+        underline=_Font.UNDERLINE_SINGLE,
         name='Times New Roman',
         size=10,
     )
-    CELL = xl_fonts.Font(
+    CELL = _Font(
         color=Color.BLACK,
-        charset='utf-8',
         name='Arial',
         size=10,
     )
