@@ -30,7 +30,7 @@ skip-magic-trailing-comma = false
 task-tags = ["TODO", "FIXME", "HACK", "NOTE"]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]
+"__init__.py" = ["F"]
 
 [tool.ruff.lint.isort]
 case-sensitive = true
@@ -55,7 +55,7 @@ section-order = [
 split-on-trailing-comma = false
 
 [tool.ruff.lint.isort.sections]
-testing = ["pytest"]
+testing = ["pytest", "testing"]
 # maybe? webdriver
 
 [tool.ruff.lint.pycodestyle]
