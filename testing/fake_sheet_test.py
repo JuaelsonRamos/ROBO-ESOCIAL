@@ -83,3 +83,25 @@ def test_result():
         assert isinstance(fs, Workbook)
         assert fs.active.max_column == len(dummy_headers)
         assert fs.active.max_row == 3
+
+
+def test_cell_color():
+    headers = [
+        {'text': 'placeholder_01', 'required': sheet.OPCIONAL},
+        {'text': 'placeholder_02', 'required': sheet.MAYBE},
+        {'text': 'placeholder_03', 'required': sheet.REQUIRED},
+        {'text': 'placeholder_04', 'required': sheet.MAYBE},
+    ]
+
+    expected = {
+        'placeholder_01': sheet.Fill.WHITE,
+        'placeholder_02': sheet.Fill.BLUE,
+        'placeholder_03': sheet.Fill.RED,
+        'placeholder_04': sheet.Fill.BLUE,
+    }
+
+    with fake_sheet(model=1, headers=headers) as fs:
+        for i in range(1, len(headers)):
+            cell = fs.active.cell(row=2, column=i)
+            assert cell.value in expected
+            assert expected[cell.value] == cell.fill

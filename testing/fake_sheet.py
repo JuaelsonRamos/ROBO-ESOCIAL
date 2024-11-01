@@ -49,6 +49,15 @@ def fake_sheet(
         cell = worksheet.cell(row=2, column=i, value=header['text'])
         cell.font = sheet.Font.HEADER
         cell.alignment = sheet.Alignment.HEADER
+        match header['required']:
+            case sheet.MAYBE:
+                cell.fill = sheet.Fill.BLUE
+            case sheet.REQUIRED:
+                cell.fill = sheet.Fill.RED
+            case sheet.OPCIONAL:
+                cell.fill = sheet.Fill.WHITE
+            case _:
+                cell.fill = sheet.Fill.WHITE
 
     for row in worksheet.iter_rows(
         min_row=3,  # delta
