@@ -42,10 +42,9 @@ class ColumnMetadata(BaseModel):
         """Validar input e converter valor para string para o formato das keys."""
 
         assert isinstance(data, Iterable)
+        assert all(isinstance(item, Cell) for item in data)
         fields = get_type_hints(cls)
-        column_count = sum(1 for T in fields.values() if T is Column)
-        if column_count == 0:
-            raise ValueError('nenhuma coluna foi definida nesse modelo')
+        assert all(T is Column for T in fields.values())
 
         metadata = {}
         for i, cell in enumerate(data):
@@ -67,13 +66,17 @@ class ColumnMetadata(BaseModel):
             match cell.fill:
                 case Fill.RED:
                     req_state = sheet.REQUIRED
-                case Fill.TURQUOISE:
+                case Fill.BLUE:
                     req_state = sheet.MAYBE
                 case Fill.WHITE:
                     req_state = sheet.OPCIONAL
                 case _:
                     req_state = sheet.OPCIONAL
 
-            metadata[prop] = {'index': i, 'original_text': cell, 'required': req_state}
+            metadata[prop] = {
+                'index': i,
+                'original_text': cell.value,
+                'required': req_state,
+            }
 
         return metadata
