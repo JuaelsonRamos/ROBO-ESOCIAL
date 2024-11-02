@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sistema.spreadsheet import QualifiedType, QualifiedValue
 
-from abc import ABC, abstractmethod
+from abc import ABC, abstractclassmethod
 from re import Pattern
 from typing import Generic, TypeVar
 
@@ -15,5 +15,5 @@ class Validator(ABC, Generic[T]):
     regex: Pattern[str] | None
     qualified_type: QualifiedType
 
-    @abstractmethod
+    @abstractclassmethod
     def validate(self, raw_value: str) -> T | None: ...
