@@ -14,7 +14,7 @@ class Row(BaseModel, frozen=True, strict=True):
     is_opcional: bool
     is_empty: bool
     qualified_type: QualifiedType
-    validator_clas: Validator
+    validator_class: Validator
     original_value: str
     qualified_value: QualifiedValue
     columns_metadata: ColumnMetadata
