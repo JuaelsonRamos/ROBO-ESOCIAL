@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from utils import isiterable
+
 import random
 
-from typing import Any
+from typing import Any, Iterable
 
 
-def change_random(data: list[Any], value: Any):
-    other = data.copy()
+def change_random(data: Iterable[Any], value: Any) -> list[Any]:
+    assert not isinstance(data, str)
+    assert isiterable(data)
+    other = list(data)
     rand_index = random.randrange(0, len(other))
     other[rand_index] = value
     return other
