@@ -4,16 +4,13 @@ from sistema.spreadsheet import QualifiedType, QualifiedValue
 
 from abc import ABC, abstractclassmethod
 from re import Pattern
-from typing import Generic, TypeVar
+from typing import Any
 
 
-T = TypeVar('T', QualifiedValue)
-
-
-class Validator(ABC, Generic[T]):
+class Validator(ABC):
     is_regular: bool
     regex: Pattern[str] | None
     qualified_type: QualifiedType
 
     @abstractclassmethod
-    def validate(self, raw_value: str) -> T | None: ...
+    def validate(self, raw_value: Any) -> QualifiedValue | None: ...
