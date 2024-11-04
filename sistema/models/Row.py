@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from sistema.models import ColumnMetadata
+from .ColumnMetadata import ColumnMetadata
+
 from sistema.spreadsheet import QualifiedType, QualifiedValue, Requirement
 
-from typing import Generic, T
+from typing import Any, Generic, T
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 
 class Row(
@@ -25,3 +26,10 @@ class Row(
     original_value: str
     qualified_value: QualifiedValue
     columns_metadata: ColumnMetadata
+
+    @validator('columns_metadata')
+    def validate_columns_metadata(cls, value: Any):
+        assert issubclass(
+            type(value), ColumnMetadata
+        ), "'columns_metadata' deve ser um modelo derivado de 'ColumnMetadata'"
+        return value
