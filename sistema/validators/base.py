@@ -8,7 +8,9 @@ import re
 
 from datetime import datetime
 from string import whitespace
-from typing import Never
+from typing import Any, Never
+
+from unidecode import unidecode_expect_nonascii
 
 
 class String(Validator):
@@ -64,15 +66,39 @@ class IntegerString(String):
 
 
 class LetterString(String):
-    pass
+    length = None
+    is_regular = False
+    regex = None
+    qualified_type = sheet.STRING
+
+    __ascii = re.compile(r'[a-zA-Z ]+')
+
+    @classmethod
+    def validate(cls, value):
+        value = super().validate(value)
+        if value is None:
+            return None
+        if cls.__ascii.fullmatch(unidecode_expect_nonascii(value)) is None:
+            return None
+        return value
 
 
-class Integer(String):
-    pass
+class Integer(IntegerString):
+    @classmethod
+    def validate(cls, value) -> int | None:
+        value = super().validate(value)
+        if value is None:
+            return None
+        return int(value)
 
 
 class Float(String):
-    pass
+    @classmethod
+    def validate(cls, value) -> float | None:
+        value = super().validate(value)
+        if value is None:
+            return None
+        return float(value)
 
 
 class Date(String):
@@ -96,12 +122,77 @@ class Date(String):
 
 
 class Boolean(String):
-    pass
+    falsy: tuple[str] = tuple()
+    truthy: tuple[str] = tuple()
+    case_sensitive: bool = False
+    unicode_sensitive: bool = False
+
+    @classmethod
+    def validate(cls, value) -> bool | None:
+        value = super().validate(value)
+        if value is None:
+            return None
+        if len(cls.falsy) == len(cls.truthy) == 0:
+            return None
+        falsy, truthy = cls.falsy, cls.truthy
+        if not cls.unicode_sensitive:
+            value = unidecode_expect_nonascii(value)
+            falsy = tuple(unidecode_expect_nonascii(v) for v in falsy)
+            truthy = tuple(unidecode_expect_nonascii(v) for v in truthy)
+        if not cls.case_sensitive:
+            value = value.lower()
+            falsy = tuple(v.lower() for v in falsy)
+            truthy = tuple(v.lower() for v in truthy)
+        if value in truthy:
+            return True
+        if value in falsy:
+            return False
+        return None
 
 
 class Option(String):
-    pass
+    options: tuple[str] = tuple()
+    case_sensitive: bool = False
+    unicode_sensitive: bool = False
+
+    @classmethod
+    def validate(cls, value) -> str | None:
+        value = super().validate(value)
+        if value is None:
+            return None
+        if len(cls.options) == 0:
+            return None
+        options = cls.options
+        if not cls.unicode_sensitive:
+            value = unidecode_expect_nonascii(value)
+            options = tuple(unidecode_expect_nonascii(v) for v in options)
+        if not cls.case_sensitive:
+            value = value.lower()
+            options = tuple(v.lower() for v in options)
+        try:
+            return options[options.index(value)]
+        except ValueError:
+            # tuple.index raises ValueError, no need to consider it may be out of bounds
+            return None
 
 
 class Enum(String):
-    pass
+    enum: dict[str, Any] = {}
+    case_sensitive: bool = False
+    unicode_sensitive: bool = False
+
+    @classmethod
+    def validate(cls, value) -> tuple[str, Any] | None:
+        value = super().validate(value)
+        if value is None:
+            return None
+        if len(cls.enum) == 0:
+            return None
+        enum = cls.enum
+        if not cls.unicode_sensitive:
+            value = unidecode_expect_nonascii(value)
+            enum = {unidecode_expect_nonascii(k): v for k, v in enum.items()}
+        if not cls.case_sensitive:
+            value = value.lower()
+            enum = {k.lower(): v for k, v in enum.items()}
+        return (value, enum[value]) if value in enum else None
