@@ -55,12 +55,16 @@ class IntegerString(String):
     regex = re.compile(r'[0-9]+')
     qualified_type = sheet.STRING
 
+    allow_zero: bool = True
+
     @classmethod
     def validate(cls, value):
         value = super().validate(value)
         if value is None:
             return None
         if cls.regex.fullmatch(value) is None:
+            return None
+        if not cls.allow_zero and int(value) == 0:
             return None
         return value
 
