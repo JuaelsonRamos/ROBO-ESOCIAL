@@ -10,7 +10,7 @@ from typing import Any
 from pydantic import BaseModel, validator
 
 
-class Row(BaseModel, frozen=True, strict=True):
+class Cell(BaseModel, frozen=True, strict=True):
     index: int
     property_name: str
     required: Requirement
