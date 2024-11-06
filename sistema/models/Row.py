@@ -1,35 +1,37 @@
 from __future__ import annotations
 
-from .ColumnMetadata import ColumnMetadata
+from .Column import Column
 
 from sistema.spreadsheet import QualifiedType, QualifiedValue, Requirement
+from sistema.validators import Validator
 
-from typing import Any, Generic, T
+from typing import Any
 
 from pydantic import BaseModel, validator
 
 
-class Row(
-    BaseModel,
-    Generic[T],
-    frozen=True,
-    strict=True,
-    arbitrary_types_allowed=True,
-):
+class Row(BaseModel, frozen=True, strict=True):
     index: int
     property_name: str
     required: Requirement
-    is_opcional: bool
     is_empty: bool
+    is_valid: bool
+    is_arbitrary_string: bool
     qualified_type: QualifiedType
-    validator_class: type[T]
+    validator: Validator
     original_value: str
     qualified_value: QualifiedValue
-    columns_metadata: ColumnMetadata
+    column_metadata: Column
 
-    @validator('columns_metadata')
-    def validate_columns_metadata(cls, value: Any):
-        assert issubclass(
-            type(value), ColumnMetadata
+    @validator('column_metadata')
+    def validate_column_metadata(cls, value: Any):
+        assert isinstance(
+            value, Column
         ), "'columns_metadata' deve ser um modelo derivado de 'ColumnMetadata'"
         return value
+
+    @validator('validator')
+    def validate_validator(cls, value: Any):
+        assert isinstance(
+            value, Validator
+        ), "'validator' deve ser uma instância derivada de 'Validator'"
