@@ -14,6 +14,7 @@ STRING = 'string'
 INT = 'int'
 FLOAT = 'float'
 DATE = 'date'
+BOOL = 'bool'
 
-QualifiedValue: TypeAlias = str | int | float | date
-QualifiedType: TypeAlias = Literal['string', 'int', 'float', 'date']
+QualifiedValue: TypeAlias = str | int | float | bool | date
+QualifiedType: TypeAlias = Literal['string', 'int', 'float', 'bool', 'date']
