@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .constants import (
+    BOOL,
     DATE,
     FLOAT,
     INT,
