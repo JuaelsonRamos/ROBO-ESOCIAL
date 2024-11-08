@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from .validator import Validator
-
 import sistema.spreadsheet as sheet
 
 from sistema.models import (
@@ -12,13 +10,16 @@ from utils import INT32
 
 import string
 
+from abc import abstractmethod
 from datetime import date, datetime
 from itertools import zip_longest
-from typing import Any, Sequence, cast
+from typing import Any, Sequence, TypeAlias, cast
 
 from openpyxl.cell import Cell
 from unidecode import unidecode_expect_nonascii
 
+
+DefaultDict: TypeAlias = dict[str, Any]
 
 # TODO Validator returns Row object
 # TODO Validators as instances instead of static classes (to allow caching)
@@ -33,8 +34,46 @@ class ValidatorCreationError(Exception):
     pass
 
 
+class Validator:
+    qualified_type: sheet.QualifiedType
+
+    _not_inited_var_errmsg = 'propriedade não deve ser acessada antes de inicializada'
+
+    @abstractmethod
+    def __call__(
+        self, column: Column, cell: Cell, /, cell_index: int, property_name: str
+    ) -> CellModel: ...
+
+
 class String(Validator):
     qualified_type: sheet.QualifiedType = sheet.STRING
+
+    __min_string_length: int | None = None
+    __max_string_length: int | None = None
+
+    @property
+    def min_string_length(self) -> int:
+        if self.__min_string_length is None:
+            raise ValidatorCreationError(self._not_inited_var_errmsg)
+        return self.__min_string_length
+
+    @min_string_length.setter
+    def min_string_length(self, value: int) -> None:
+        assert isinstance(value, int)
+        if self.__min_string_length is None or value < self.__min_string_length:
+            self.__min_string_length = value
+
+    @property
+    def max_string_length(self) -> int:
+        if self.__max_string_length is None:
+            raise ValidatorCreationError(self._not_inited_var_errmsg)
+        return self.__max_string_length
+
+    @max_string_length.setter
+    def max_string_length(self, value: int) -> None:
+        assert isinstance(value, int)
+        if self.__max_string_length is None or value > self.__max_string_length:
+            self.__max_string_length = value
 
     def __init__(
         self,
@@ -354,10 +393,8 @@ class Boolean(String):
                     buffer = unidecode_expect_nonascii(buffer)
                 if not self.case_sensitive:
                     buffer = buffer.lower()
-                if len(buffer) < min_string_length:
-                    min_string_length = len(buffer)
-                if len(buffer) > max_string_length:
-                    max_string_length = len(buffer)
+                self.min_string_length = len(buffer)
+                self.max_string_length = len(buffer)
                 self.falsy.add(buffer)
 
             if true is not None:
@@ -366,10 +403,8 @@ class Boolean(String):
                     buffer = unidecode_expect_nonascii(buffer)
                 if not self.case_sensitive:
                     buffer = buffer.lower()
-                if len(buffer) < min_string_length:
-                    min_string_length = len(buffer)
-                if len(buffer) > max_string_length:
-                    max_string_length = len(buffer)
+                self.min_string_length = len(buffer)
+                self.max_string_length = len(buffer)
                 self.truthy.add(buffer)
 
         super().__init__(
@@ -425,10 +460,8 @@ class Option(String):
                 buffer = unidecode_expect_nonascii(buffer)
             if not self.case_sensitive:
                 buffer = buffer.lower()
-            if len(buffer) > max_string_length:
-                max_string_length = len(buffer)
-            if len(buffer) < min_string_length:
-                min_string_length = len(buffer)
+            self.min_string_length = len(buffer)
+            self.max_string_length = len(buffer)
             self.options.add(buffer)
 
         super().__init__(
@@ -486,10 +519,8 @@ class Enum(String):
                     buffer = unidecode_expect_nonascii(buffer)
                 if not self.case_sensitive:
                     buffer = buffer.lower()
-                if len(buffer) > max_string_length:
-                    max_string_length = len(buffer)
-                if len(buffer) < min_string_length:
-                    min_string_length = len(buffer)
+                self.min_string_length = len(buffer)
+                self.max_string_length = len(buffer)
                 self.enum[buffer] = value
         except AssertionError as err:
             raise ValidatorCreationError(err) from err
