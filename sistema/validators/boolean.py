@@ -29,17 +29,17 @@ class Boolean(String):
         try:
             assert len(falsy) > 0
             assert len(truthy) > 0
-            self.falsy, self.truthy = [], []
+            falsy_buffer, truthy_buffer = [], []
             falsy_delta = len(falsy)
             for i in range(len(falsy) + len(truthy)):
                 value = falsy[i] if i < falsy_delta else truthy[i]
                 assert isinstance(value, str)
-                buffer = self.parse_string(value)
-                assert buffer != ''
-                self.min_string_length = self.max_string_length = len(buffer)
-                (self.falsy if i < falsy_delta else self.truthy).append(buffer)
-            self.falsy = frozenset(self.falsy)
-            self.truthy = frozenset(self.truthy)
+                value = self.parse_string(value)
+                assert value != ''
+                self.min_string_length = self.max_string_length = len(value)
+                (falsy_buffer if i < falsy_delta else truthy_buffer).append(value)
+            self.falsy: frozenset[str] = frozenset(falsy_buffer)
+            self.truthy: frozenset[str] = frozenset(truthy_buffer)
         except AssertionError as err:
             raise ValidatorError(err) from ValueError(err)
 
