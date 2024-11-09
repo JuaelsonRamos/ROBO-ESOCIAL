@@ -8,7 +8,9 @@ from sistema.models import (
 )
 from utils import INT32
 
+import math
 import string
+import numbers
 
 from abc import abstractmethod
 from datetime import date, datetime
@@ -34,46 +36,110 @@ class ValidatorCreationError(Exception):
     pass
 
 
+class ValidatorError(Exception):
+    pass
+
+
 class Validator:
-    qualified_type: sheet.QualifiedType
-
     _not_inited_var_errmsg = 'propriedade não deve ser acessada antes de inicializada'
+    _inited_var_errmsg = 'propriedade só pode ser inicializada uma única vez'
 
-    @abstractmethod
+    def __init__(self) -> None:
+        self.__qualified_type: sheet.QualifiedType | None = None
+        self.__is_arbitrary_string: bool | None = None
+
+    @property
+    def qualified_type(self) -> sheet.QualifiedType:
+        if self.__qualified_type is None:
+            msg = self._not_inited_var_errmsg
+            raise ValidatorError(msg) from AttributeError(msg)
+        return self.__qualified_type
+
+    @qualified_type.setter
+    def qualified_type(self, value: sheet.QualifiedType) -> None:
+        if self.__qualified_type is not None:
+            msg = self._inited_var_errmsg
+            raise ValidatorError(msg) from SyntaxError(msg)
+        self.__qualified_type = value
+
+    @property
+    def is_arbitrary_string(self) -> bool:
+        if self.__is_arbitrary_string is None:
+            msg = self._not_inited_var_errmsg
+            raise ValidatorError(msg) from AttributeError(msg)
+        return self.__is_arbitrary_string
+
+    @is_arbitrary_string.setter
+    def is_arbitrary_string(self, value: bool) -> None:
+        if self.__is_arbitrary_string is not None:
+            msg = self._inited_var_errmsg
+            raise ValidatorError(msg) from SyntaxError(msg)
+        self.__is_arbitrary_string = value
+
+    def _validate(
+        self, column: Column, cell: Cell, cell_index: int, property_name: str
+    ) -> DefaultDict:
+        try:
+            assert isinstance(cell, Cell)
+            assert isinstance(column, Column)
+            assert isinstance(cell_index, int)
+            assert isinstance(property_name, str)
+            assert cell_index >= 0
+            property_name = property_name.strip(string.whitespace)
+            assert property_name != ''
+        except AssertionError as err:
+            raise CellValidationError(err) from err
+
+        return {
+            'index': cell_index,
+            'property_name': property_name,
+            'required': column.required,
+            'is_empty': False,
+            'is_valid': False,
+            'is_arbitrary_string': self.is_arbitrary_string,
+            'qualified_type': self.qualified_type,
+            'validator': self,
+            'original_value': cell.value,
+            'qualified_value': None,
+            'column_metadata': column,
+        }
+
     def __call__(
         self, column: Column, cell: Cell, /, cell_index: int, property_name: str
-    ) -> CellModel: ...
+    ) -> CellModel:
+        namespace = self._validate(column, cell, cell_index, property_name)
+        return CellModel.model_validate(namespace)
 
 
 class String(Validator):
-    qualified_type: sheet.QualifiedType = sheet.STRING
-
     __min_string_length: int | None = None
     __max_string_length: int | None = None
 
     @property
     def min_string_length(self) -> int:
         if self.__min_string_length is None:
-            raise ValidatorCreationError(self._not_inited_var_errmsg)
+            msg = self._not_inited_var_errmsg
+            raise ValidatorError(msg) from AttributeError(msg)
         return self.__min_string_length
 
     @min_string_length.setter
     def min_string_length(self, value: int) -> None:
-        assert isinstance(value, int)
-        if self.__min_string_length is None or value < self.__min_string_length:
-            self.__min_string_length = value
+        if self.__min_string_length is not None and value >= self.__min_string_length:
+            return
+        self.__min_string_length = value
 
     @property
     def max_string_length(self) -> int:
         if self.__max_string_length is None:
-            raise ValidatorCreationError(self._not_inited_var_errmsg)
+            msg = self._not_inited_var_errmsg
+            raise ValidatorError(msg) from SyntaxError(msg)
         return self.__max_string_length
 
     @max_string_length.setter
     def max_string_length(self, value: int) -> None:
-        assert isinstance(value, int)
-        if self.__max_string_length is None or value > self.__max_string_length:
-            self.__max_string_length = value
+        if self.__max_string_length is not None and value <= self.__max_string_length:
+            return
+        self.__max_string_length = value
 
     def __init__(
         self,
@@ -92,6 +158,8 @@ class String(Validator):
         except AssertionError as err:
             raise ValidatorCreationError(err) from err
 
+        self.is_arbitrary_string = True
+        self.qualified_type = sheet.STRING
         self.min_string_length = min_string_length
         self.max_string_length = max_string_length
         self.case_sensitive = case_sensitive
@@ -121,64 +189,35 @@ class String(Validator):
     def _validate(
         self, column: Column, cell: Cell, cell_index: int, property_name: str
     ) -> DefaultDict | Never:
-        try:
-            assert isinstance(cell, Cell)
-            assert isinstance(column, Column)
-            assert isinstance(cell_index, int)
-            assert isinstance(property_name, str)
-            assert cell_index >= 0
-            property_name = property_name.strip(string.whitespace)
-            assert property_name != ''
-        except AssertionError as err:
-            raise CellValidationError(err) from err
-        cell_namespace: DefaultDict = {
-            'is_arbitrary_string': True,
-            'qualified_type': self.qualified_type,
-            'validator': self,
-            'index': cell_index,
-            'property_name': property_name,
-            'required': column.required,
-            'column_metadata': column,
-            'original_value': cell.value,
-            'is_empty': False,
-            'qualified_value': None,
-        }
-        value = cell.value
+        namespace = super()._validate(column, cell, cell_index, property_name)
+        value = namespace['original_value']
         if not isinstance(value, str):
-            cell_namespace['is_valid'] = False
-            return cell_namespace
+            namespace['is_valid'] = False
+            return namespace
         value = value.strip(string.whitespace)
         if value == '':
-            cell_namespace['is_empty'] = True
-            cell_namespace['is_valid'] = self.allow_empty
-            cell_namespace['qualified_value'] = ''
-            return cell_namespace
+            namespace['is_empty'] = True
+            namespace['is_valid'] = self.allow_empty
+            namespace['qualified_value'] = ''
+            return namespace
         try:
             assert len(value) >= self.min_string_length
             assert len(value) <= self.max_string_length
         except AssertionError:
-            cell_namespace['is_valid'] = False
+            namespace['is_valid'] = False
         else:
-            cell_namespace['is_valid'] = True
-            cell_namespace['qualified_value'] = value
+            namespace['is_valid'] = True
+            namespace['qualified_value'] = value
 
-        return cell_namespace
-
-    def __call__(
-        self, column: Column, cell: Cell, /, cell_index: int, property_name: str
-    ) -> CellModel:
-        namespace = self._validate(column, cell, cell_index, property_name)
-        return CellModel.model_validate(namespace)
+        return namespace
 
 
 class NumericString(String):
     def __init__(
         self,
         *,
-        min_string_length: int = 1,
-        max_string_length: int = INT32.MAX,
-        min_value: int = INT32.MIN,
-        max_value: int = INT32.MAX,
+        min_value: int | float = INT32.MIN,
+        max_value: int | float = INT32.MAX,
         allow_zero: bool = True,
         allow_empty: bool = False,
     ):
@@ -189,11 +228,7 @@ class NumericString(String):
         except AssertionError as err:
             raise ValidatorCreationError(err) from err
 
-        super().__init__(
-            min_string_length=min_string_length,
-            max_string_length=max_string_length,
-            allow_empty=allow_empty,
-        )
+        super().__init__(allow_empty=allow_empty)
         self.min_value = min_value
         self.max_value = max_value
         self.allow_zero = allow_zero
@@ -205,6 +240,25 @@ class NumericString(String):
         namespace['is_arbitrary_string'] = False
         if not namespace['is_valid']:
             return namespace
+        if namespace['is_valid'] and namespace['is_empty']:
+            return namespace
+        value: str = namespace['qualified_value']
+        try:
+            assert value.isascii()
+            numeric = float(value)
+            assert not math.isnan(numeric)
+            assert not math.isinf(numeric)
+            if not self.allow_zero:
+                assert numeric != 0
+            assert numeric >= self.min_value
+            assert numeric <= self.max_value
+        except (AssertionError, TypeError, ValueError):
+            namespace['is_valid'] = False
+            namespace['qualified_value'] = None
+        else:
+            namespace['qualified_value'] = str(numeric)
+
+        return namespace
 
     def __call__(
         self, column: Column, cell: Cell, /, cell_index: int, property_name: str
