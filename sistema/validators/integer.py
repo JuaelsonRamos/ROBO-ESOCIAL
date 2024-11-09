@@ -15,8 +15,8 @@ class Integer(NumericString):
     def __init__(
         self,
         *,
-        min_value: int = INT32.MIN,
-        max_value: int = INT32.MAX,
+        min_value: int | float = INT32.MIN,
+        max_value: int | float = INT32.MAX,
         allow_zero: bool = True,
         allow_empty: bool = False,
     ):
