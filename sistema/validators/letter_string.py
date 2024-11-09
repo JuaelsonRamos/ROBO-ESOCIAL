@@ -41,5 +41,6 @@ class LetterString(String):
             namespace['qualified_value'] = value
         else:
             namespace['is_valid'] = False
+            namespace['qualified_value'] = None
 
         return namespace
