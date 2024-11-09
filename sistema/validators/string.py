@@ -62,8 +62,8 @@ class String(Validator):
         except AssertionError as err:
             raise ValidatorError(err) from ValueError(err)
 
-        self.is_arbitrary_string = True
-        self.qualified_type = sheet.STRING
+        self._is_arbitrary_string = True
+        self._qualified_type = sheet.STRING
         self.min_string_length = min_string_length
         self.max_string_length = max_string_length
         self.case_sensitive = case_sensitive

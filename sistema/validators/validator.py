@@ -28,36 +28,22 @@ class Validator:
     _inited_var_errmsg = 'propriedade só pode ser inicializada uma única vez'
 
     def __init__(self) -> None:
-        self.__qualified_type: sheet.QualifiedType | None = None
-        self.__is_arbitrary_string: bool | None = None
+        self._qualified_type: sheet.QualifiedType | None = None
+        self._is_arbitrary_string: bool | None = None
 
     @property
     def qualified_type(self) -> sheet.QualifiedType:
-        if self.__qualified_type is None:
+        if self._qualified_type is None:
             msg = self._not_inited_var_errmsg
             raise ValidatorError(msg) from AttributeError(msg)
-        return self.__qualified_type
-
-    @qualified_type.setter
-    def qualified_type(self, value: sheet.QualifiedType) -> None:
-        if self.__qualified_type is not None:
-            msg = self._inited_var_errmsg
-            raise ValidatorError(msg) from SyntaxError(msg)
-        self.__qualified_type = value
+        return self._qualified_type
 
     @property
     def is_arbitrary_string(self) -> bool:
-        if self.__is_arbitrary_string is None:
+        if self._is_arbitrary_string is None:
             msg = self._not_inited_var_errmsg
             raise ValidatorError(msg) from AttributeError(msg)
-        return self.__is_arbitrary_string
-
-    @is_arbitrary_string.setter
-    def is_arbitrary_string(self, value: bool) -> None:
-        if self.__is_arbitrary_string is not None:
-            msg = self._inited_var_errmsg
-            raise ValidatorError(msg) from SyntaxError(msg)
-        self.__is_arbitrary_string = value
+        return self._is_arbitrary_string
 
     def _validate(
         self, column: Column, cell: Cell, cell_index: int, property_name: str
