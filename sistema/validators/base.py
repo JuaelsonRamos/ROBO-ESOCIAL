@@ -118,14 +118,9 @@ class String(Validator):
             value = value.lower()
         return value
 
-    def __call__(
-        self, column: Column, cell: Cell, /, cell_index: int, property_name: str
-    ) -> CellModel:
-        cell_namespace: dict[str, Any] = {
-            'is_arbitrary_string': True,
-            'qualified_type': self.qualified_type,
-            'validator': self,
-        }
+    def _validate(
+        self, column: Column, cell: Cell, cell_index: int, property_name: str
+    ) -> DefaultDict | Never:
         try:
             assert isinstance(cell, Cell)
             assert isinstance(column, Column)
@@ -136,48 +131,61 @@ class String(Validator):
             assert property_name != ''
         except AssertionError as err:
             raise CellValidationError(err) from err
-        cell_namespace.update(
-            index=cell_index,
-            property_name=property_name,
-            required=column.required,
-            column_metadata=column,
-            original_value=cell.value,
-        )
+        cell_namespace: DefaultDict = {
+            'is_arbitrary_string': True,
+            'qualified_type': self.qualified_type,
+            'validator': self,
+            'index': cell_index,
+            'property_name': property_name,
+            'required': column.required,
+            'column_metadata': column,
+            'original_value': cell.value,
+            'is_empty': False,
+            'qualified_value': None,
+        }
         value = cell.value
-        if not isinstance(value, str) or value.strip(string.whitespace) == '':
-            cell_namespace.update(
-                is_empty=True, is_valid=self.allow_empty, qualified_value=''
-            )
-            return CellModel(**cell_namespace)
-        else:
-            value = value.strip(string.whitespace)
-            cell_namespace['is_empty'] = False
+        if not isinstance(value, str):
+            cell_namespace['is_valid'] = False
+            return cell_namespace
+        value = value.strip(string.whitespace)
+        if value == '':
+            cell_namespace['is_empty'] = True
+            cell_namespace['is_valid'] = self.allow_empty
+            cell_namespace['qualified_value'] = ''
+            return cell_namespace
         try:
             assert len(value) >= self.min_string_length
             assert len(value) <= self.max_string_length
         except AssertionError:
-            cell_namespace.update(is_valid=False, qualified_value='')
+            cell_namespace['is_valid'] = False
         else:
-            cell_namespace.update(is_valid=True, qualified_value=value)
+            cell_namespace['is_valid'] = True
+            cell_namespace['qualified_value'] = value
 
-        return CellModel(**cell_namespace)
+        return cell_namespace
+
+    def __call__(
+        self, column: Column, cell: Cell, /, cell_index: int, property_name: str
+    ) -> CellModel:
+        namespace = self._validate(column, cell, cell_index, property_name)
+        return CellModel.model_validate(namespace)
 
 
-class IntegerString(String):
+class NumericString(String):
     def __init__(
         self,
         *,
         min_string_length: int = 1,
         max_string_length: int = INT32.MAX,
-        min_integer: int = INT32.MIN,
-        max_integer: int = INT32.MAX,
+        min_value: int = INT32.MIN,
+        max_value: int = INT32.MAX,
         allow_zero: bool = True,
         allow_empty: bool = False,
     ):
         try:
-            assert min_integer >= INT32.MIN
-            assert max_integer <= INT32.MAX
-            assert min_integer < max_integer
+            assert min_value >= INT32.MIN
+            assert max_value <= INT32.MAX
+            assert min_value < max_value
         except AssertionError as err:
             raise ValidatorCreationError(err) from err
 
@@ -186,9 +194,17 @@ class IntegerString(String):
             max_string_length=max_string_length,
             allow_empty=allow_empty,
         )
-        self.min_integer = min_integer
-        self.max_integer = max_integer
+        self.min_value = min_value
+        self.max_value = max_value
         self.allow_zero = allow_zero
+
+    def _validate(
+        self, column: Column, cell: Cell, cell_index: int, property_name: str
+    ) -> DefaultDict:
+        namespace = super()._validate(column, cell, cell_index, property_name)
+        namespace['is_arbitrary_string'] = False
+        if not namespace['is_valid']:
+            return namespace
 
     def __call__(
         self, column: Column, cell: Cell, /, cell_index: int, property_name: str
