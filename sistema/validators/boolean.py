@@ -20,6 +20,12 @@ class Boolean(String):
         expect_unicode: bool = False,
         allow_empty: bool = False,
     ):
+        super().__init__(
+            case_sensitive=case_sensitive,
+            expect_unicode=expect_unicode,
+            allow_empty=allow_empty,
+        )
+
         try:
             assert len(falsy) > 0
             assert len(truthy) > 0
@@ -36,12 +42,6 @@ class Boolean(String):
             self.truthy = frozenset(self.truthy)
         except AssertionError as err:
             raise ValidatorError(err) from ValueError(err)
-
-        super().__init__(
-            case_sensitive=case_sensitive,
-            expect_unicode=expect_unicode,
-            allow_empty=allow_empty,
-        )
 
     def _validate(
         self, column: Column, cell: Cell, cell_index: int, property_name: str
