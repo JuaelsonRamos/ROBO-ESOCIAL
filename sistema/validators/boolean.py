@@ -3,6 +3,8 @@ from __future__ import annotations
 from .string import String
 from .validator import DefaultDict, ValidatorError
 
+import sistema.spreadsheet as sheet
+
 from sistema.models import Column
 
 from typing import Sequence
@@ -25,6 +27,8 @@ class Boolean(String):
             expect_unicode=expect_unicode,
             allow_empty=allow_empty,
         )
+        self._is_arbitrary_string = False
+        self._qualified_type = sheet.BOOL
 
         try:
             assert len(falsy) > 0

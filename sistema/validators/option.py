@@ -24,6 +24,7 @@ class Option(String):
             expect_unicode=expect_unicode,
             allow_empty=allow_empty,
         )
+        self._is_arbitrary_string = False
 
         try:
             assert len(options) > 0
