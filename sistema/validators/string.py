@@ -28,6 +28,14 @@ class String(Validator):
 
     @min_string_length.setter
     def min_string_length(self, value: int) -> None:
+        try:
+            assert value != 0, 'valor não pode ser zero'
+            assert value > 0, 'valor deve ser positivo'
+            assert (
+                value < self.max_string_length
+            ), 'valor deve ser menor que o máximo atual'
+        except AssertionError as err:
+            raise ValidatorError(err) from ValueError(err)
         if self.__min_string_length is not None and value >= self.__min_string_length:
             return
         self.__min_string_length = value
@@ -41,6 +49,14 @@ class String(Validator):
 
     @max_string_length.setter
     def max_string_length(self, value: int) -> None:
+        try:
+            assert value != 0, 'valor não pode ser zero'
+            assert value <= INT32.MAX, f'valor deve ser menor ou igual a {INT32.MAX}'
+            assert (
+                value > self.min_string_length
+            ), 'valor deve ser maior que o mínimo atual'
+        except AssertionError as err:
+            raise ValidatorError(err) from ValueError(err)
         if self.__max_string_length is not None and value <= self.__max_string_length:
             return
         self.__max_string_length = value
@@ -55,13 +71,6 @@ class String(Validator):
         allow_empty: bool = False,
     ):
         super().__init__()
-        try:
-            assert min_string_length > 0
-            assert max_string_length < INT32.MAX
-            assert min_string_length < max_string_length
-        except AssertionError as err:
-            raise ValidatorError(err) from ValueError(err)
-
         self._is_arbitrary_string = True
         self._qualified_type = sheet.STRING
         self.min_string_length = min_string_length
