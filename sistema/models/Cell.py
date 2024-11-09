@@ -7,7 +7,7 @@ from sistema.validators import Validator
 
 from typing import Any
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 
 class Cell(BaseModel, frozen=True, strict=True):
@@ -20,17 +20,17 @@ class Cell(BaseModel, frozen=True, strict=True):
     qualified_type: QualifiedType
     validator: Validator
     original_value: str
-    qualified_value: QualifiedValue
+    qualified_value: QualifiedValue | None
     column_metadata: Column
 
-    @validator('column_metadata')
+    @field_validator('column_metadata')
     def validate_column_metadata(cls, value: Any):
         assert isinstance(
             value, Column
         ), "'columns_metadata' deve ser um modelo derivado de 'ColumnMetadata'"
         return value
 
-    @validator('validator')
+    @field_validator('validator')
     def validate_validator(cls, value: Any):
         assert isinstance(
             value, Validator
