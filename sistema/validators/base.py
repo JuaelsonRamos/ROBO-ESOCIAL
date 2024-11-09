@@ -13,7 +13,7 @@ import string
 from abc import abstractmethod
 from datetime import date, datetime
 from itertools import zip_longest
-from typing import Any, Sequence, TypeAlias, cast
+from typing import Any, Never, Sequence, TypeAlias, cast
 
 from openpyxl.cell import Cell
 from unidecode import unidecode_expect_nonascii
@@ -80,6 +80,8 @@ class String(Validator):
         *,
         min_string_length: int = 1,
         max_string_length: int = INT32.MAX,
+        case_sensitive: bool = False,
+        expect_unicode: bool = False,
         allow_empty: bool = False,
     ):
         super().__init__()
@@ -92,7 +94,29 @@ class String(Validator):
 
         self.min_string_length = min_string_length
         self.max_string_length = max_string_length
+        self.case_sensitive = case_sensitive
+        self.expect_unicode = expect_unicode
         self.allow_empty = allow_empty
+
+    def validate_string(self, value: Any) -> None | Never:
+        if not isinstance(value, str):
+            raise TypeError('value is not of type string')
+        if value == '':
+            if self.allow_empty:
+                return
+            else:
+                raise ValueError('empty when being empty is not allowed')
+        if len(value) < self.min_string_length:
+            raise ValueError('too short')
+        if len(value) > self.max_string_length:
+            raise ValueError('too long')
+
+    def parse_string(self, value: str) -> str:
+        if self.expect_unicode:
+            value = unidecode_expect_nonascii(value)
+        if not self.case_sensitive:
+            value = value.lower()
+        return value
 
     def __call__(
         self, column: Column, cell: Cell, /, cell_index: int, property_name: str
@@ -120,17 +144,14 @@ class String(Validator):
             original_value=cell.value,
         )
         value = cell.value
-        if value is not None:
-            value = cast(str, value)
-        if value != '':
-            value = value.strip(string.whitespace)
-        if value is None or value == '':
+        if not isinstance(value, str) or value.strip(string.whitespace) == '':
             cell_namespace.update(
                 is_empty=True, is_valid=self.allow_empty, qualified_value=''
             )
             return CellModel(**cell_namespace)
-
-        cell_namespace['is_empty'] = False
+        else:
+            value = value.strip(string.whitespace)
+            cell_namespace['is_empty'] = False
         try:
             assert len(value) >= self.min_string_length
             assert len(value) <= self.max_string_length
