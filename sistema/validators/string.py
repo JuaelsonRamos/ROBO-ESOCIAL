@@ -66,9 +66,9 @@ class String(Validator):
         *,
         min_string_length: int = 1,
         max_string_length: int = INT32.MAX,
-        case_sensitive: bool = False,
+        case_sensitive: bool = True,
         expect_unicode: bool = False,
-        allow_empty: bool = False,
+        allow_empty: bool = True,
     ):
         super().__init__()
         self._is_arbitrary_string = True
@@ -93,10 +93,13 @@ class String(Validator):
             raise ValueError('too long')
 
     def parse_string(self, value: str) -> str:
+        if value == '':
+            return value
         if self.expect_unicode:
             value = unidecode_expect_nonascii(value)
-        if not self.case_sensitive:
-            value = value.lower()
+        value = value.strip(string.whitespace)
+        if not self.case_sensitive and value != '':
+            value = value.upper()
         return value
 
     def _validate(
@@ -107,7 +110,7 @@ class String(Validator):
         if not isinstance(value, str):
             namespace['is_valid'] = False
             return namespace
-        value = value.strip(string.whitespace)
+        value = self.parse_string(value)
         if value == '':
             namespace['is_empty'] = True
             namespace['is_valid'] = self.allow_empty
