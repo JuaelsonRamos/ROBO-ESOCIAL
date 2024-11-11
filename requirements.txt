@@ -1,3 +1,4 @@
 -r "./ci-requirements.txt"
 pydantic>=2,<3
 Unidecode>=1,<2
+openpyxl>=3,<4
