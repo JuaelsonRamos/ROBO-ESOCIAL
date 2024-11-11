@@ -8,4 +8,5 @@ from pydantic import BaseModel
 class Column(BaseModel):
     index: int
     original_text: str
+    property_name: str
     required: Requirement
