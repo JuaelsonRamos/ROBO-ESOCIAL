@@ -1,5 +1,6 @@
 # testes devem ser adicionados por fora
-test*/
+# TODO delete testes dir from project and source tree (git)
+/testes/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
