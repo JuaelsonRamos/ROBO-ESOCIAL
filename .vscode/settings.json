@@ -17,17 +17,33 @@
     ]
   },
   "ruff.importStrategy": "fromEnvironment",
+  "editor.formatOnSave": true,
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.formatOnSave": true,
+    "diffEditor.ignoreTrimWhitespace": false,
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit"
     }
   },
+  "[toml][shellscript][xml][sql]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "pylint.importStrategy": "fromEnvironment",
-  "python.analysis.typeCheckingMode": "strict",
   "files.exclude": {
     "**/__pycache__/": true
-  }
+  },
+  "python.testing.pytestArgs": ["."],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  "ruff.nativeServer": "off",
+  "python.languageServer": "Pylance",
+  "python.analysis.languageServerMode": "light",
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.diagnosticMode": "workspace",
+  "explorer.sortOrder": "type",
+  "explorer.sortOrderLexicographicOptions": "lower",
+  "explorer.openEditors.sortOrder": "fullPath",
+  "editor.rulers": [88],
+  "diffEditor.hideUnchangedRegions.enabled": true
 }

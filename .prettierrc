@@ -10,5 +10,6 @@
   "sqlKeywordCase": "upper",
   "sqlCanonicalSyntax": true,
   "xmlQuoteAttributes": "double",
-  "xmlWhitespaceSensitivity": "ignore"
+  "xmlWhitespaceSensitivity": "ignore",
+  "overrides": [{ "files": "*.toml", "options": { "singleQuote": false } }]
 }

@@ -125,25 +125,17 @@ disable = [
   "disallowed-name",
 ]
 
+[tool.pytest]
+cache_dir = ".cache/pytest"
+
 [tool.pyright]
 pythonVersion = "3.11"
 pythonPlatform = "Windows"
-typeCheckingMode = "strict"
+typeCheckingMode = "standard"
 useLibraryCodeForTypes = true
+ignore = ["**/__init__.py"]
 exclude = ["**/.venv*/", "**/build*/", "**/dist/"]
-include = ["src/", "installer/"]
-# Bibliotecas importantes estão apenas parcialmente ou totalmente sem tipos.
-# Alguns desses avisos são importantes, mas em bao parte da codebase, inevitáveis, infelizmente.
-# Mensagens específicas:
-reportMissingTypeStubs = "none"
-reportWildcardImportFromLibrary = "none"
-reportIncompleteStub = "none"
-reportUnnecessaryIsInstance = "none"
-reportUnnecessaryCast = "none"
-reportUnnecessaryContains = "none"
-reportUnnecessaryComparison = "none"
-reportUnknownMemberType = "none"
-reportUnknownVariableType = "none"
-reportUnknownArgumentType = "none"
-reportGeneralTypeIssues = "none"
-reportOptionalMemberAccess = "none"
+reportMissingTypeStubs = "information"
+reportWildcardImportFromLibrary = "error"
+reportUnnecessaryContains = "error"
+reportUnnecessaryComparison = "error"
