@@ -4,6 +4,7 @@ from .boolean import Boolean
 from .date import Date
 from .float import Float
 from .integer import Integer
+from .integer_string import IntegerString
 from .letter_string import LetterString
 from .numeric_string import NumericString
 from .option import Option
