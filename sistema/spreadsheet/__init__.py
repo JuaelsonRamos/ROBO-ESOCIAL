@@ -14,4 +14,4 @@ from .constants import (
     Requirement,
 )
 from .style import Alignment, Color, Fill, Font
-from .util import as_bytes
+from .util import as_bytes, string_to_property_name
