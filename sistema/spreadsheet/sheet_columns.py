@@ -7,13 +7,13 @@ from .util import string_to_property_name
 from sistema.models import Column
 from utils import EmptyString
 
-from typing import Any
+from collections.abc import Sequence
 
 from openpyxl.cell import Cell
 from openpyxl.worksheet.worksheet import Worksheet
 
 
-class SheetColumns:
+class SheetColumns(Sequence):
     def __init__(self, worksheet: Worksheet) -> None:
         self.worksheet = worksheet
         self.row: tuple[Cell, ...]
@@ -43,20 +43,17 @@ class SheetColumns:
             parsed.append(Column(**col))
         self._columns = tuple(parsed)
 
-    def __iter__(self):
-        return self._columns.__iter__()
-
-    def __hash__(self) -> int:
-        return self._columns.__hash__()
-
-    def __reversed__(self):
-        return self._columns.__reversed__()
-
-    def __contains__(self, value: Any):
-        return self._columns.__contains__(value)
-
-    def __len__(self):
-        return self._columns.__len__()
-
-    def __getitem__(self, index: int):
-        return self._columns.__getitem__(index)
+        for attr in (
+            '__iter__',
+            '__hash__',
+            '__reversed__',
+            '__contains__',
+            '__len__',
+            '__getitem__',
+            'index',
+            'count',
+        ):
+            if not hasattr(self._columns, attr):
+                continue
+            method = getattr(self._columns, attr)
+            setattr(self, attr, method)
