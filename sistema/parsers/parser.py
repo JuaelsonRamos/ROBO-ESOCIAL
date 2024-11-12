@@ -41,16 +41,19 @@ class Parser:
 
     def parse_row(
         self, columns: Sequence[Column], row: Sequence[Cell]
-    ) -> tuple[CellModel, ...]:
-        self._schema = cast(dict, self._schema)
+    ) -> tuple[CellModel, ...] | Never:
         parsed: list[Any] = [None] * len(row)
         for col in columns:
-            assert col.property_name in self._schema
-            validate = self._schema[col.property_name]
             cell = row[col.index]
-            parsed[col.index] = validate(col, cell, col.index, col.property_name)
-        parsed = cast(list[Validator], parsed)
+            parsed[col.index] = self.parse_cell(col, cell)
+        parsed = cast(list[CellModel], parsed)
         return tuple(parsed)
+
+    def parse_cell(self, column: Column, cell: Cell) -> CellModel | Never:
+        self._schema = cast(dict, self._schema)
+        assert column.property_name in self._schema
+        validate = self._schema[column.property_name]
+        return validate(column, cell, column.index, column.property_name)
 
     @abstractmethod
     def parse_context(
