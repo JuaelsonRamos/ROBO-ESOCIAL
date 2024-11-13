@@ -27,7 +27,7 @@ class Cell(BaseModel, frozen=True, strict=True):
     def validate_column_metadata(cls, value: Any):
         assert isinstance(
             value, Column
-        ), "'columns_metadata' deve ser um modelo derivado de 'ColumnMetadata'"
+        ), "'columns_metadata' deve ser um modelo derivado de 'Column'"
         return value
 
     @field_validator('validator')
