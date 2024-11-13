@@ -5,7 +5,7 @@ from typing import Any, NamedTuple, Self
 
 class _int_maybe_float(int):
     def __new__(cls, x: Any) -> Self:
-        instance = super().__new__(x)
+        instance = super().__new__(cls, x)
         cls.__float_self = float(x)
         return instance
 
