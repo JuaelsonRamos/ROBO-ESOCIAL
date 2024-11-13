@@ -57,7 +57,12 @@ class ProcessingQueue(InteractiveTreeList):
 
     def wait_files(self):
         with self.files_lock:
-            self.files = filedialog.askopenfilenames()
+            self.files = filedialog.askopenfilenames(
+                parent=self,
+                title='Selecione um arquivo de planilha de dados',
+                defaultextension='.xlsx',
+                filetypes=[('Todos os arquivos', '*'), ('Arquivo Excel', '.xlsx .xls')],
+            )
             self._files_add_thread.events.start.set()
 
     def add_files(self):
