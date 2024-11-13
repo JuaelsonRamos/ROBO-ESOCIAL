@@ -1,48 +1,48 @@
-""" Configuração de compilação e instalação do código fonte como pacote."""
+"""Configuração de compilação e instalação do código fonte como pacote."""
 
 # pylint: disable=all
+from __future__ import annotations
 
-from glob import glob
-from os.path import abspath, relpath
-from pathlib import PurePath
-from typing import List
+import string
+import argparse
 
-from Cython.Build import cythonize
-from Cython.Distutils import build_ext
-from setuptools import Extension, setup
-
-__all__ = ["get_extensions"]
+from scripts.boostrap import install_playwright_deps, make_dirs
 
 
-def get_extensions(files: List[str], project_root: str) -> List[Extension]:
-    extensions = []
-    for file in files:
-        relative = PurePath(relpath(file, project_root))
-        extensions.append(
-            Extension(".".join(relative.parent.joinpath(relative.stem).parts), [file])
-        )
-    return extensions
+scripts = {
+    'make_dirs': make_dirs,
+    'install_playwright_deps': install_playwright_deps,
+}
 
 
-extensions = get_extensions([*glob("src/*.py"), *glob("src/**/*.py")], abspath("."))
+def main():
+    args = argparse.ArgumentParser(
+        prog='setup.py',
+        description='Script de configuração e ações automáticas no projeto.',
+        add_help=True,
+        allow_abbrev=False,
+        prefix_chars='-',
+    )
+    args.add_argument(
+        'command',
+        help='Baixa dependências binárias da biblioteca Playwright, como navegadores, NodeJS, etc.',
+    )
+    argv = args.parse_args()
+    command = argv.command
+    if argv.command is None or argv.command == '':
+        command = 'install_playwright_deps'
+    elif not isinstance(argv.command, str):
+        raise ValueError(f'{type(argv.command)=} should be str')
+    else:
+        command = command.strip(string.whitespace)
+    if command not in scripts:
+        raise ValueError(f"script '{command}' desconhecido")
+    make_dirs()
+    if command == 'make_dirs':
+        return
+    func = scripts[command]
+    func()
 
-extensions = cythonize(
-    extensions,
-    build_dir="build_cython",
-    compiler_directives={
-        "language_level": "3",
-        "always_allow_keywords": True,
-        "embedsignature": True,
-    },
-)
 
-setup(
-    name="src",
-    version="0.0.0",
-    cmdclass={
-        "build_ext": build_ext,
-    },
-    ext_modules=extensions,
-    zip_safe=False,
-    include_package_data=True,
-)
+if __name__ == '__main__':
+    main()

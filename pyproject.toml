@@ -6,6 +6,16 @@ name = "ROBO-ESOCIAL"
 requires-python = "==3.11"
 dynamic = ["version"]
 
+[tool.esocial.build]
+base_dir = 'dist'
+output_dir = 'builds'
+
+[tool.esocial.build.playwright]
+download_dir = 'playwright'
+install_browsers = ['firefox', 'chromium']
+install_deps = true
+force = false
+
 [tool.ruff]
 cache-dir = ".cache/ruff"
 respect-gitignore = true
