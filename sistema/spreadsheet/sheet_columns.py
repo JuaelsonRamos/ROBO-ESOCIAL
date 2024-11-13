@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .constants import MAYBE, OPCIONAL, REQUIRED
 from .style import Fill
-from .util import string_to_property_name
+from .util import normalize_column_title
 
 from sistema.models import Column
 from utils import EmptyString
@@ -29,7 +29,7 @@ class SheetColumns(Sequence):
             col = {
                 'index': i,
                 'original_text': cell.value,
-                'property_name': string_to_property_name(cell.value, is_unicode=True),
+                'property_name': normalize_column_title(cell.value, is_unicode=True),
             }
             match cell.fill:
                 case Fill.RED:

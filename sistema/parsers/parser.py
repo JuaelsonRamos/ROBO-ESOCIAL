@@ -4,7 +4,6 @@ from sistema.models import (
     Cell as CellModel,
     Column,
 )
-from sistema.spreadsheet import string_to_property_name
 from sistema.validators import Validator
 
 from abc import abstractmethod

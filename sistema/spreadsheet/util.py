@@ -18,7 +18,7 @@ def as_bytes(book: Workbook) -> bytes:
         return tmp.read()
 
 
-def string_to_property_name(value: str, is_unicode: bool = False) -> str:
+def normalize_column_title(value: str, is_unicode: bool = False) -> str:
     value = value.strip(string.whitespace)
     if value == '':
         raise EmptyString
