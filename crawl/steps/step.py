@@ -120,9 +120,9 @@ class StepRunner:
         )
 
 
+@singleton
 class step:
-    @classmethod
-    def execute_in_order(cls, *names: str):
+    def execute_in_order(self, *names: str):
         registry = _GlobalState_StepRegistry
         if len(registry.primary) == 0:
             raise RuntimeError('no steps defined yet')
@@ -142,8 +142,7 @@ class step:
         for stp in registry.after_all:
             stp.run()
 
-    @classmethod
-    def get(cls, name: str) -> StepRunner | None:
+    def get(self, name: str) -> StepRunner | None:
         for step_type, registry in _GlobalState_StepRegistry.items():
             if step_type == 'primary':
                 return registry.get(name, None)
@@ -151,9 +150,8 @@ class step:
                 if step.name == name:
                     return step
 
-    @classmethod
     def __create_step(
-        cls, func: _StepFunction, name: str, step_type: str
+        self, func: _StepFunction, name: str, step_type: str
     ) -> StepRunner:
         if not isinstance(func, FunctionType):
             raise TypeError(f'value is not function {func=}')
@@ -165,14 +163,12 @@ class step:
         _GlobalState_StepRegistry.register(instance)
         return instance
 
-    @classmethod
-    def __call__(cls, func: _StepFunction, name: str):
-        return cls.__create_step(func, name, 'primary')
+    def __call__(self, func: _StepFunction, name: str):
+        return self.__create_step(func, name, 'primary')
 
-    @classmethod
-    def __getattr__(cls, name: str):
+    def __getattr__(self, name: str):
         if name in _GlobalState_StepRegistry.keys() and name != 'primary':
-            return functools.partial(cls.__create_step, step_type=name)
-        if hasattr(cls, name):
+            return functools.partial(self.__create_step, step_type=name)
+        if hasattr(self, name):
             return getattr(super(), name)
         raise AttributeError(name)
