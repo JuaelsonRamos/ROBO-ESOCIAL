@@ -185,9 +185,18 @@ class step:
     def __call__(self, func: _StepFunction, name: str):
         return self.__create_step(func, name, 'primary')
 
-    def __getattr__(self, name: str):
-        if name in _GlobalState_StepRegistry.keys() and name != 'primary':
-            return functools.partial(self.__create_step, step_type=name)
-        if hasattr(self, name):
-            return getattr(super(), name)
-        raise AttributeError(name)
+    @property
+    def before_all(self):
+        return functools.partial(self.__create_step, step_type='before_all')
+
+    @property
+    def before_every(self):
+        return functools.partial(self.__create_step, step_type='before_every')
+
+    @property
+    def after_all(self):
+        return functools.partial(self.__create_step, step_type='after_all')
+
+    @property
+    def after_every(self):
+        return functools.partial(self.__create_step, step_type='after_every')
