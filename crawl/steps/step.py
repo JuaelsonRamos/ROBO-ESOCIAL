@@ -77,7 +77,7 @@ class Event:
     def __init__(self, name: str, parent: StepRunner) -> None:
         self.name = name
         self.callback: _StepEventHandler | None = None
-        self.step = parent
+        self.parent = parent
 
     def unbind(self):
         if self.callback is None:
@@ -104,6 +104,9 @@ class Event:
         if self.callback is not None:
             value = hex(id(self.callback))
         return f'Event(name={self.name}, callback={value})'
+
+    def __hash__(self) -> int:
+        return hash(self.parent) + hash(self.name)
 
 
 class StepRunner:
