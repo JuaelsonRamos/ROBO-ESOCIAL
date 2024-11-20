@@ -65,6 +65,13 @@ class _GlobalState_StepRegistry:
         else:
             raise ValueError(f'invalid step {repr(step)}')
 
+    def remove(self, step: StepRunner):
+        if step.step_type == 'primary':
+            del self.primary[step.name]
+            return
+        registry: list = getattr(self, step.step_type)
+        registry.remove(step)
+
 
 class Event:
     def __init__(self, name: str, parent: StepRunner) -> None:
@@ -111,8 +118,11 @@ class StepRunner:
     def __hash__(self) -> int:
         return hash(self.name) + hash(self.step_type)
 
+    def unbind(self):
+        _GlobalState_StepRegistry.remove(self)
+
     def run(self) -> bool:
-        ok = self.__callback()
+        ok = self.__callback(self)
         if not isinstance(ok, bool):
             raise StepCallbackError('returned value is not boolean type')
         if ok and self.on_success.is_set():
