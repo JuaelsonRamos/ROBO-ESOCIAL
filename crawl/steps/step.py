@@ -8,7 +8,9 @@ import itertools
 
 from multiprocessing import Value
 from types import FunctionType
-from typing import Any, Callable, Never
+from typing import Any, Callable, Iterable, Never, Sequence, TypedDict, overload
+
+from playwright.async_api import Browser, BrowserContext, Page
 
 
 _StepFunction = Callable[..., bool]
@@ -137,8 +139,27 @@ class StepRunner:
     def unbind(self):
         _GlobalState_StepRegistry.remove(self)
 
-    def run(self) -> bool:
-        ok = self.__callback(self)
+    def run(self, **kwargs) -> bool:
+        if 'step' in kwargs:
+            raise ValueError('step is a reserverd argument name')
+        kwargs['step'] = self
+        sig = inspect.signature(self.__callback)
+        params = sig.parameters
+        ok: Any
+        if len(params) == 0:
+            ok = self.__callback()
+        else:
+            for p in params.values():
+                if p.name not in kwargs:
+                    raise ValueError(
+                        f'argument {p.name} requested by step {self.name} but not provided by runner'
+                    )
+                if p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL):
+                    raise ValueError(f'argument {p.name} is {p.kind.description}')
+                if not p.empty:
+                    raise ValueError(f'argument {p.name} has default value')
+            func = functools.partial(self.__callback, **kwargs)
+            ok = func()
         if not isinstance(ok, bool):
             raise StepCallbackError('returned value is not boolean type')
         if ok and self.on_success.is_set():
@@ -159,26 +180,6 @@ class StepRunner:
 
 @singleton
 class step:
-    def execute_in_order(self, *names: str):
-        registry = _GlobalState_StepRegistry
-        if len(registry.primary) == 0:
-            raise RuntimeError('no steps defined yet')
-        if len(names) > len(registry.primary):
-            raise RuntimeError('more steps specified than exist')
-        for name in names:
-            if name not in registry.primary:
-                raise RuntimeError(f'step {name=} is unknown')
-        for stp in registry.before_all:
-            stp.run()
-        for name in names:
-            for stp in registry.before_every:
-                stp.run()
-            registry.primary[name].run()
-            for stp in registry.after_every:
-                stp.run()
-        for stp in registry.after_all:
-            stp.run()
-
     def get(self, name: str) -> StepRunner | None:
         try:
             return _GlobalState_StepRegistry[name]
@@ -214,3 +215,30 @@ class step:
     @property
     def after_every(self):
         return functools.partial(self.__create_step, step_type='after_every')
+
+
+def execute_in_order(
+    browser: Browser,
+    context: BrowserContext,
+    page: Page,
+    names: Sequence[str],
+):
+    registry = _GlobalState_StepRegistry
+    if len(registry.primary) == 0:
+        raise RuntimeError('no steps defined yet')
+    if len(names) > len(registry.primary):
+        raise RuntimeError('more steps specified than currently exist')
+    for name in names:
+        if name not in registry.primary:
+            raise RuntimeError(f'step {name=} is unknown')
+    kwargs = dict(browser=browser, context=context, page=page)
+    for stp in registry.before_all:
+        stp.run(**kwargs)
+    for name in names:
+        for stp in registry.before_every:
+            stp.run(**kwargs)
+        registry.primary[name].run(**kwargs)
+        for stp in registry.after_every:
+            stp.run(**kwargs)
+    for stp in registry.after_all:
+        stp.run(**kwargs)
