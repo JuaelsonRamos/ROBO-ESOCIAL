@@ -57,6 +57,19 @@ class _GlobalState_StepRegistry:
     def __len__(self):
         return sum(len(entry) for entry in self.values())
 
+    def __getitem__(self, name: str):
+        if name in self.primary:
+            return self.primary[name]
+        for step in itertools.chain(
+            self.before_all,
+            self.before_every,
+            self.after_every,
+            self.after_all,
+        ):
+            if step.name == name:
+                return step
+        raise IndexError(name)
+
     def register(self, step: StepRunner):
         if step.step_type == 'primary':
             self.primary[step.name] = step
@@ -167,12 +180,10 @@ class step:
             stp.run()
 
     def get(self, name: str) -> StepRunner | None:
-        for step_type, registry in _GlobalState_StepRegistry.items():
-            if step_type == 'primary':
-                return registry.get(name, None)
-            for step in registry:
-                if step.name == name:
-                    return step
+        try:
+            return _GlobalState_StepRegistry[name]
+        except IndexError:
+            return
 
     def __create_step(
         self, func: _StepFunction, name: str, step_type: str
