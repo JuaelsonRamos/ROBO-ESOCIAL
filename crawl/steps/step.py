@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from utils import singleton
 
+import inspect
 import functools
 import itertools
 
+from multiprocessing import Value
 from types import FunctionType
 from typing import Any, Callable, Never
 
@@ -64,22 +66,44 @@ class _GlobalState_StepRegistry:
             raise ValueError(f'invalid step {repr(step)}')
 
 
-class StepEventRegistry:
-    __slots__ = ('on_success', 'on_fail')
+class Event:
+    def __init__(self, name: str, parent: StepRunner) -> None:
+        self.name = name
+        self.callback: _StepEventHandler | None = None
+        self.step = parent
+
+    def unbind(self):
+        if self.callback is None:
+            raise RuntimeError('trying to unbind already empty event')
+        self.callback = None
+
+    def bind(self, func: _StepEventHandler):
+        if not isinstance(func, FunctionType):
+            raise TypeError(f'value is not function {func=}')
+        if self.callback is not None:
+            raise ValueError(f"event '{self.name}' already registered")
+        self.callback = func
+
+    def is_set(self):
+        return self.callback is not None
+
+    def __call__(self):
+        if self.callback is None:
+            raise ValueError('event is empty, has no callback')
+        self.callback(self)
 
     def __repr__(self) -> str:
-        events = []
-        for name in self.__slots__:
-            value = getattr(self, name, None)
-            if value is not None:
-                value = hex(id(value))
-            events.append(f'{name}={value}')
-        return 'StepEventRegistry({})'.format(', '.join(events))
+        value = None
+        if self.callback is not None:
+            value = hex(id(self.callback))
+        return f'Event(name={self.name}, callback={value})'
 
 
 class StepRunner:
     def __init__(self, name: str, callback: _StepFunction, step_type: str) -> None:
-        self.event = StepEventRegistry()
+        self.events = ('on_success', 'on_fail')
+        self.on_success = Event('on_success', self)
+        self.on_fail = Event('on_fail', self)
         self.__callback = callback
         self.step_type = step_type
         self.name = name
@@ -87,36 +111,23 @@ class StepRunner:
     def __hash__(self) -> int:
         return hash(self.name) + hash(self.step_type)
 
-    def __register_event(self, func: _StepEventHandler, name: str):
-        if not isinstance(func, FunctionType):
-            raise TypeError('argument is not a function')
-        if hasattr(self.event, name):
-            raise ValueError(f"event '{name}' already registered")
-        setattr(self.event, name, func)
-
-    def __getattr__(self, name: str) -> Any:
-        if name in self.event.__slots__:
-            return functools.partial(self.__register_event, name=name)
-        elif not hasattr(self, name):
-            raise AttributeError(f'{name=}')
-        return getattr(super(), name)
-
     def run(self) -> bool:
         ok = self.__callback()
         if not isinstance(ok, bool):
             raise StepCallbackError('returned value is not boolean type')
-        try:
-            if ok:
-                self.event.on_success()
-            else:
-                self.event.on_fail()
-        except AttributeError:
-            pass
+        if ok and self.on_success.is_set():
+            self.on_success()
+        elif not ok and self.on_fail.is_set():
+            self.on_fail()
         return ok
 
     def __repr__(self) -> str:
-        return 'StepRunner(name="{}", step_type="{}", callback={}, events={})'.format(
-            self.name, self.step_type, hex(id(self.__callback)), repr(self.event)
+        return 'StepRunner(name={}, step_type={}, callback={}, on_success={}, on_fail={})'.format(
+            self.name,
+            self.step_type,
+            hex(id(self.__callback)),
+            repr(self.on_success),
+            repr(self.on_fail),
         )
 
 
@@ -153,8 +164,6 @@ class step:
     def __create_step(
         self, func: _StepFunction, name: str, step_type: str
     ) -> StepRunner:
-        if not isinstance(func, FunctionType):
-            raise TypeError(f'value is not function {func=}')
         if step_type not in _GlobalState_StepRegistry.keys():
             raise ValueError(f'value unknown {step_type=}')
         if name in _GlobalState_StepRegistry:
