@@ -7,7 +7,7 @@ import functools
 import itertools
 
 from multiprocessing import Value
-from types import FunctionType
+from types import FunctionType, MappingProxyType
 from typing import Any, Callable, Iterable, Never, Sequence, TypedDict, overload
 
 from playwright.async_api import Browser, BrowserContext, Page
@@ -15,9 +15,6 @@ from playwright.async_api import Browser, BrowserContext, Page
 
 _StepFunction = Callable[..., bool]
 _StepEventHandler = Callable[..., None | Never]
-
-
-class StepCallbackError(ValueError): ...
 
 
 @singleton
@@ -141,27 +138,29 @@ class StepRunner:
 
     def run(self, **kwargs) -> bool:
         if 'step' in kwargs:
-            raise ValueError('step is a reserverd argument name')
+            raise RuntimeError('step is a reserverd argument name')
         kwargs['step'] = self
-        sig = inspect.signature(self.__callback)
-        params = sig.parameters
-        ok: Any
+        params = inspect.signature(self.__callback).parameters
+        ok: Any = None
         if len(params) == 0:
             ok = self.__callback()
         else:
+            args = {}
+            prefix = f"step '{self.name}': "
             for p in params.values():
                 if p.name not in kwargs:
-                    raise ValueError(
-                        f'argument {p.name} requested by step {self.name} but not provided by runner'
+                    raise RuntimeError(prefix + f'missing argument {p.name}')
+                if p.kind == p.POSITIONAL_ONLY or p.kind == p.VAR_POSITIONAL:
+                    raise RuntimeError(
+                        prefix + f'argument {p.name} is {p.kind.description}'
                     )
-                if p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL):
-                    raise ValueError(f'argument {p.name} is {p.kind.description}')
                 if not p.empty:
-                    raise ValueError(f'argument {p.name} has default value')
-            func = functools.partial(self.__callback, **kwargs)
+                    raise RuntimeError(prefix + f'argument {p.name} has default value')
+                args[p.name] = kwargs[p.name]
+            func = functools.partial(self.__callback, **args)
             ok = func()
         if not isinstance(ok, bool):
-            raise StepCallbackError('returned value is not boolean type')
+            raise RuntimeError('returned value is not boolean type')
         if ok and self.on_success.is_set():
             self.on_success()
         elif not ok and self.on_fail.is_set():
