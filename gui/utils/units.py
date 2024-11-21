@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 
 def padding(
@@ -27,7 +28,7 @@ def padding(
     if vertical:
         padding[1] = padding[3] = vertical
 
-    return padding
+    return cast(tuple[int, int, int, int], tuple(padding))
 
 
 @dataclass(frozen=True, init=False)
