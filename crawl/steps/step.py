@@ -106,9 +106,15 @@ class Event:
     def is_set(self):
         return self.callback is not None
 
-    def __call__(self):
+    def is_async(self):
+        return inspect.iscoroutinefunction(self.callback)
+
+    async def run(self):
         if self.callback is None:
-            raise ValueError('event is empty, has no callback')
+            return
+        if inspect.iscoroutinefunction(self.callback):
+            await self.callback(self)
+            return
         self.callback(self)
 
     def __repr__(self) -> str:
@@ -136,14 +142,14 @@ class StepRunner:
     def unbind(self):
         _GlobalState_StepRegistry.remove(self)
 
-    def run(self, **kwargs) -> bool:
+    async def run(self, **kwargs) -> bool:
         if 'step' in kwargs:
             raise RuntimeError('step is a reserverd argument name')
         kwargs['step'] = self
         params = inspect.signature(self.__callback).parameters
-        ok: Any = None
+        func: Callable
         if len(params) == 0:
-            ok = self.__callback()
+            func = self.__callback
         else:
             args = {}
             prefix = f"step '{self.name}': "
@@ -158,6 +164,10 @@ class StepRunner:
                     raise RuntimeError(prefix + f'argument {p.name} has default value')
                 args[p.name] = kwargs[p.name]
             func = functools.partial(self.__callback, **args)
+        ok: Any
+        if inspect.iscoroutinefunction(func):
+            ok = await func()
+        else:
             ok = func()
         if not isinstance(ok, bool):
             raise RuntimeError('returned value is not boolean type')
@@ -216,7 +226,7 @@ class step:
         return functools.partial(self.__create_step, step_type='after_every')
 
 
-def execute_in_order(
+async def execute_in_order(
     browser: Browser,
     context: BrowserContext,
     page: Page,
@@ -232,12 +242,12 @@ def execute_in_order(
             raise RuntimeError(f'step {name=} is unknown')
     kwargs = dict(browser=browser, context=context, page=page)
     for stp in registry.before_all:
-        stp.run(**kwargs)
+        await stp.run(**kwargs)
     for name in names:
         for stp in registry.before_every:
-            stp.run(**kwargs)
-        registry.primary[name].run(**kwargs)
+            await stp.run(**kwargs)
+        await registry.primary[name].run(**kwargs)
         for stp in registry.after_every:
-            stp.run(**kwargs)
+            await stp.run(**kwargs)
     for stp in registry.after_all:
-        stp.run(**kwargs)
+        await stp.run(**kwargs)
