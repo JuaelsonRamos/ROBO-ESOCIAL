@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gui.constants as const
 
-from gui.views.SheetProcess.data import Heading
+from gui.views.SheetProcess.data import HeadingSequence
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -12,11 +12,9 @@ class ShortTree(ttk.Treeview):
     min_height = 10
     """Altura mínima em células."""
 
-    def __init__(self, master, *, columns: dict[str, Heading]):
+    def __init__(self, master, *, columns: HeadingSequence):
         self.columns = columns
-        self._columns_order = []
-        for col_id, col in self.columns.items():
-            self._columns_order.insert(col['index'], col_id)
+        self._columns_order = tuple(col['iid'] for col in columns)
 
         super().__init__(
             master,
@@ -29,10 +27,10 @@ class ShortTree(ttk.Treeview):
         )
         self.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.TRUE)
 
-        for col_id, col in columns.items():
-            self.heading(col_id, text=col['text'], anchor=col['anchor'])
+        for col in columns:
+            self.heading(col['iid'], text=col['text'], anchor=col['anchor'])
             self.column(
-                col_id,
+                col['iid'],
                 stretch=tk.FALSE,
                 minwidth=col['minwidth'],
                 width=col['minwidth'],

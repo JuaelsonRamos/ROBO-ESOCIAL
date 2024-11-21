@@ -7,6 +7,6 @@ from gui.views.SheetProcess.InteractiveTreeList import InteractiveTreeList
 
 class HistoryList(InteractiveTreeList):
     def __init__(self, master):
-        super().__init__(master, 'Histórico', columns=data.history.columns)
+        super().__init__(master, 'Histórico', columns=data.HISTORY)
         self.add_button('Exportar Planilha')
         self.add_button('Exportar Histórico')

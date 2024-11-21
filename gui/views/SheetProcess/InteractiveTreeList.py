@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from gui.views.SheetProcess.QueueButtonRow import QueueButtonRow
 from gui.views.SheetProcess.ShortTree import ShortTree
-from gui.views.SheetProcess.data import Heading
+from gui.views.SheetProcess.data import HeadingSequence
 
 import tkinter as tk
 import tkinter.ttk as ttk
 
 
 class InteractiveTreeList(ttk.Frame):
-    def __init__(self, master, title: str, *, columns: dict[str, Heading]):
+    def __init__(self, master, title: str, *, columns: HeadingSequence):
         super().__init__(master)
         self.columns = columns
         self.title = title

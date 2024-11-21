@@ -15,9 +15,7 @@ from pathlib import Path
 
 class ProcessingQueue(InteractiveTreeList):
     def __init__(self, master):
-        super().__init__(
-            master, 'Fila de Processamento', columns=data.input_queue.columns
-        )
+        super().__init__(master, 'Fila de Processamento', columns=data.INPUT_QUEUE)
 
         self._index = self._gen_next_index()
 
@@ -81,14 +79,17 @@ class ProcessingQueue(InteractiveTreeList):
         # TODO generic, inherited way of making row data
         path = Path(filename)
         data = []
-
-        def add(key: str, value):
-            data.insert(self.columns[key]['index'], value)
-
-        add('list_order', next(self._index))
-        add('file_name', path.stem)
-        add('file_type', path.suffix)
-        add('storage_size', str(path.stat().st_size))
-        add('date_added', str(time.time()))
-
+        add = data.append
+        for col in self.columns:
+            match col['iid']:
+                case 'list_order':
+                    add(next(self._index))
+                case 'file_name':
+                    add(path.stem)
+                case 'file_type':
+                    add(path.suffix)
+                case 'storage_size':
+                    add(str(path.stat().st_size))
+                case 'date_added':
+                    add(str(time.time()))
         return data
