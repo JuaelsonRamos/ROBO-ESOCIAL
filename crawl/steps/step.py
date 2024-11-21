@@ -85,6 +85,29 @@ class _GlobalState_StepRegistry:
         registry.remove(step)
 
 
+def validate_function_signature(
+    func: _StepEventHandler | _StepFunction,
+    kwargs: dict[str, Any],
+    /,
+    err_prefix: str = '',
+) -> dict[str, Any] | Never:
+    params = inspect.signature(func).parameters
+    if len(params) == 0:
+        return {}
+    args = {}
+    for p in params.values():
+        if p.name not in kwargs:
+            raise RuntimeError(err_prefix + f'missing argument {p.name}')
+        if p.kind == p.POSITIONAL_ONLY or p.kind == p.VAR_POSITIONAL:
+            raise RuntimeError(
+                err_prefix + f'argument {p.name} is {p.kind.description}'
+            )
+        if not p.empty:
+            raise RuntimeError(err_prefix + f'argument {p.name} has default value')
+        args[p.name] = kwargs[p.name]
+    return args
+
+
 class Event:
     def __init__(self, name: str, parent: StepRunner) -> None:
         self.name = name
@@ -109,19 +132,24 @@ class Event:
     def is_async(self):
         return inspect.iscoroutinefunction(self.callback)
 
-    async def run(self):
+    async def run(self, **kwargs):
         if self.callback is None:
             return
+        if 'event' in kwargs:
+            raise RuntimeError('event is a reserved argument name')
+        kwargs['event'] = self
+        prefix = f'{repr(self)}: '
+        valid_args = validate_function_signature(self.callback, kwargs, prefix)
         if inspect.iscoroutinefunction(self.callback):
-            await self.callback(self)
-            return
-        self.callback(self)
+            await self.callback(**valid_args)
+        else:
+            self.callback(**valid_args)
 
     def __repr__(self) -> str:
         value = None
         if self.callback is not None:
             value = hex(id(self.callback))
-        return f'Event(name={self.name}, callback={value})'
+        return f'Event(step={self.parent.name}, name={self.name}, callback={value})'
 
     def __hash__(self) -> int:
         return hash(self.parent) + hash(self.name)
@@ -146,35 +174,19 @@ class StepRunner:
         if 'step' in kwargs:
             raise RuntimeError('step is a reserverd argument name')
         kwargs['step'] = self
-        params = inspect.signature(self.__callback).parameters
-        func: Callable
-        if len(params) == 0:
-            func = self.__callback
+        prefix = f'{repr(self)}: '
+        args = validate_function_signature(self.__callback, kwargs, prefix)
+        ok: Any = None
+        if inspect.iscoroutinefunction(self.__callback):
+            ok = await self.__callback(**args)
         else:
-            args = {}
-            prefix = f"step '{self.name}': "
-            for p in params.values():
-                if p.name not in kwargs:
-                    raise RuntimeError(prefix + f'missing argument {p.name}')
-                if p.kind == p.POSITIONAL_ONLY or p.kind == p.VAR_POSITIONAL:
-                    raise RuntimeError(
-                        prefix + f'argument {p.name} is {p.kind.description}'
-                    )
-                if not p.empty:
-                    raise RuntimeError(prefix + f'argument {p.name} has default value')
-                args[p.name] = kwargs[p.name]
-            func = functools.partial(self.__callback, **args)
-        ok: Any
-        if inspect.iscoroutinefunction(func):
-            ok = await func()
-        else:
-            ok = func()
+            ok = self.__callback(**args)
         if not isinstance(ok, bool):
-            raise RuntimeError('returned value is not boolean type')
-        if ok and self.on_success.is_set():
-            self.on_success()
-        elif not ok and self.on_fail.is_set():
-            self.on_fail()
+            raise RuntimeError(prefix + 'returned value is not boolean type')
+        if ok:
+            await self.on_success.run(**args)
+        else:
+            await self.on_fail.run(**args)
         return ok
 
     def __repr__(self) -> str:
