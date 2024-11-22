@@ -1,4 +1,0 @@
-pip-licenses >= 4, < 5
-cx-Freeze == 6.15.*
-Markdown >= 3, < 4
-pdfkit >= 1, < 2

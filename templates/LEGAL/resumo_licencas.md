@@ -1,4 +1,0 @@
-# CONTAGEM DE LICENÇAS
----
-
-{spreadsheet}
