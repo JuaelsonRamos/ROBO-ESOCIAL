@@ -19,7 +19,7 @@ force = false
 [tool.ruff]
 cache-dir = ".cache/ruff"
 respect-gitignore = true
-fix = true
+fix = false
 indent-width = 4
 line-length = 88
 output-format = "github"
