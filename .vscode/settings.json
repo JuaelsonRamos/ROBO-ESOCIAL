@@ -38,6 +38,7 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  "python.terminal.activateEnvironment": true,
   "ruff.nativeServer": "off",
   "python.languageServer": "Pylance",
   "python.analysis.languageServerMode": "light",
