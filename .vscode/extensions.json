@@ -3,9 +3,6 @@
     "ms-python.python",
     "ms-python.debugpy",
     "ms-python.vscode-pylance",
-    "hbenl.vscode-test-explorer",
-    "ms-vscode.test-adapter-converter",
-    "littlefoxteam.vscode-python-test-adapter",
     "esbenp.prettier-vscode",
     "tamasfe.even-better-toml",
     "editorconfig.editorconfig",
@@ -14,19 +11,7 @@
     "mhutchie.git-graph",
     "donjayamanne.githistory",
     "arturock.gitstash",
-    "dotjoshjohnson.xml",
-    "redhat.vscode-xml",
     "tomoki1207.pdf",
-    "jock.svg",
-    "mtxr.sqltools",
-    "mtxr.sqltools-driver-sqlite",
-    "mkxml.vscode-filesize",
-    "yzhang.markdown-all-in-one",
-    "bierner.markdown-preview-github-styles",
-    "bierner.markdown-emoji",
-    "bierner.markdown-checkbox",
-    "bierner.markdown-footnotes",
-    "bierner.markdown-yaml-preamble",
-    "DavidAnson.vscode-markdownlint"
+    "mkxml.vscode-filesize"
   ]
 }
