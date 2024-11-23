@@ -26,10 +26,11 @@
       "source.unusedImports": "explicit"
     }
   },
-  "[toml][shellscript][xml][sql]": {
+  "prettier.printWidth": 88,
+  "prettier.singleQuote": true,
+  "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "files.exclude": {
     "**/__pycache__/": true
   },
