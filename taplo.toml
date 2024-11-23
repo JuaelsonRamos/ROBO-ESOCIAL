@@ -1,0 +1,4 @@
+[formatting]
+column_width = 88
+crlf = false
+allowed_blank_lines = 1
