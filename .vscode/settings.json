@@ -26,9 +26,7 @@
       "source.unusedImports": "explicit"
     }
   },
-  "prettier.printWidth": 88,
-  "prettier.singleQuote": true,
-  "[json]": {
+  "[json][yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "files.exclude": {
