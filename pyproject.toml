@@ -79,8 +79,6 @@ ignore-variadic-names = true
 
 [tool.yamlfix]
 line_length = 88
-indent_sequence = 2
-quote_representation = "'"
 
 [tool.docformatter]
 # black opts modificadas
