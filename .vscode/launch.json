@@ -16,27 +16,6 @@
       "module": "gui",
       "showReturnValue": true,
       "justMyCode": false
-    },
-    {
-      "name": "Programa principal",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/installer/entrypoint.py",
-      "console": "internalConsole",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src;${env:PYTHONPATH}"
-      },
-      "justMyCode": false
-    },
-    {
-      "name": "Arquivo Python",
-      "type": "python",
-      "request": "launch",
-      "program": "${file}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src;${env:PYTHONPATH}"
-      },
-      "justMyCode": true
     }
   ]
 }
