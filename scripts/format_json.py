@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import sys
-import json
+import string
+
+import jsonc
 
 
 def main():
@@ -10,20 +12,13 @@ def main():
         sys.exit(1)
     files = sys.argv[1:]
     for path in files:
-        try:
-            with open(path) as f:
-                original = json.load(f)
-                json.dump(
-                    original,
-                    f,
-                    ensure_ascii=False,
-                    indent=2,
-                    allow_nan=True,
-                    sort_keys=False,
-                )
-        except Exception as err:
-            print(repr(err))
-            sys.exit(1)
+        with open(path, 'rt') as f:
+            original = jsonc.load(f)
+        content: str = jsonc.dumps(original, indent=2, comments=True)
+        content = content.strip(string.whitespace)
+        content += '\n'
+        with open(path, 'wt') as f:
+            f.write(content)
 
 
 if __name__ == '__main__':
