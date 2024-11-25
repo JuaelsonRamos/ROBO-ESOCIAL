@@ -23,5 +23,5 @@ jobs:
       # format config files
       - run: |
           python scripts/format_json.py --exclude-glob '.vscode/*' --glob '**/*.jsonc?'
-          yamlfix **/*.yaml
+          yamlfix .
           taplo format **/*.toml
