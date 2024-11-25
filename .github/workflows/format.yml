@@ -22,6 +22,6 @@ jobs:
           ruff format --silent .
       # format config files
       - run: |
-          python scripts/format_json.py --exclude-glob '.vscode/*' '**/*.jsonc?'
+          python scripts/format_json.py --exclude-glob '.vscode/*' --glob '**/*.jsonc?'
           yamlfix **/*.yaml
           taplo format **/*.toml
