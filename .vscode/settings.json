@@ -12,8 +12,8 @@
         "cmd": ".venv\\Scripts\\taplo.exe format ${file}"
       },
       {
-        "match": "\\.json",
-        "notMatch": "\\.vscode.+",
+        "match": "\\.jsonc?$",
+        "notMatch": ".*\\.vscode.*",
         "cmd": ".venv\\Scripts\\python.exe scripts/format_json.py ${file}"
       }
     ]
@@ -27,9 +27,6 @@
       "source.organizeImports": "explicit",
       "source.unusedImports": "explicit"
     }
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "files.exclude": {
     "**/__pycache__/": true
