@@ -141,15 +141,3 @@ disable = [
 
 [tool.pytest]
 cache_dir = ".cache/pytest"
-
-[tool.pyright]
-pythonVersion = "3.11"
-pythonPlatform = "Windows"
-typeCheckingMode = "standard"
-useLibraryCodeForTypes = true
-ignore = ["**/__init__.py"]
-exclude = ["**/.venv*/", "**/build*/", "**/dist/"]
-reportMissingTypeStubs = "information"
-reportWildcardImportFromLibrary = "error"
-reportUnnecessaryContains = "error"
-reportUnnecessaryComparison = "error"
