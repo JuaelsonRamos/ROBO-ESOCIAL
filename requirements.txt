@@ -14,3 +14,4 @@ playwright==1.48.0
 taplo==0.9.3
 yamlfix==1.17.0
 mypy==1.13.0
+git+https://github.com/marcosdly/jsonc@fix/collections-import # jsoncparser
