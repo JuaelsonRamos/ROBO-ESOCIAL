@@ -53,5 +53,9 @@
   "explorer.sortOrderLexicographicOptions": "lower",
   "explorer.openEditors.sortOrder": "fullPath",
   "editor.rulers": [88],
-  "diffEditor.hideUnchangedRegions.enabled": true
+  "diffEditor.hideUnchangedRegions.enabled": true,
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.analysis.inlayHints.pytestParameters": true,
+  "python.analysis.inlayHints.variableTypes": true,
+  "python.analysis.inlayHints.callArgumentNames": "all"
 }
