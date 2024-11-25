@@ -79,6 +79,10 @@ ignore-variadic-names = true
 
 [tool.yamlfix]
 line_length = 88
+quote_representation = '"'
+preserve_quotes = true
+explicit_start = false
+section_whitelines = 1
 
 [tool.docformatter]
 # black opts modificadas
