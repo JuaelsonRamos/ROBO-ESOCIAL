@@ -13,3 +13,4 @@ pytest-playwright==0.5.2
 playwright==1.48.0
 taplo==0.9.3
 yamlfix==1.17.0
+mypy==1.13.0
