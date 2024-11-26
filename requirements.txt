@@ -16,3 +16,4 @@ yamlfix==1.17.0
 mypy==1.13.0
 git+https://github.com/marcosdly/jsonc@fix/collections-import # jsoncparser
 gitignore_parser==0.1.11
+docformatter==1.7.5
