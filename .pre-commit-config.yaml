@@ -1,6 +1,7 @@
 minimum_pre_commit_version: "4"
 fail_fast: true
 default_stages: [pre-commit]
+
 default_language_version:
   python: python3.11
 
@@ -15,7 +16,10 @@ repos:
       - id: check-merge-conflict
       - id: check-docstring-first
       - id: check-illegal-windows-names
-      - id: check-json
       - id: check-toml
       - id: check-yaml
       - id: detect-private-key
+  - repo: https://gitlab.com/bmares/check-json5
+    rev: v1.0.0
+    hooks:
+      - id: check-json5
