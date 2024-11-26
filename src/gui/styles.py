@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gui.constants as const
 
-from utils.decorators import block
+from src.utils.decorators import block
 
 import tkinter as tk
 import tkinter.ttk as ttk

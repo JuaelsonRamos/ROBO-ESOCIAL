@@ -6,7 +6,7 @@ from .validator import DefaultDict
 import sistema.spreadsheet as sheet
 
 from sistema.models.Column import Column
-from utils import INT32
+from src.utils import INT32
 
 from openpyxl.cell.cell import Cell
 

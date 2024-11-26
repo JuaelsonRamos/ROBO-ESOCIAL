@@ -4,7 +4,7 @@ from .string import String
 from .validator import DefaultDict
 
 from sistema.models import Column
-from utils import INT32
+from src.utils import INT32
 
 from openpyxl.cell import Cell
 

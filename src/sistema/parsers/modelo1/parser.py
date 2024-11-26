@@ -3,7 +3,7 @@ from __future__ import annotations
 from .schema import schema
 from ..parser import Parser
 
-from utils import singleton
+from src.utils import singleton
 
 
 @singleton

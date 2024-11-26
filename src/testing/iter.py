@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from utils import isiterable
+from src.utils import isiterable
 
 import random
 

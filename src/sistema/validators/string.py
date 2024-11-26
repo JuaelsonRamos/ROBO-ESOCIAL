@@ -5,7 +5,7 @@ from .validator import DefaultDict, Validator, ValidatorError
 import sistema.spreadsheet as sheet
 
 from sistema.models import Column
-from utils import INT32
+from src.utils import INT32
 
 import string
 

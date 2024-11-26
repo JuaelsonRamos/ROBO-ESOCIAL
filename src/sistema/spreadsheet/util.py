@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from utils import EmptyString
+from src.utils import EmptyString
 
 import io
 import re

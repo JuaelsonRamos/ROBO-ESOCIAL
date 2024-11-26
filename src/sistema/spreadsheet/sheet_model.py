@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .exceptions import SpreadsheetObjectError
 
-from utils import EmptyString
+from src.utils import EmptyString
 
 import string
 
