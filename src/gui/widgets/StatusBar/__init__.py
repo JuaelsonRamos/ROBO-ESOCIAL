@@ -1,4 +1,4 @@
 from __future__ import annotations
 
-from gui.widgets.StatusBar.ProgressCounter import ProgressCounter
-from gui.widgets.StatusBar.StatusBar import StatusBar
+from src.gui.widgets.StatusBar.ProgressCounter import ProgressCounter
+from src.gui.widgets.StatusBar.StatusBar import StatusBar

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from gui.views.SheetProcess.QueueButtonRow import QueueButtonRow
-from gui.views.SheetProcess.ShortTree import ShortTree
-from gui.views.SheetProcess.data import HeadingSequence
+from src.gui.views.SheetProcess.QueueButtonRow import QueueButtonRow
+from src.gui.views.SheetProcess.ShortTree import ShortTree
+from src.gui.views.SheetProcess.data import HeadingSequence
 
 import tkinter as tk
 import tkinter.ttk as ttk

@@ -3,10 +3,10 @@ from __future__ import annotations
 
 __all__ = ['SheetProcess']
 
-import gui.constants as const
+import src.gui.constants as const
 
-from gui.views.SheetProcess.HistoryList import HistoryList
-from gui.views.SheetProcess.ProcessingQueue import ProcessingQueue
+from src.gui.views.SheetProcess.HistoryList import HistoryList
+from src.gui.views.SheetProcess.ProcessingQueue import ProcessingQueue
 
 import tkinter as tk
 import tkinter.ttk as ttk

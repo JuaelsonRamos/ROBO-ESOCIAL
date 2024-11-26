@@ -1,3 +1,3 @@
 from __future__ import annotations
 
-from gui.constants.style import *
+from src.gui.constants.style import *

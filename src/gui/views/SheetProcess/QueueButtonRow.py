@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from gui.utils.units import padding
+from src.gui.utils.units import padding
 
 import tkinter as tk
 import tkinter.ttk as ttk

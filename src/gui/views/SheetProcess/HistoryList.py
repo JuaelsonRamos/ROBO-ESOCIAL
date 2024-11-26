@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import gui.views.SheetProcess.data as data
+import src.gui.views.SheetProcess.data as data
 
-from gui.views.SheetProcess.InteractiveTreeList import InteractiveTreeList
+from src.gui.views.SheetProcess.InteractiveTreeList import InteractiveTreeList
 
 
 class HistoryList(InteractiveTreeList):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from gui.utils.units import length
+from src.gui.utils.units import length
 
 import tkinter as tk
 import tkinter.ttk as ttk

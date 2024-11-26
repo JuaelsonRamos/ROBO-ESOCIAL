@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from gui.views.SheetProcess import SheetProcess
-from gui.widgets import ViewNavigator
-from gui.widgets.StatusBar import ProgressCounter, StatusBar
+from src.gui.views.SheetProcess import SheetProcess
+from src.gui.widgets import ViewNavigator
+from src.gui.widgets.StatusBar import ProgressCounter, StatusBar
 
 import tkinter as tk
 

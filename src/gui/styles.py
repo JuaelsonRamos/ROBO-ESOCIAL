@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import gui.constants as const
+import src.gui.constants as const
 
 from src.utils.decorators import block
 

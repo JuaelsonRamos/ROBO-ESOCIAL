@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import gui.views.SheetProcess.data as data
+import src.gui.views.SheetProcess.data as data
 
-from gui.asyncio import Thread
-from gui.views.SheetProcess.InteractiveTreeList import InteractiveTreeList
+from src.gui.asyncio import Thread
+from src.gui.views.SheetProcess.InteractiveTreeList import InteractiveTreeList
 
 import time
 import tkinter as tk

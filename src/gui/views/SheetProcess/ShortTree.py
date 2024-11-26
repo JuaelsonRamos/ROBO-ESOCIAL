@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import gui.constants as const
+import src.gui.constants as const
 
-from gui.views.SheetProcess.data import HeadingSequence
+from src.gui.views.SheetProcess.data import HeadingSequence
 
 import tkinter as tk
 import tkinter.ttk as ttk
