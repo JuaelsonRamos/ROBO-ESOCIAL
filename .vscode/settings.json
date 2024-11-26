@@ -15,6 +15,10 @@
         "match": "\\.jsonc?$",
         "notMatch": ".*\\.vscode.*",
         "cmd": ".venv\\Scripts\\python.exe scripts/format_json.py ${file}"
+      },
+      {
+        "match": "\\.py$",
+        "cmd": ".venv\\Scripts\\docformatter.exe ${file}"
       }
     ]
   },
