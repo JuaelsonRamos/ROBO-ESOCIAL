@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import cast
 
 
+_Padding = tuple[int, int, int, int]
+
+
 def padding(
     *,
     left: int = 0,
@@ -12,7 +15,7 @@ def padding(
     bottom: int = 0,
     horizontal: int = 0,
     vertical: int = 0,
-):
+) -> _Padding:
     if horizontal and (right or left):
         raise ValueError(
             "'horizontal' is specified, neither 'left' nor 'right' can be specified"
@@ -28,7 +31,7 @@ def padding(
     if vertical:
         padding[1] = padding[3] = vertical
 
-    return cast(tuple[int, int, int, int], tuple(padding))
+    return cast(_Padding, tuple(padding))
 
 
 @dataclass(frozen=True, init=False)

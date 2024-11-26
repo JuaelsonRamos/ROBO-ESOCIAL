@@ -7,17 +7,17 @@ import tkinter.ttk as ttk
 
 
 class QueueButton(ttk.Button):
-    def __init__(self, master, text: str):
+    def __init__(self, master: ttk.Widget, text: str):
         super().__init__(master, text=text)
         # NOTE side=RIGHT orders things in reverse, instead of just justifying position
         self.pack(side=tk.RIGHT)
 
-    def before(self, button: ttk.Widget):
+    def before(self, button: ttk.Widget) -> None:
         self.pack_configure(before=button)
 
 
 class QueueButtonRow(ttk.Frame):
-    def __init__(self, master, text: str):
+    def __init__(self, master: ttk.Widget, text: str):
         super().__init__(master)
         self._buttons: list[ttk.Button] = []
         self.text = text

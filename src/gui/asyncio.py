@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, Callable, Sequence
+
 
 __all__ = ['Thread']
 
@@ -29,7 +31,13 @@ class Thread(t.Thread):
                 continue
 
     def __init__(
-        self, target=None, name=None, args=(), kwargs=None, *, attempt_delay: float
+        self,
+        target: Callable[[], None] = None,
+        name: str = None,
+        args: Sequence[Any] = (),
+        kwargs: dict[str, Any] = None,
+        *,
+        attempt_delay: float,
     ):
         super().__init__(
             target=self.runtime_factory(target),

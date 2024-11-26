@@ -9,7 +9,7 @@ import tkinter.ttk as ttk
 
 
 class InteractiveTreeList(ttk.Frame):
-    def __init__(self, master, title: str, *, columns: HeadingSequence):
+    def __init__(self, master: ttk.Widget, title: str, *, columns: HeadingSequence):
         super().__init__(master)
         self.columns = columns
         self.title = title
@@ -17,5 +17,5 @@ class InteractiveTreeList(ttk.Frame):
         self.button_row = QueueButtonRow(self, self.title)
         self.tree = ShortTree(self, columns=columns)
 
-    def add_button(self, text: str):
+    def add_button(self, text: str) -> ttk.Button:
         return self.button_row.add_button(text)

@@ -8,6 +8,9 @@ import abc
 import inspect
 
 
+# mypy: disable-error-code="arg-type, unreachable"
+
+
 def test_block():
     class BlockExecuted(Exception):
         pass

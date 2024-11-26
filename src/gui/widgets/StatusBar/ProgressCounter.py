@@ -5,16 +5,18 @@ from src.gui.utils.units import padding
 import tkinter as tk
 import tkinter.ttk as ttk
 
+from typing import Never
+
 
 class Counter:
-    def set_counter(self, current: int):
+    def set_counter(self, current: int) -> None | Never:
         if current > self.total:
             raise ValueError(f'current value is greater than total ({self.total})')
         if current < 0:
             raise ValueError('current value is less than zero')
         self.current = current
 
-    def set_total(self, total: int):
+    def set_total(self, total: int) -> None | Never:
         if total < 0:
             raise ValueError('total is less than zero')
         self.total = total
@@ -25,7 +27,7 @@ class Counter:
 
 
 class LabelCounter(ttk.Label, Counter):
-    def __init__(self, master, *, idle: str, template: str):
+    def __init__(self, master: ttk.Widget, *, idle: str, template: str):
         """
         :param idle: Texto para quando o contador for resetado
         :param template: Identificadores: current, total
@@ -38,7 +40,7 @@ class LabelCounter(ttk.Label, Counter):
         self.pack(side=tk.LEFT, anchor=tk.W)
         self.reset()
 
-    def set_counter(self, current: int):
+    def set_counter(self, current: int) -> None:
         super().set_counter(current)
         self.config(text=self.template.format(current=self.current, total=self.total))
 
@@ -52,11 +54,11 @@ class Progress(ttk.Progressbar, Counter):
         super().__init__(master, orient=tk.HORIZONTAL, phase=1, length=200)
         self.pack(side=tk.LEFT, anchor=tk.W)
 
-    def set_counter(self, current: int):
+    def set_counter(self, current: int) -> None:
         super().set_counter(current)
         self.config(value=self.current)
 
-    def set_total(self, total: int):
+    def set_total(self, total: int) -> None:
         super().set_total(total)
         self.config(maximum=self.total)
 
@@ -66,7 +68,7 @@ class Progress(ttk.Progressbar, Counter):
 
 
 class ProgressCounter(ttk.Frame):
-    def __init__(self, master, *, idle: str, template: str):
+    def __init__(self, master: ttk.Widget, *, idle: str, template: str):
         super().__init__(master)
         self.pack(side=tk.LEFT, anchor=tk.W)
         self.conter = LabelCounter(self, idle=idle, template=template)

@@ -55,7 +55,7 @@ class _GlobalState_StepRegistry:
     def __len__(self):
         return sum(len(entry) for entry in self.values())
 
-    def __getitem__(self, name: str):
+    def __getitem__(self, name: str) -> StepRunner | Never:
         if name in self.primary:
             return self.primary[name]
         for step in itertools.chain(
@@ -68,7 +68,7 @@ class _GlobalState_StepRegistry:
                 return step
         raise IndexError(name)
 
-    def register(self, step: StepRunner):
+    def register(self, step: StepRunner) -> None | Never:
         if step.step_type == 'primary':
             self.primary[step.name] = step
         elif hasattr(self, step.step_type):
@@ -76,7 +76,7 @@ class _GlobalState_StepRegistry:
         else:
             raise ValueError(f'invalid step {repr(step)}')
 
-    def remove(self, step: StepRunner):
+    def remove(self, step: StepRunner) -> None:
         if step.step_type == 'primary':
             del self.primary[step.name]
             return
@@ -118,7 +118,7 @@ class Event:
             raise RuntimeError('trying to unbind already empty event')
         self.callback = None
 
-    def bind(self, func: _StepEventHandler):
+    def bind(self, func: _StepEventHandler) -> None | Never:
         if not isinstance(func, FunctionType):
             raise TypeError(f'value is not function {func=}')
         if self.callback is not None:
@@ -169,7 +169,7 @@ class StepRunner:
     def unbind(self):
         _GlobalState_StepRegistry.remove(self)
 
-    async def run(self, **kwargs) -> bool:
+    async def run(self, **kwargs: dict[str, Any]) -> bool:
         if 'step' in kwargs:
             raise RuntimeError('step is a reserverd argument name')
         kwargs['step'] = self
@@ -208,7 +208,7 @@ class step:
 
     def __create_step(
         self, func: _StepFunction, name: str, step_type: str
-    ) -> StepRunner:
+    ) -> StepRunner | Never:
         if step_type not in _GlobalState_StepRegistry.keys():
             raise ValueError(f'value unknown {step_type=}')
         if name in _GlobalState_StepRegistry:
@@ -217,7 +217,7 @@ class step:
         _GlobalState_StepRegistry.register(instance)
         return instance
 
-    def __call__(self, func: _StepFunction, name: str):
+    def __call__(self, func: _StepFunction, name: str) -> StepRunner | Never:
         return self.__create_step(func, name, 'primary')
 
     @property
@@ -242,8 +242,8 @@ async def execute_in_order(
     context: BrowserContext,
     page: Page,
     names: Sequence[str],
-):
-    registry = _GlobalState_StepRegistry
+) -> None:
+    registry: _GlobalState_StepRegistry = _GlobalState_StepRegistry
     if len(registry.primary) == 0:
         raise RuntimeError('no steps defined yet')
     if len(names) > len(registry.primary):

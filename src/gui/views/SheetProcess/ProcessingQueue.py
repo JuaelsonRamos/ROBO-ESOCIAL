@@ -6,11 +6,11 @@ from src.gui.asyncio import Thread
 from src.gui.views.SheetProcess.InteractiveTreeList import InteractiveTreeList
 
 import time
-import tkinter as tk
 import threading
 import tkinter.filedialog as filedialog
 
 from pathlib import Path
+from typing import Any
 
 
 class ProcessingQueue(InteractiveTreeList):
@@ -75,10 +75,10 @@ class ProcessingQueue(InteractiveTreeList):
             yield i
             i += 1
 
-    def make_row_data(self, filename: str):
+    def make_row_data(self, filename: str) -> list[Any]:
         # TODO generic, inherited way of making row data
         path = Path(filename)
-        data = []
+        data: list[Any] = []
         add = data.append
         for col in self.columns:
             match col['iid']:

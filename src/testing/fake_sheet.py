@@ -3,7 +3,7 @@ from __future__ import annotations
 import src.sistema.spreadsheet as sheet
 
 from contextlib import contextmanager
-from typing import Iterable, Literal
+from typing import Any, Generator, Literal, Sequence
 
 from faker import Faker
 from openpyxl import Workbook
@@ -20,10 +20,10 @@ class Header(TypedDict):
 def fake_sheet(
     *,
     model: Literal[1, 2],
-    headers: Iterable[Header],
+    headers: Sequence[Header],
     rows: int = 1,
     faker_instance: Faker | None = None,
-):
+) -> Generator[Workbook, Any, None]:
     if model not in (1, 2):
         raise ValueError(f"modelo '{model}' é inválido")
     if rows < 1:
