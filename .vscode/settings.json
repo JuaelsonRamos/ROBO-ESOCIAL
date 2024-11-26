@@ -65,5 +65,6 @@
   "python.analysis.inlayHints.functionReturnTypes": true,
   "python.analysis.inlayHints.pytestParameters": true,
   "python.analysis.inlayHints.variableTypes": true,
-  "python.analysis.inlayHints.callArgumentNames": "all"
+  "python.analysis.inlayHints.callArgumentNames": "partial",
+  "editor.inlayHints.enabled": "offUnlessPressed"
 }
