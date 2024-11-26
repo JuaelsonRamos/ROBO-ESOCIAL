@@ -85,11 +85,13 @@ explicit_start = false
 section_whitelines = 1
 
 [tool.docformatter]
-# black opts modificadas
+pre-summary-newline = true
 pre-summary-space = false
-wrap-descriptions = 100
-wrap-summaries = 100
-# outras
+wrap-descriptions = 88
+wrap-summaries = 88
+tab-width = 2
+make-summary-multi-line = false
+close-quotes-on-newline = true
 in-place = true
 recursive = false
 style = "sphinx"
