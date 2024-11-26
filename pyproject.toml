@@ -104,15 +104,8 @@ ignore-pass-statements = false
 ignore-pass-after-docstring = true
 
 [tool.bandit]
-exclude_dirs = [
-  "installer/build",
-  ".venv",
-  ".venv-dist",
-  "build",
-  "build_cython",
-  "dist",
-]
-targets = ["src", "installer"]
+exclude_dirs = [".venv", "dist"]
+targets = ["src", "scripts", "setup.py"]
 
 # Aviso para futuras modificações:
 #   No pylint seções de configuração são puramente uma ferramenta
