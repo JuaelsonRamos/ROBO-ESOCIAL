@@ -3,9 +3,9 @@ from __future__ import annotations
 from .numeric_string import NumericString
 from .validator import DefaultDict
 
-import sistema.spreadsheet as sheet
+import src.sistema.spreadsheet as sheet
 
-from sistema.models.Column import Column
+from src.sistema.models.Column import Column
 from src.utils import INT32
 
 from openpyxl.cell.cell import Cell

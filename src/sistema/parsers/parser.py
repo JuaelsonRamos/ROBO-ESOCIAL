@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from sistema.models import (
+from src.sistema.models import (
     Cell as CellModel,
     Column,
 )
-from sistema.validators import Validator
+from src.sistema.validators import Validator
 
 from abc import abstractmethod
 from typing import Any, Never, Sequence, cast

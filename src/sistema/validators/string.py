@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from .validator import DefaultDict, Validator, ValidatorError
 
-import sistema.spreadsheet as sheet
+import src.sistema.spreadsheet as sheet
 
-from sistema.models import Column
+from src.sistema.models import Column
 from src.utils import INT32
 
 import string

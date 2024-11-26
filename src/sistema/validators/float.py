@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from .numeric_string import NumericString
 
-import sistema.spreadsheet as sheet
+import src.sistema.spreadsheet as sheet
 
-from sistema.models.Column import Column
-from sistema.validators.validator import DefaultDict
+from src.sistema.models.Column import Column
+from src.sistema.validators.validator import DefaultDict
 from src.utils import INT32
 
 from openpyxl.cell.cell import Cell

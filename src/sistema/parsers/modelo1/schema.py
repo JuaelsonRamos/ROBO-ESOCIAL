@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sistema.validators import *
+from src.sistema.validators import *
 
 
 schema: dict[str, Validator] = {

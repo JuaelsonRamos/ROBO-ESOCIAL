@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from .Column import Column
 
-from sistema.spreadsheet import QualifiedType, QualifiedValue, Requirement
-from sistema.validators import Validator
+from src.sistema.spreadsheet import QualifiedType, QualifiedValue, Requirement
+from src.sistema.validators import Validator
 
 from typing import Any
 

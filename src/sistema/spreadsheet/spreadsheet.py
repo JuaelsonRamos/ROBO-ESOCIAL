@@ -4,8 +4,8 @@ from .exceptions import SpreadsheetObjectError
 from .sheet_columns import SheetColumns
 from .sheet_model import SheetModel
 
-from sistema.models import Cell
-from sistema.parsers import Modelo1, Parser
+from src.sistema.models import Cell
+from src.sistema.parsers import Modelo1, Parser
 
 from pathlib import Path
 from typing import Any, Never

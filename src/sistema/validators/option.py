@@ -3,7 +3,7 @@ from __future__ import annotations
 from .string import String
 from .validator import DefaultDict, ValidatorError
 
-from sistema.models.Cell import Column
+from src.sistema.models.Cell import Column
 
 from typing import Sequence
 

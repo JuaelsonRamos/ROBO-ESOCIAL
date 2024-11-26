@@ -4,7 +4,7 @@ from .constants import MAYBE, OPCIONAL, REQUIRED
 from .style import Fill
 from .util import normalize_column_title
 
-from sistema.models import Column
+from src.sistema.models import Column
 from src.utils import EmptyString
 
 from collections.abc import Sequence

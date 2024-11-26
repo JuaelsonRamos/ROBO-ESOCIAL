@@ -3,9 +3,9 @@ from __future__ import annotations
 from .string import String
 from .validator import DefaultDict, ValidatorError
 
-import sistema.spreadsheet as sheet
+import src.sistema.spreadsheet as sheet
 
-from sistema.models.Column import Column
+from src.sistema.models.Column import Column
 
 from datetime import date, datetime
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sistema.spreadsheet import Requirement
+from src.sistema.spreadsheet import Requirement
 
 from pydantic import BaseModel
 
