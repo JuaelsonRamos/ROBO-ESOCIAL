@@ -94,15 +94,6 @@ in-place = true
 recursive = false
 style = "sphinx"
 
-[tool.autoflake]
-jobs = "3"
-in-place = true
-remove-all-unused-imports = true
-ignore-init-module-imports = true
-remove-unused-variables = true
-ignore-pass-statements = false
-ignore-pass-after-docstring = true
-
 [tool.bandit]
 exclude_dirs = [".venv", "dist"]
 targets = ["src", "scripts", "setup.py"]
