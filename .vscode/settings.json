@@ -19,6 +19,10 @@
       {
         "match": "\\.py$",
         "cmd": ".venv\\Scripts\\docformatter.exe ${file}"
+      },
+      {
+        "match": "\\.py$",
+        "cmd": ".venv\\Scripts\\ruff.exe check --select=F401,I --fix ${file}"
       }
     ]
   },
@@ -28,8 +32,12 @@
     "editor.defaultFormatter": "charliermarsh.ruff",
     "diffEditor.ignoreTrimWhitespace": false,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit",
-      "source.unusedImports": "explicit"
+      /* Preferir um hook da extensão RunOnSave porque ela respeita a configuração.
+       * Especificar code actions para serem rodadas é uma ação do vscode que
+       * sobrescreve a configuração do ruff independentemente.
+       */
+      // "source.unusedImports": "explicit"
+      // "source.organizeImports": "explicit"
     }
   },
   "files.exclude": {
