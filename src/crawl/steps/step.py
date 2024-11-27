@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.utils import singleton
+from src.utils import Singleton
 
 import inspect
 import functools
@@ -16,8 +16,7 @@ _StepFunction = Callable[..., bool]
 _StepEventHandler = Callable[..., None | Never]
 
 
-@singleton
-class _GlobalState_StepRegistry:
+class _GlobalState_StepRegistry(metaclass=Singleton):
     __slots__ = ('primary', 'before_all', 'after_all', 'before_every', 'after_every')
 
     def __init__(self) -> None:
@@ -101,7 +100,7 @@ def validate_function_signature(
             raise RuntimeError(
                 err_prefix + f'argument {p.name} is {p.kind.description}'
             )
-        if not p.empty:
+        if p.default is p.empty:
             raise RuntimeError(err_prefix + f'argument {p.name} has default value')
         args[p.name] = kwargs[p.name]
     return args
@@ -167,9 +166,9 @@ class StepRunner:
         return hash(self.name) + hash(self.step_type)
 
     def unbind(self):
-        _GlobalState_StepRegistry.remove(self)
+        _GlobalState_StepRegistry().remove(self)
 
-    async def run(self, **kwargs: dict[str, Any]) -> bool:
+    async def run(self, **kwargs: Any) -> bool:
         if 'step' in kwargs:
             raise RuntimeError('step is a reserverd argument name')
         kwargs['step'] = self
@@ -198,23 +197,21 @@ class StepRunner:
         )
 
 
-@singleton
-class step:
+class step(metaclass=Singleton):
     def get(self, name: str) -> StepRunner | None:
-        try:
-            return _GlobalState_StepRegistry[name]
-        except IndexError:
-            return
+        registry = _GlobalState_StepRegistry()
+        return registry[name] if name in registry else None
 
     def __create_step(
         self, func: _StepFunction, name: str, step_type: str
     ) -> StepRunner | Never:
-        if step_type not in _GlobalState_StepRegistry.keys():
+        registry = _GlobalState_StepRegistry()
+        if step_type not in registry.keys():
             raise ValueError(f'value unknown {step_type=}')
-        if name in _GlobalState_StepRegistry:
+        if name in registry:
             raise ValueError(f"step '{name}' already registered as '{step_type}'")
         instance = StepRunner(name, func, step_type)
-        _GlobalState_StepRegistry.register(instance)
+        registry.register(instance)
         return instance
 
     def __call__(self, func: _StepFunction, name: str) -> StepRunner | Never:
@@ -243,7 +240,7 @@ async def execute_in_order(
     page: Page,
     names: Sequence[str],
 ) -> None:
-    registry: _GlobalState_StepRegistry = _GlobalState_StepRegistry
+    registry = _GlobalState_StepRegistry()
     if len(registry.primary) == 0:
         raise RuntimeError('no steps defined yet')
     if len(names) > len(registry.primary):
