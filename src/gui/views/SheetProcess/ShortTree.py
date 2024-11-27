@@ -3,6 +3,7 @@ from __future__ import annotations
 import src.gui.constants as const
 
 from src.gui.views.SheetProcess.data import HeadingSequence
+from src.utils import extract_from
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -28,12 +29,11 @@ class ShortTree(ttk.Treeview):
         self.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.TRUE)
 
         for col in columns:
-            self.heading(col['iid'], text=col['text'], anchor=col['anchor'])
+            self.heading(col['iid'], **extract_from(col, 'text', 'anchor'))
             self.column(
                 col['iid'],
                 stretch=tk.FALSE,
-                minwidth=col['minwidth'],
-                width=col['minwidth'],
+                **extract_from(col, 'width', 'minwidth'),
             )
 
         # empty = ['' for _ in range(self.min_height)]
