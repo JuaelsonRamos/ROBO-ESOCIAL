@@ -10,7 +10,7 @@ import tkinter as tk
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.anchor = tk.W
+        self.anchor(tk.W)
         self.geometry('1280x720')
         self.title('ROBO-ESOCIAL')
         self.create_widgets()
