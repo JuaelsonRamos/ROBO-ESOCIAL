@@ -5,6 +5,7 @@ from src.sistema.models import (
     Column,
 )
 from src.sistema.validators import Validator
+from src.utils import Singleton
 
 from abc import abstractmethod
 from typing import Any, Never, Sequence, cast
@@ -12,7 +13,7 @@ from typing import Any, Never, Sequence, cast
 from openpyxl.cell import Cell
 
 
-class Parser:
+class Parser(metaclass=Singleton):
     _schema: dict[str, Validator] | None = None
 
     def __init__(self) -> None:
