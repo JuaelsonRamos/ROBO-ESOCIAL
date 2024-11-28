@@ -9,9 +9,10 @@ from src.sistema.models import (
 
 import string
 
-from typing import Any, TypeAlias
+from typing import Any, Never, TypeAlias
 
 from openpyxl.cell import Cell
+from pydantic import validate_call
 
 
 DefaultDict: TypeAlias = dict[str, Any]
@@ -24,40 +25,29 @@ class CellValidationError(Exception): ...
 
 
 class Validator:
-    _not_inited_var_errmsg = 'propriedade não deve ser acessada antes de inicializada'
-    _inited_var_errmsg = 'propriedade só pode ser inicializada uma única vez'
-
-    def __init__(self) -> None:
-        self._qualified_type: sheet.QualifiedType | None = None
-        self._is_arbitrary_string: bool | None = None
+    def __init__(
+        self, *, qualified_type: sheet.QualifiedType, is_arbitrary_string: bool
+    ) -> None:
+        self._qualified_type = qualified_type
+        self._is_arbitrary_string = is_arbitrary_string
 
     @property
     def qualified_type(self) -> sheet.QualifiedType:
-        if self._qualified_type is None:
-            msg = self._not_inited_var_errmsg
-            raise ValidatorError(msg) from AttributeError(msg)
         return self._qualified_type
 
     @property
     def is_arbitrary_string(self) -> bool:
-        if self._is_arbitrary_string is None:
-            msg = self._not_inited_var_errmsg
-            raise ValidatorError(msg) from AttributeError(msg)
         return self._is_arbitrary_string
 
-    def _validate(
-        self, column: Column, cell: Cell, cell_index: int, property_name: str
-    ) -> DefaultDict:
-        try:
-            assert isinstance(cell, Cell)
-            assert isinstance(column, Column)
-            assert isinstance(cell_index, int)
-            assert isinstance(property_name, str)
-            assert cell_index >= 0
-            property_name = property_name.strip(string.whitespace)
-            assert property_name != ''
-        except AssertionError as err:
-            raise CellValidationError(err) from err
+    @validate_call
+    def validate(
+        self, /, column: Column, cell: Cell, cell_index: int, property_name: str
+    ) -> DefaultDict | Never:
+        if cell_index < 0:
+            raise CellValidationError(f'{cell_index=} expected >= 0')
+        property_name = property_name.strip(string.whitespace)
+        if property_name == '':
+            raise CellValidationError('property name is empty')
 
         return {
             'index': cell_index,
@@ -73,8 +63,9 @@ class Validator:
             'column_metadata': column,
         }
 
-    def __call__(
-        self, column: Column, cell: Cell, /, cell_index: int, property_name: str
-    ) -> CellModel:
-        namespace = self._validate(column, cell, cell_index, property_name)
+    @validate_call
+    def validate_model(
+        self, /, column: Column, cell: Cell, cell_index: int, property_name: str
+    ) -> CellModel | Never:
+        namespace = self.validate(column, cell, cell_index, property_name)
         return CellModel.model_validate(namespace)

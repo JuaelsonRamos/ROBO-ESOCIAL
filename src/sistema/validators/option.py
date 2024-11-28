@@ -5,7 +5,7 @@ from .validator import DefaultDict, ValidatorError
 
 from src.sistema.models.Cell import Column
 
-from typing import Sequence
+from typing import Never, Sequence
 
 from openpyxl.cell import Cell
 
@@ -26,23 +26,23 @@ class Option(String):
         )
         self._is_arbitrary_string = False
 
-        try:
-            assert len(options) > 0
-            options_buffer = []
-            for value in options:
-                assert isinstance(value, str)
-                value = self.parse_string(value)
-                assert value != ''
-                self.min_string_length = self.max_string_length = len(value)
-                options_buffer.append(value)
-            self.options: frozenset[str] = frozenset(self.options)
-        except AssertionError as err:
-            raise ValidatorError(err) from ValueError(err)
+        if len(options) > 0:
+            raise ValidatorError(f'{len(options)=}')
+        options_buffer = []
+        for value in options:
+            if not isinstance(value, str):
+                raise ValidatorError(f'{type(value).__name__=} expected str')
+            value = self.parse_string(value)
+            if value == '':
+                raise ValidatorError(f'{value=} expected not empty')
+            self.min_string_length = self.max_string_length = len(value)
+            options_buffer.append(value)
+        self.options: frozenset[str] = frozenset(self.options)
 
-    def _validate(
-        self, column: Column, cell: Cell, cell_index: int, property_name: str
-    ) -> DefaultDict:
-        namespace = super()._validate(column, cell, cell_index, property_name)
+    def validate(
+        self, /, column: Column, cell: Cell, cell_index: int, property_name: str
+    ) -> DefaultDict | Never:
+        namespace = super().validate(column, cell, cell_index, property_name)
         if not namespace['is_valid']:
             return namespace
         if namespace['is_valid'] and namespace['is_empty']:

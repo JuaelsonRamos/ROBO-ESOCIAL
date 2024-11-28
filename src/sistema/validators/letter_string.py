@@ -6,7 +6,10 @@ from .validator import DefaultDict
 from src.sistema.models import Column
 from src.utils import INT32
 
+from typing import Never
+
 from openpyxl.cell import Cell
+from pydantic import validate_call
 
 
 class LetterString(String):
@@ -28,10 +31,11 @@ class LetterString(String):
         )
         self._is_arbitrary_string = False
 
-    def _validate(
-        self, column: Column, cell: Cell, cell_index: int, property_name: str
-    ) -> DefaultDict:
-        namespace = super()._validate(column, cell, cell_index, property_name)
+    @validate_call
+    def validate(
+        self, /, column: Column, cell: Cell, cell_index: int, property_name: str
+    ) -> DefaultDict | Never:
+        namespace = super().validate(column, cell, cell_index, property_name)
         if not namespace['is_valid']:
             return namespace
         if namespace['is_valid'] and namespace['is_empty']:

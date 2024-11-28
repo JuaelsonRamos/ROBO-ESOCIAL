@@ -8,10 +8,14 @@ from src.utils import INT32
 
 import math
 
+from typing import Never
+
 from openpyxl.cell import Cell
+from pydantic import validate_call
 
 
 class NumericString(String):
+    @validate_call
     def __init__(
         self,
         *,
@@ -20,13 +24,16 @@ class NumericString(String):
         allow_zero: bool = True,
         allow_empty: bool = False,
     ):
-        try:
-            assert min_value != 0
-            assert min_value >= INT32.MIN
-            assert max_value <= INT32.MAX
-            assert min_value < max_value
-        except AssertionError as err:
-            raise ValidatorError(err) from ValueError(err)
+        if min_value == 0:
+            raise ValidatorError(f'{min_value=} expected non-zero')
+        if max_value == 0:
+            raise ValidatorError(f'{max_value=} expected non-zero')
+        if min_value < INT32.MIN:
+            raise ValidatorError(f'{min_value=} expected more than {INT32.MIN}')
+        if max_value > INT32.MAX:
+            raise ValidatorError(f'{max_value=} expected less than {INT32.MAX}')
+        if min_value >= max_value:
+            raise ValidatorError(f'expected {min_value=} to be less than {max_value=}')
 
         super().__init__(allow_empty=allow_empty)
         self._is_arbitrary_string = False
@@ -34,25 +41,28 @@ class NumericString(String):
         self.max_value = max_value
         self.allow_zero = allow_zero
 
-    def _validate(
-        self, column: Column, cell: Cell, cell_index: int, property_name: str
-    ) -> DefaultDict:
-        namespace = super()._validate(column, cell, cell_index, property_name)
+    def validate(
+        self, /, column: Column, cell: Cell, cell_index: int, property_name: str
+    ) -> DefaultDict | Never:
+        namespace = super().validate(column, cell, cell_index, property_name)
         if not namespace['is_valid']:
             return namespace
         if namespace['is_valid'] and namespace['is_empty']:
             return namespace
         value: str = namespace['qualified_value']
+        numeric: float | None = None
         try:
-            assert value.isascii()
             numeric = float(value)
-            assert not math.isnan(numeric)
-            assert not math.isinf(numeric)
-            if not self.allow_zero:
-                assert numeric != 0
-            assert numeric >= self.min_value
-            assert numeric <= self.max_value
-        except (AssertionError, TypeError, ValueError):
+        except (TypeError, ValueError):
+            pass
+        if (
+            numeric is None
+            or math.isnan(numeric)
+            or math.isinf(numeric)
+            or (self.allow_zero is False and numeric == 0)
+            or numeric < self.min_value
+            or numeric > self.max_value
+        ):
             namespace['is_valid'] = False
             namespace['qualified_value'] = None
         else:

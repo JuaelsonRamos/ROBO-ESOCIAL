@@ -8,8 +8,10 @@ import src.sistema.spreadsheet as sheet
 from src.sistema.models.Column import Column
 
 from datetime import date, datetime
+from typing import Never
 
 from openpyxl.cell.cell import Cell
+from pydantic import validate_call
 
 
 _MIN_REASONABLE_DATE = date(1970, 1, 1)
@@ -40,21 +42,26 @@ class Date(String):
             allow_empty=allow_empty,
         )
 
-        try:
-            assert min_date >= self.min_reasonable_date
-            assert max_date <= self.max_reasonable_date
-            assert min_date < max_date
-        except AssertionError as err:
-            raise ValidatorError(err) from ValueError(err)
+        if min_date < self.min_reasonable_date:
+            raise ValidatorError(
+                f'{min_date=} expected more than {self.min_reasonable_date=}'
+            )
+        if max_date > self.max_reasonable_date:
+            raise ValidatorError(
+                f'{max_date=} expected less than {self.max_reasonable_date=}'
+            )
+        if min_date >= max_date:
+            raise ValidatorError(f'expected {min_date=} to be less than {max_date=}')
 
         self.format = '%d/%m/%Y'
         self.min_date = min_date
         self.max_date = max_date
 
-    def _validate(
+    @validate_call
+    def validate(
         self, column: Column, cell: Cell, cell_index: int, property_name: str
-    ) -> DefaultDict:
-        namespace = super()._validate(column, cell, cell_index, property_name)
+    ) -> DefaultDict | Never:
+        namespace = super().validate(column, cell, cell_index, property_name)
         if not namespace['is_valid']:
             return namespace
         if namespace['is_valid'] and namespace['is_empty']:
@@ -62,10 +69,11 @@ class Date(String):
         value: str = namespace['qualified_value']
         try:
             t = datetime.strptime(value, self.format).date()
-            assert t >= self.min_date
-            assert t <= self.max_date
+        except (TypeError, ValueError):
+            t = None
+        if t is not None and (self.min_date <= t <= self.max_date):
             namespace['qualified_value'] = t
-        except (AssertionError, TypeError, ValueError):
+        else:
             namespace['is_valid'] = False
             namespace['qualified_value'] = None
 

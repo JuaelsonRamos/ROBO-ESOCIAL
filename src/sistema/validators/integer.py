@@ -8,7 +8,10 @@ import src.sistema.spreadsheet as sheet
 from src.sistema.models.Column import Column
 from src.utils import INT32
 
+from typing import Never
+
 from openpyxl.cell.cell import Cell
+from pydantic import validate_call
 
 
 class Integer(NumericString):
@@ -29,19 +32,19 @@ class Integer(NumericString):
         self._is_arbitrary_string = False
         self._qualified_type = sheet.INT
 
-    def _validate(
-        self, column: Column, cell: Cell, cell_index: int, property_name: str
-    ) -> DefaultDict:
-        namespace = super()._validate(column, cell, cell_index, property_name)
+    @validate_call
+    def validate(
+        self, /, column: Column, cell: Cell, cell_index: int, property_name: str
+    ) -> DefaultDict | Never:
+        namespace = super().validate(column, cell, cell_index, property_name)
         if not namespace['is_valid']:
             return namespace
         if namespace['is_valid'] and namespace['is_empty']:
             return namespace
         value = namespace['qualified_value']
         try:
-            assert value.isdigit()
             namespace['qualified_value'] = int(value)
-        except (AssertionError, TypeError, ValueError):
+        except (TypeError, ValueError):
             namespace['is_valid'] = False
             namespace['qualified_value'] = None
 
