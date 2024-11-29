@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, NamedTupleMeta, SupportsIndex  # type: ignore
+from abc import ABC, abstractmethod
+from typing import (  # type: ignore
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    NamedTupleMeta,
+    SupportsIndex,
+)
 
 from pydantic import ConfigDict, TypeAdapter
 
@@ -31,3 +38,15 @@ class Model(metaclass=ModelMeta):
             except AttributeError as err:
                 raise IndexError(err)
         return self.__getitem__(name)
+
+
+if TYPE_CHECKING:
+
+    class Model(ABC):  # type: ignore
+        __adapters: ClassVar[dict[type, TypeAdapter]]
+
+        @abstractmethod
+        def _type_adapter(cls) -> TypeAdapter: ...
+
+        @abstractmethod
+        def __getitem__(self, name: str | slice | SupportsIndex, /) -> Any: ...
