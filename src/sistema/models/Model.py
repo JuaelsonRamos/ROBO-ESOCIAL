@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import (  # type: ignore
+from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
-    NamedTupleMeta,
+    NamedTupleMeta,# type: ignore
     SupportsIndex,
 )
 
@@ -26,23 +26,15 @@ class ModelMeta(NamedTupleMeta):
             )
         return nm_tpl
 
-    def _type_adapter(cls) -> TypeAdapter:
-        return cls.__adapters[cls]
+    def _type_adapter(self) -> TypeAdapter:
+        return self.__adapters[self]
 
 
-class Model(metaclass=ModelMeta):
-    def __getitem__(self, name: str | slice | SupportsIndex, /) -> Any:
-        if isinstance(name, str):
-            try:
-                return getattr(self, name)
-            except AttributeError as err:
-                raise IndexError(err)
-        return self.__getitem__(name)
 
 
 if TYPE_CHECKING:
 
-    class Model(ABC):  # type: ignore
+    class Model:
         __adapters: ClassVar[dict[type, TypeAdapter]]
 
         @abstractmethod
@@ -50,3 +42,14 @@ if TYPE_CHECKING:
 
         @abstractmethod
         def __getitem__(self, name: str | slice | SupportsIndex, /) -> Any: ...
+
+else:
+
+    class Model(metaclass=ModelMeta):
+        def __getitem__(self, name: str | slice | SupportsIndex, /) -> Any:
+            if isinstance(name, str):
+                try:
+                    return getattr(self, name)
+                except AttributeError as err:
+                    raise IndexError(err)
+            return self.__getitem__(name)
