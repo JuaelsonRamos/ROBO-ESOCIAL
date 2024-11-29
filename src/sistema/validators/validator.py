@@ -9,7 +9,7 @@ from src.sistema.models import (
 
 import string
 
-from typing import Any, Never, TypeAlias
+from typing import Any, Final, Never, TypeAlias
 
 from openpyxl.cell import Cell
 from pydantic import validate_call
@@ -28,8 +28,8 @@ class Validator:
     def __init__(
         self, *, qualified_type: sheet.QualifiedType, is_arbitrary_string: bool
     ) -> None:
-        self._qualified_type = qualified_type
-        self._is_arbitrary_string = is_arbitrary_string
+        self._qualified_type: Final[sheet.QualifiedType] = qualified_type
+        self._is_arbitrary_string: Final[bool] = is_arbitrary_string
 
     @property
     def qualified_type(self) -> sheet.QualifiedType:
@@ -68,4 +68,4 @@ class Validator:
         self, /, column: Column, cell: Cell, cell_index: int, property_name: str
     ) -> CellModel | Never:
         namespace = self.validate(column, cell, cell_index, property_name)
-        return CellModel.model_validate(namespace)
+        return CellModel(**namespace)

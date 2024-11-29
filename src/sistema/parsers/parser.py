@@ -44,8 +44,8 @@ class Parser(metaclass=Singleton):
     ) -> tuple[CellModel, ...] | Never:
         parsed: list[Any] = [None] * len(row)
         for col in columns:
-            cell = row[col.index]
-            parsed[col.index] = self.parse_cell(col, cell)
+            cell = row[col.i]
+            parsed[col.i] = self.parse_cell(col, cell)
         parsed = cast(list[CellModel], parsed)
         return tuple(parsed)
 
@@ -53,7 +53,7 @@ class Parser(metaclass=Singleton):
         self._schema = cast(dict, self._schema)
         assert column.property_name in self._schema
         validate = self._schema[column.property_name]
-        return validate(column, cell, column.index, column.property_name)
+        return validate.validate_model(column, cell, column.i, column.property_name)
 
     @abstractmethod
     def parse_context(
