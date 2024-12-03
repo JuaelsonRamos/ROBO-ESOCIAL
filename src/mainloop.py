@@ -37,6 +37,10 @@ async def mainloop():
         def task_can_create() -> bool:
             return not (task_queue.empty() or task_sem.locked())
 
+        def release_semaphore(*_) -> None:
+            nonlocal task_sem
+            task_sem.release()
+
         tk_root = App()
 
         import src.gui.styles as gui_style
@@ -55,6 +59,6 @@ async def mainloop():
                     browser, context, await new_page(), default_step_order
                 )
                 task = asyncio.create_task(task_coro, name=task_name)
-                task.add_done_callback(task_sem.release)
+                task.add_done_callback(release_semaphore)
 
         gui_asyncio.Thread.stop_all()
