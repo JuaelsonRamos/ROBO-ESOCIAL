@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-
 __all__ = ['SheetProcess']
+
+from src.gui.views.View import View
 
 import src.gui.constants as const
 
@@ -12,10 +13,9 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 
-class SheetProcess(ttk.Frame):
+class SheetProcess(View):
     def __init__(self, master):
         super().__init__(master, style=const.VIEW)
-        self.pack(fill=tk.BOTH, expand=tk.TRUE)
         self.create_widgets()
 
     def create_widgets(self):

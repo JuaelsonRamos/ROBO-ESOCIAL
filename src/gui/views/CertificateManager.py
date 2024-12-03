@@ -3,11 +3,11 @@ from __future__ import annotations
 from src.certificate import copy_certificate, delete_certificate, get_certificates
 from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
+from src.gui.views.View import View
 
 import tkinter as tk
 import functools
 import tkinter.ttk as ttk
-import multiprocessing as mp
 
 from pathlib import Path
 from tkinter import filedialog
@@ -146,10 +146,9 @@ class CertificateList(ttk.Treeview):
         self.button.delete.state([tk.ACTIVE])
 
 
-class CertificateManager(ttk.Frame):
+class CertificateManager(View):
     def __init__(self, master: ttk.Widget):
         super().__init__(master)
-        self.pack(fill=tk.BOTH, expand=tk.TRUE)
         self.tree = CertificateList(self)
         self.tree.pack()
         self.button = ButtonFrame(self)
