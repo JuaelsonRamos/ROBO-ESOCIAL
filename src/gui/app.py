@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src.gui.views.CertificateManager import CertificateManager
 from src.gui.views.SheetProcess import SheetProcess
 from src.gui.widgets import ViewNavigator
 from src.gui.widgets.StatusBar import ProgressCounter, StatusBar
@@ -25,10 +26,9 @@ class App(tk.Tk):
             template='Processando Planilhas ({current}/{total})',
         )
         view_nav = ViewNavigator(self)
-        view_nav.add_button('Certificados')
-        active = view_nav.add_button('Processar')
+        view_nav.add_button('Certificados', CertificateManager(self))
+        active = view_nav.add_button('Processar', SheetProcess(self))
         active.click()
         view_nav.add_button('Histórico')
         view_nav.add_button('Visualizar')
         view_nav.add_button('Ferramentas')
-        SheetProcess(self)
