@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.crawl.steps.step import execute_in_order
 from src.gui.app import App
+from src.gui.lock import TkinterLock
 from src.windows import get_monitor_settings
 
 import math
@@ -33,6 +34,7 @@ async def mainloop():
         task_sem = asyncio.Semaphore(TASK_LIMIT)
         task_queue = asyncio.Queue()
         new_page = functools.partial(context.new_page)
+        gui_lock = TkinterLock()
 
         def task_can_create() -> bool:
             return not (task_queue.empty() or task_sem.locked())
@@ -49,8 +51,9 @@ async def mainloop():
         gui_style.default()
 
         while await asyncio.sleep(app_tick, True):
-            tk_root.update_idletasks()
-            tk_root.update()
+            if not gui_lock.locked():
+                tk_root.update_idletasks()
+                tk_root.update()
             while task_can_create():
                 await task_sem.acquire()
                 task_i = str(next(task_counter)).ljust(3, '0')
