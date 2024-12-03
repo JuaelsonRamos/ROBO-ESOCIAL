@@ -1,3 +1,5 @@
 from __future__ import annotations
 
-from src.gui.views.SheetProcess import SheetProcess
+from .SheetProcess import SheetProcess
+from .CertificateManager import CertificateManager
+from .View import View
