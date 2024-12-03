@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 class Singleton(type):
-    __slots__ = ('__instances')
+    __slots__ = ()
     __instances: dict[type, Singleton] = {}
 
     def __call__(cls) -> Singleton:
