@@ -70,6 +70,13 @@ async def mainloop():
             task_sem.release()
 
         tk_root = App()
+        exit_flag: bool = False
+
+        def enable_exit_flag():
+            nonlocal exit_flag
+            exit_flag = True
+
+        tk_root.protocol('WM_DELETE_WINDOW', enable_exit_flag)
 
         import src.gui.styles as gui_style
         import src.gui.asyncio as gui_asyncio
@@ -77,6 +84,10 @@ async def mainloop():
         gui_style.default()
 
         while await asyncio.sleep(app_tick, True):
+            if exit_flag:
+                tk_root.quit()
+                tk_root.destroy()
+                break
             if not gui_lock.locked():
                 tk_root.update_idletasks()
                 tk_root.update()
