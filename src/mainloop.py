@@ -38,13 +38,20 @@ def get_firefox_exe() -> Path | None:
     return path
 
 
-async def mainloop():
+def get_app_frametime() -> tuple[int, float]:
+    """Returns tuple (FPS, Frametime)"""
     monitors_fps: list[int | float] = [
         monitor.DisplaySettings.DisplayFrequency for monitor in get_monitor_settings()
     ]
     best_device_fps: int = math.ceil(max(monitors_fps))
     app_fps: int = best_device_fps if 15 <= best_device_fps <= 75 else 60
     app_tick: float = 1 / app_fps  # miliseconds
+    app_tick = float(f'{app_tick:.4f}')
+    return (app_fps, app_tick)
+
+
+async def mainloop():
+    app_fps, app_tick = get_app_frametime()
 
     async with async_playwright() as p:
         firefox_exe = get_firefox_exe()
