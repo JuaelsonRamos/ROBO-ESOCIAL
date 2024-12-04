@@ -4,6 +4,7 @@ from src.certificate import copy_certificate, delete_certificate, get_certificat
 from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
 from src.gui.views.View import View
+from src.windows import open_file_dialog
 
 import tkinter as tk
 import functools
@@ -120,25 +121,26 @@ class CertificateList(ttk.Treeview):
         delete_certificate(p)
         self.delete(iid)
 
-    def _open_files(self) -> tuple[str, ...]:
-        files = filedialog.askopenfilenames(
-            defaultextension='*.pem',
-            filetypes=(('Certificado digital', ('*.crt', '*.pem')),),
-            parent=self,
-            title='Selecione um certificado digital',
-        )
-        return tuple() if files == '' else files
-
     def _insert_files(self, value: tuple[str, ...] | Exception, raised: bool) -> None:
         if raised:
             raise cast(Exception, value)
         value = cast(tuple[str, ...], value)
         for v in value:
             copy_certificate(v)
+        self.event_generate('<<ReloadTree>>')
 
     def add_item(self, event: tk.Event):
         lock = TkinterLock()
-        lock.schedule(self, self._open_files, self._insert_files)
+        func = functools.partial(
+            open_file_dialog,
+            hwnd=self.winfo_id(),
+            title='Selecione um certificado digital',
+            extensions=[
+                ('Certificado digital', ('*.crt', '*.pem', '*.pfx')),
+            ],
+            multi_select=True,
+        )
+        lock.schedule(self, func, self._insert_files, block=False)
 
     def _update_select(self, event: tk.Event):
         if self.focus() == '':
