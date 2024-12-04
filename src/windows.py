@@ -1,18 +1,33 @@
 from __future__ import annotations
 
+import io
 import os
+import sys
+import string
 import functools
 
 from collections import namedtuple
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Callable, Final, Literal, NamedTuple, cast, overload
+from typing import (
+    Callable,
+    Final,
+    Iterable,
+    Literal,
+    NamedTuple,
+    Sequence,
+    cast,
+    overload,
+)
 
 import win32api as api
 import win32con as con
+import win32gui as gui
 import win32file as file
+import pywintypes  # must be imported first to avoid error with pywin32's version
 
+from win32.lib import pywintypes
 from win32comext.shell import shell, shellcon
 
 
@@ -137,3 +152,130 @@ def get_logical_drives() -> tuple[WindowsDrive, ...]:
             )
         )
     return tuple(result)
+
+
+def open_file_dialog(
+    hwnd: int,
+    title: str,
+    extensions: Sequence[tuple[str, tuple[str, ...]]],
+    initial_dir: Path | None = None,
+    default_extension: int = 0,
+    multi_select: bool = False,
+    file_must_exist: bool = True,
+    path_must_exist: bool = True,
+    allow_read_only: bool = True,
+    hide_network_button: bool = True,
+    confirm_overwrite: bool = True,
+) -> tuple[Path, ...]:
+    # NOTE If the HWND doesn't belong to the same process, HINSTANCE is useless.
+    # Source: https://stackoverflow.com/q/9045594/15493645
+    # From comment:
+    # > The top window may not belong to your process, so its instance handle is
+    # > useless to you.
+    h_instance: int | None = None
+
+    flags: int = con.OFN_EXPLORER | con.OFN_NOCHANGEDIR
+    if multi_select:
+        flags |= con.OFN_ALLOWMULTISELECT
+    if file_must_exist:
+        flags |= con.OFN_FILEMUSTEXIST
+    if path_must_exist:
+        flags |= con.OFN_PATHMUSTEXIST
+    if not allow_read_only:
+        flags |= con.OFN_NOREADONLYRETURN
+    if hide_network_button:
+        flags |= con.OFN_NONETWORKBUTTON
+    if confirm_overwrite:
+        flags |= con.OFN_OVERWRITEPROMPT
+
+    # type checking extensions object
+    if len(extensions) == 0:
+        raise ValueError('empty file extension sequence')
+    for ext in extensions:
+        if not isinstance(ext, tuple):
+            raise TypeError(f'{type(ext).__name__=} expected tuple')
+        if len(ext) != 2:
+            raise ValueError(f'{len(ext)=} expected 2')
+        name: str = ext[0]
+        file_suffixes: tuple[str, ...] = ext[1]
+        if not isinstance(name, str):
+            raise TypeError(f'{type(ext[0]).__name__=} expected str')
+        if not isinstance(file_suffixes, tuple):
+            raise TypeError(f'{type(ext[1]).__name__=} expected tuple')
+        if len(file_suffixes) == 0:
+            raise ValueError('empty tuple of file extensions')
+        for i, suffix in enumerate(file_suffixes):
+            if isinstance(suffix, str):
+                continue
+            raise ValueError(f'{type(file_suffixes[i]).__name__=} expected str')
+
+    # parsing extension object
+    filter: str
+    NULL = '\0'
+    with io.StringIO() as buffer:
+        for ext in extensions:
+            name: str = ext[0].strip(string.whitespace)
+            buffer.write(name)
+            # name and suffixes are separated by a NULL character
+            buffer.write(NULL)
+            suffixes: str = ';'.join(suffix.upper() for suffix in ext[1])
+            buffer.write(suffixes)
+            # pairs (name, suffixes) are separated by a NULL character as well
+            buffer.write(NULL)
+        # filter sequence must end with 2 NULL characters
+        buffer.write(NULL)
+        filter = buffer.getvalue()
+
+    if default_extension < 0:
+        raise ValueError(f'{default_extension=} expected >= zero')
+    # variable value is zero-based, but argument expects 1-based index
+    default_extension += 1
+
+    starting_dir: str | None = None
+    if isinstance(initial_dir, Path):
+        starting_dir = str(initial_dir)
+
+    # 256 is the minimum
+    buffer_size: int = 256 * 10
+
+    # GetOpenFileNameW may change working dir of the process it runs in. Specifying the
+    # "do not change working dir" flag doesn't prevent it from doing so while the window
+    # is open, which in this case is not a problem since python's GIL effectively blocks
+    # the whole process (threads and coroutines) during the execution.
+    #
+    # Anyways, storing the current working dir before and setting it afterwards is too
+    # litle of a cost for a "just to be sure" type of action.
+    cwd = os.getcwd()
+    try:
+        # tuple in the form ('paths spec', 'CustomFilter argument', 'Flags argument')
+        result: tuple[str, str | None, int]
+        result = gui.GetOpenFileNameW(
+            hwndOwner=hwnd,
+            hInstance=h_instance,
+            Flags=flags,
+            Title=title,
+            InitialDir=starting_dir,
+            FilterIndex=default_extension,
+            Filter=filter,
+            MaxFile=buffer_size,
+            CustomFilter=None,
+            DefExt=None,
+            File=None,
+            TemplateName=None,
+        )
+        # NULL separated sequence (string) where the first item is a directory path, and
+        # all the others are relative filenames, unless only one file was selected, in
+        # which case the whole string is an absolute path.
+        path_spec: str = result[0].strip(NULL)
+        if NULL not in path_spec:
+            # single absolute path
+            return (Path(path_spec),)
+        path_spec_iterable: list[str] = path_spec.split(NULL)
+        dir: str = path_spec_iterable.pop(0)
+        return tuple(Path(dir, file_name) for file_name in path_spec_iterable)
+    except pywintypes.error as err:
+        raise RuntimeError(
+            f'win32 error: {err.winerror=}, {err.funcname=}, {err.strerror=}'
+        )
+    finally:
+        os.chdir(cwd)
