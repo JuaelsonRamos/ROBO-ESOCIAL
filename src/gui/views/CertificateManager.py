@@ -40,7 +40,6 @@ class ButtonFrame(ttk.Frame):
             padding=p,
             command=_add_item,
         )
-        self.add.pack()
 
         _delete_item = functools.partial(self.tree.event_generate, '<<DeleteItem>>')
         self.delete = ttk.Button(
@@ -50,7 +49,6 @@ class ButtonFrame(ttk.Frame):
             padding=p,
             command=_delete_item,
         )
-        self.delete.pack()
 
         _reload_tree = functools.partial(self.tree.event_generate, '<<ReloadTree>>')
         self.reload = ttk.Button(
@@ -60,7 +58,10 @@ class ButtonFrame(ttk.Frame):
             padding=p,
             command=_reload_tree,
         )
-        self.reload.pack()
+
+        self.delete.pack(side=tk.LEFT)
+        self.add.pack(side=tk.LEFT, before=self.delete)
+        self.reload.pack(side=tk.LEFT, after=self.delete)
 
     @property
     def tree(self) -> CertificateList:
@@ -147,9 +148,10 @@ class CertificateList(ttk.Treeview):
 
 
 class CertificateManager(View):
-    def __init__(self, master: ttk.Widget):
+    def __init__(self, master):
         super().__init__(master)
         self.tree = CertificateList(self)
         self.tree.pack()
         self.button = ButtonFrame(self)
         self.button.pack()
+        self.button.pack_configure(before=self.tree)
