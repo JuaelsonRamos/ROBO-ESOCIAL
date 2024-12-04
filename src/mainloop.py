@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from src.crawl.steps.step import execute_in_order
 from src.gui.app import App
-from src.gui.lock import TkinterLock
-from src.windows import get_monitor_settings
 
-import math
 import asyncio
 import functools
 import itertools
@@ -38,21 +35,7 @@ def get_firefox_exe() -> Path | None:
     return path
 
 
-def get_app_frametime() -> tuple[int, float]:
-    """Returns tuple (FPS, Frametime)"""
-    monitors_fps: list[int | float] = [
-        monitor.DisplaySettings.DisplayFrequency for monitor in get_monitor_settings()
-    ]
-    best_device_fps: int = math.ceil(max(monitors_fps))
-    app_fps: int = best_device_fps if 15 <= best_device_fps <= 75 else 60
-    app_tick: float = 1 / app_fps  # miliseconds
-    app_tick = float(f'{app_tick:.4f}')
-    return (app_fps, app_tick)
-
-
 async def mainloop():
-    app_fps, app_tick = get_app_frametime()
-
     async with async_playwright() as p:
         firefox_exe = get_firefox_exe()
         browser = await p.firefox.launch(executable_path=firefox_exe, headless=False)
@@ -60,7 +43,6 @@ async def mainloop():
         task_sem = asyncio.Semaphore(TASK_LIMIT)
         task_queue = asyncio.Queue()
         new_page = functools.partial(context.new_page)
-        gui_lock = TkinterLock()
 
         def task_can_create() -> bool:
             return not (task_queue.empty() or task_sem.locked())
@@ -69,28 +51,15 @@ async def mainloop():
             nonlocal task_sem
             task_sem.release()
 
-        tk_root = App()
-        exit_flag: bool = False
+        app = App()
+        app.load_style()
 
-        def enable_exit_flag():
-            nonlocal exit_flag
-            exit_flag = True
-
-        tk_root.protocol('WM_DELETE_WINDOW', enable_exit_flag)
-
-        import src.gui.styles as gui_style
         import src.gui.asyncio as gui_asyncio
 
-        gui_style.default()
-
-        while await asyncio.sleep(app_tick, True):
-            if exit_flag:
-                tk_root.quit()
-                tk_root.destroy()
+        while await asyncio.sleep(app.frametime, True):
+            app.tick()
+            if app.has_quit():
                 break
-            if not gui_lock.locked():
-                tk_root.update_idletasks()
-                tk_root.update()
             while task_can_create():
                 await task_sem.acquire()
                 task_i = str(next(task_counter)).ljust(3, '0')
