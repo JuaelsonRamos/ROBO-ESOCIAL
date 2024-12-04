@@ -51,8 +51,10 @@ class TkinterLock(Generic[RetValue], metaclass=Singleton):
         widget: ttk.Widget,
         func: Callable[[], RetValue],
         on_done: Callable[[RetValue, bool], None] | None = None,
+        *,
+        block: bool = True,
     ) -> None:
-        self._lock = True
+        self._lock = block
         fut = self.loop.run_in_executor(self.executor, func)
         self._state.update(widget=widget, callback=func, future=fut)
         if on_done is not None:
