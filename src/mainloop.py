@@ -10,6 +10,8 @@ import asyncio
 import functools
 import itertools
 
+from pathlib import Path
+
 from playwright.async_api import async_playwright
 
 
@@ -18,6 +20,22 @@ TASK_LIMIT = 5
 task_counter = itertools.count(1)
 
 default_step_order: tuple[str, ...] = tuple()
+
+if __debug__:
+    playwright_dir = Path('./dist/playwright')
+else:
+    playwright_dir = Path('./_blobs/playwright')
+
+
+def get_firefox_exe() -> Path | None:
+    path: Path | None = None
+    try:
+        gen = playwright_dir.glob('firefox-*/firefox/firefox.exe')
+        path = next(gen)
+        gen.close()
+    except (GeneratorExit, StopIteration):
+        pass
+    return path
 
 
 async def mainloop():
@@ -29,7 +47,8 @@ async def mainloop():
     app_tick: float = 1 / app_fps  # miliseconds
 
     async with async_playwright() as p:
-        browser = await p.firefox.launch()
+        firefox_exe = get_firefox_exe()
+        browser = await p.firefox.launch(executable_path=firefox_exe, headless=False)
         context = await browser.new_context()
         task_sem = asyncio.Semaphore(TASK_LIMIT)
         task_queue = asyncio.Queue()
