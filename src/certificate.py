@@ -10,7 +10,10 @@ from typing import IO, Any, Final, Never
 
 STORAGE_DIR: Final[Path] = APPDATA_DIR / '_cert_storage_'
 
-CERT_SUFFIX: Final[tuple[str, ...]] = ('.crt', '.pem')
+if not STORAGE_DIR.exists():
+    STORAGE_DIR.mkdir(mode=0o750, parents=True, exist_ok=False)
+
+CERT_SUFFIX: Final[tuple[str, ...]] = ('.crt', '.pem', '.pfx')
 
 
 class CertificateTypeError(Exception): ...
@@ -49,7 +52,7 @@ def ensure_bootstrap() -> None | Never:
 def get_certificates() -> tuple[Path, ...]:
     certs = []
     for path in STORAGE_DIR.iterdir():
-        if not path.is_file() or path.suffix not in CERT_SUFFIX:
+        if not path.is_file() or path.suffix.lower() not in CERT_SUFFIX:
             continue
         certs.append(path)
     return tuple(certs)
@@ -59,19 +62,21 @@ def copy_certificate(
     file: str | Path | IO, can_overwrite: bool = False, /
 ) -> None | Never:
     path = _path(file)
-    if path.suffix not in CERT_SUFFIX:
+    if path.suffix.lower() not in CERT_SUFFIX:
         raise CertificateTypeError(f'{path.suffix=} expected value in {CERT_SUFFIX}')
     _is_path_corrupt(path)
-    if path.exists() and not can_overwrite:
-        raise CertificateFileError(f'{path=} already exists')
     data, dest_path = _bytes_and_dest_path(path)
+    if dest_path.exists() and not can_overwrite:
+        raise CertificateFileError(f'{path=} already exists')
+    if not dest_path.exists():
+        dest_path.touch(mode=0o600, exist_ok=False)
     dest_path.write_bytes(data)
 
 
 def delete_certificate(file: str | Path | IO, /) -> None | Never:
     path = _path(file)
     _is_path_corrupt(path)
-    if not path.exists():
-        raise CertificateFileError(f'{path=} does not exist')
     _, dest_path = _bytes_and_dest_path(path)
+    if not dest_path.exists():
+        raise CertificateFileError(f'{path=} does not exist')
     dest_path.unlink()
