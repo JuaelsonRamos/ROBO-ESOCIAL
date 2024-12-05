@@ -191,3 +191,6 @@ src/uix/*.ini
 !package-lock.json
 pnpm-lock.yaml
 yarn.lock
+
+# debug artifacts
+/__debug__
