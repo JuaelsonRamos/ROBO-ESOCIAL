@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src import bootstrap
 from src.crawl.steps.step import execute_in_order
 from src.gui.app import App
 
@@ -18,16 +19,13 @@ task_counter = itertools.count(1)
 
 default_step_order: tuple[str, ...] = tuple()
 
-if __debug__:
-    playwright_dir = Path('./dist/playwright')
-else:
-    playwright_dir = Path('./_blobs/playwright')
+app_dir = bootstrap.Directory()
 
 
 def get_firefox_exe() -> Path | None:
     path: Path | None = None
     try:
-        gen = playwright_dir.glob('firefox-*/firefox/firefox.exe')
+        gen = app_dir.PLAYWRIGHT.glob('firefox-*/firefox/firefox.exe')
         path = next(gen)
         gen.close()
     except (GeneratorExit, StopIteration):
@@ -36,6 +34,9 @@ def get_firefox_exe() -> Path | None:
 
 
 async def mainloop():
+    if not app_dir.is_ensured():
+        app_dir.ensure_mkdir()
+
     async with async_playwright() as p:
         firefox_exe = get_firefox_exe()
         browser = await p.firefox.launch(executable_path=firefox_exe, headless=False)

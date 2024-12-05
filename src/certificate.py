@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.windows import APPDATA_DIR
+from src import bootstrap
 
 import hashlib
 
@@ -8,10 +8,7 @@ from pathlib import Path
 from typing import IO, Any, Final, Never
 
 
-STORAGE_DIR: Final[Path] = APPDATA_DIR / '_cert_storage_'
-
-if not STORAGE_DIR.exists():
-    STORAGE_DIR.mkdir(mode=0o750, parents=True, exist_ok=False)
+CERT_STORAGE = bootstrap.Directory().CERT_STORAGE
 
 CERT_SUFFIX: Final[tuple[str, ...]] = ('.crt', '.pem', '.pfx')
 
@@ -38,20 +35,20 @@ def _is_path_corrupt(path: Path) -> None | Never:
 def _bytes_and_dest_path(path: Path) -> tuple[bytes, Path]:
     data = path.read_bytes()
     if __debug__:
-        dest_path = STORAGE_DIR / path.name
+        dest_path = CERT_STORAGE / path.name
     else:
         stem = hashlib.sha512(data).hexdigest()
-        dest_path = STORAGE_DIR / path.with_stem(stem).name
+        dest_path = CERT_STORAGE / path.with_stem(stem).name
     return data, dest_path
 
 
 def ensure_bootstrap() -> None | Never:
-    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    CERT_STORAGE.mkdir(parents=True, exist_ok=True)
 
 
 def get_certificates() -> tuple[Path, ...]:
     certs = []
-    for path in STORAGE_DIR.iterdir():
+    for path in CERT_STORAGE.iterdir():
         if not path.is_file() or path.suffix.lower() not in CERT_SUFFIX:
             continue
         certs.append(path)

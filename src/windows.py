@@ -33,15 +33,6 @@ from win32comext.shell import shell, shellcon
 
 _Monitor = namedtuple('_Monitor', ('MonitorInfo', 'DisplaySettings'))
 
-APPDATA_DIR: Final[Path] = (
-    Path('./__debug__/LocalAppData')
-    if __debug__
-    else Path(os.environ['LOCALAPPDATA']) / 'RoboEsocial'
-)
-
-if not APPDATA_DIR.exists():
-    APPDATA_DIR.mkdir(mode=0o750, parents=True, exist_ok=False)
-
 
 def get_monitor_settings():
     """
