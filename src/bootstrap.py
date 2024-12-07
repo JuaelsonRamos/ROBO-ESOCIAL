@@ -35,8 +35,10 @@ class Directory(metaclass=Singleton):
     CERT_STORAGE: Final[Path] = APPDATA / '_CertStorage'
     BLOBS: Final[Path] = APPDATA / '_Blobs'
     PLAYWRIGHT: Final[Path] = (
-        Path('dist', 'playwright') if __debug__ else BLOBS / 'playwright'
+        Path('dist', 'playwright') if __debug__ else BLOBS / 'Playwright'
     )
+    BACKUP: Final[Path] = APPDATA / '_Backup'
+    DB_BACKUP: Final[Path] = BACKUP / 'Db'
 
     # owner=read,write,open ; group=read,open ; others=none
     mode: Final[int] = 0o750
