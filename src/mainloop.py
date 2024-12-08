@@ -53,7 +53,8 @@ async def mainloop():
             task_sem.release()
 
         app = App()
-        app.load_style()
+
+        GlobalRuntimeConstants(style=ttk.Style(app))
 
         import src.gui.asyncio as gui_asyncio
 

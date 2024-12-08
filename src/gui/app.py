@@ -62,11 +62,6 @@ class App(tk.Tk):
         self.update_idletasks()
         self.update()
 
-    def load_style(self) -> None:
-        from src.gui.styles import default
-
-        default()
-
     def _calc_monitor_frametimes(self) -> tuple[int, float]:
         """Returns tuple (FPS, Frametime)"""
         monitors_fps: list[int | float] = [
