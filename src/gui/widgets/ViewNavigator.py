@@ -63,7 +63,10 @@ class ViewNavigator(ttk.Frame):
         if self._active == event.state:
             return
         for btn in self._buttons:
-            btn.active() if btn.index == event.state else btn.disabled()
+            if btn.index == event.state:
+                btn.active()
+            else:
+                btn.disabled()
         previous, current = self._active, cast(int, event.state)
         if previous is not None:
             btn = self._buttons[previous]
