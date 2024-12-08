@@ -86,7 +86,7 @@ _connections: tuple[sqlite3.Connection, ...] = ()
 def define_connection(filepath: Path | None = None) -> sqlite3.Connection:
     """Create and configure sqlite3 connection."""
     global DB_FILE
-    conn = sqlite3.connect(DB_FILE or filepath)
+    conn = sqlite3.connect(filepath or DB_FILE)
 
     # Doc references:
     #   .setlimit() arguments: https://www.sqlite.org/c3ref/c_limit_attached.html
