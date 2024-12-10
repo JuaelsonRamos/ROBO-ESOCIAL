@@ -3,6 +3,7 @@ from __future__ import annotations
 from src import bootstrap
 from src.crawl.steps.step import execute_in_order
 from src.gui.app import App
+from src.gui.global_runtime_constants import GlobalRuntimeConstants
 
 import asyncio
 import functools
@@ -54,7 +55,7 @@ async def mainloop():
 
         app = App()
 
-        GlobalRuntimeConstants(style=ttk.Style(app))
+        GlobalRuntimeConstants.configure(style=ttk.Style(app))
 
         import src.gui.asyncio as gui_asyncio
 
