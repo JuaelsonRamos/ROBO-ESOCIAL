@@ -4,6 +4,8 @@ from dataclasses import asdict, astuple, dataclass
 from tkinter import ttk
 from typing import Any, Never, cast
 
+import sqlalchemy
+
 
 class _InitializableSingletonMeta(type):
     """
@@ -102,3 +104,4 @@ class GlobalRuntimeConstants(metaclass=_InitializableSingleton):
     """
 
     style: ttk.Style
+    sqlite: sqlalchemy.Engine

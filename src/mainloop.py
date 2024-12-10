@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src import bootstrap
+from src import bootstrap, db
 from src.crawl.steps.step import execute_in_order
 from src.gui.app import App
 from src.gui.global_runtime_constants import GlobalRuntimeConstants
@@ -12,6 +12,7 @@ import itertools
 from pathlib import Path
 
 from playwright.async_api import async_playwright
+from sqlalchemy import create_engine
 
 
 TASK_LIMIT = 5
@@ -55,7 +56,15 @@ async def mainloop():
 
         app = App()
 
-        GlobalRuntimeConstants.configure(style=ttk.Style(app))
+        db.populate_backup_files()
+        sqlite_engine = create_engine(
+            'sqlite://',
+            creator=db.define_connection,
+            echo=__debug__,
+            echo_pool=__debug__,
+        )
+
+        GlobalRuntimeConstants.configure(style=ttk.Style(app), sqlite=sqlite_engine)
 
         import src.gui.asyncio as gui_asyncio
 
