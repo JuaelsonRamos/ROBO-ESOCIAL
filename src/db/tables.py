@@ -91,20 +91,33 @@ class Docstrings(metaclass=Singleton):
 
 @dataclass(frozen=False, init=True, slots=True)
 class CommonColumns(metaclass=Singleton):
-    _id = mapped_column(
-        autoincrement=True, primary_key=True, nullable=False, unique=True
-    )
-    created = mapped_column(nullable=False, unique=False, server_default=sql.func.now())
-    url = mapped_column(
-        nullable=False,
-        unique=False,
-    )
-    last_modified = mapped_column(
-        nullable=True,
-        unique=False,
-        server_default=sql.null(),
-        server_onupdate=sql.func.now(),
-    )
+    @property
+    def _id(self):
+        return mapped_column(
+            autoincrement=True, primary_key=True, nullable=False, unique=True
+        )
+
+    @property
+    def created(self):
+        return mapped_column(
+            nullable=False, unique=False, server_default=sql.func.now()
+        )
+
+    @property
+    def url(self):
+        return mapped_column(
+            nullable=False,
+            unique=False,
+        )
+
+    @property
+    def last_modified(self):
+        return mapped_column(
+            nullable=True,
+            unique=False,
+            server_default=sql.null(),
+            server_onupdate=sql.func.now(),
+        )
 
 
 docs = Docstrings()
@@ -165,10 +178,8 @@ class Origin(Base):
 
 class Origin_LocalStorage(Base):
     __tablename__ = 'origin_localstorage'
-    __table_args__ = {
-        'doc': docs.origin_localstorage['table'],
-        'comment': docs.origin_localstorage['table'],
-    }
+    __table_args__ = {'comment': docs.origin_localstorage['table']}
+    __doc__ = docs.origin_localstorage['table']
     _id: Mapped[int] = common_columns._id
     origin_id: Mapped[int] = mapped_column(
         ForeignKey('origin._id'), nullable=False, unique=False
@@ -180,10 +191,8 @@ class Origin_LocalStorage(Base):
 
 class Cookie_BrowserContext(Base):
     __tablename__ = 'cookie_browsercontext'
-    __table_args__ = {
-        'doc': docs.cookie_browsercontext['table'],
-        'comment': docs.cookie_browsercontext['table'],
-    }
+    __table_args__ = {'comment': docs.cookie_browsercontext['table']}
+    __doc__ = docs.cookie_browsercontext['table']
     _id: Mapped[int] = common_columns._id
     browsercontext_id: Mapped[int] = mapped_column(
         ForeignKey('browsercontext._id'),
@@ -197,10 +206,8 @@ class Cookie_BrowserContext(Base):
 
 class Origin_BrowserContext(Base):
     __tablename__ = 'origin_browsercontext'
-    __table_args__ = {
-        'doc': docs.origin_browsercontext['table'],
-        'comment': docs.origin_browsercontext['table'],
-    }
+    __table_args__ = {'comment': docs.origin_browsercontext['table']}
+    __doc__ = docs.origin_browsercontext['table']
     _id: Mapped[int] = common_columns._id
     browsercontext_id: Mapped[int] = mapped_column(
         ForeignKey('browsercontext._id'),
