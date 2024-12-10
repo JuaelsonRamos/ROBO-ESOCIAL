@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import string
 
-from datetime import _TzInfo, datetime, tzinfo
-from typing import Any, NewType, SupportsIndex
+from datetime import datetime, tzinfo
+from typing import Any, SupportsIndex
 from urllib.parse import urlparse
 
 from sqlalchemy import TEXT, TypeDecorator
