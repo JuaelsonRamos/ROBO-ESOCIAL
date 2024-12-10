@@ -2,19 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "GUI",
+      "name": "src",
       "type": "debugpy",
       "request": "launch",
-      "module": "gui",
-      "showReturnValue": true,
-      "justMyCode": true
+      "module": "src"
     },
     {
-      "name": "GUI (all packages)",
+      "name": "src (all packages)",
       "type": "debugpy",
       "request": "launch",
-      "module": "gui",
-      "showReturnValue": true,
+      "module": "src",
       "justMyCode": false
     }
   ]
