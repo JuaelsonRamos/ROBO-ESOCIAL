@@ -19,25 +19,25 @@
       {
         "match": "\\.py$",
         "cmd": ".venv\\Scripts\\docformatter.exe ${file}"
-      },
-      {
-        "match": "\\.py$",
-        "cmd": ".venv\\Scripts\\ruff.exe check --select=F401,I --fix ${file}"
       }
     ]
   },
-  "ruff.importStrategy": "fromEnvironment",
   "editor.formatOnSave": true,
+  "ruff.importStrategy": "fromEnvironment",
+  "ruff.nativeServer": "auto",
+  "ruff.ignoreStandardLibrary": false,
+  "ruff.enable": true,
+  "ruff.lint.enable": true,
+  "ruff.organizeImports": true,
+  "ruff.fixAll": true,
+  "ruff.lint.run": "onSave",
+  "ruff.lint.select": ["I", "F401"],
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
-    "diffEditor.ignoreTrimWhitespace": false,
+    "diffEditor.ignoreTrimWhitespace": true,
     "editor.codeActionsOnSave": {
-      /* Preferir um hook da extensão RunOnSave porque ela respeita a configuração.
-       * Especificar code actions para serem rodadas é uma ação do vscode que
-       * sobrescreve a configuração do ruff independentemente.
-       */
-      // "source.unusedImports": "explicit"
-      // "source.organizeImports": "explicit"
+      "source.organizeImports": "explicit",
+      "source.fixAll": "explicit",
     }
   },
   "files.exclude": {
@@ -48,15 +48,15 @@
   "python.testing.pytestEnabled": true,
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
   "python.terminal.activateEnvironment": true,
-  "ruff.nativeServer": "off",
   "python.languageServer": "Pylance",
-  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.typeCheckingMode": "standard",
   "python.analysis.languageServerMode": "light",
   "python.analysis.autoImportCompletions": true,
   "python.analysis.diagnosticMode": "workspace",
-  "mypy-type-checker.preferDaemon": true,
-  "mypy-type-checker.importStrategy": "fromEnvironment",
-  "mypy-type-checker.reportingScope": "workspace",
+  "python.analysis.useLibraryCodeForTypes": true,
+  "python.analysis.autoSearchPaths": true,
+  "python.analysis.importFormat": "relative",
+  "python.analysis.fixAll": ["source.convertImportFormat"],
   "explorer.sortOrder": "type",
   "explorer.sortOrderLexicographicOptions": "lower",
   "explorer.openEditors.sortOrder": "fullPath",
