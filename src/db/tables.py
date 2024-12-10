@@ -118,7 +118,7 @@ class Cookie(Base):
         BrowserEnum,
         nullable=False,
         unique=False,
-        docs=docs.cookie['browser'],
+        doc=docs.cookie['browser'],
         comment=docs.cookie['browser'],
     )
     name: Mapped[str] = mapped_column(nullable=False, unique=False)
@@ -361,7 +361,7 @@ class ImageMedia(Base):
     blob: Mapped[bytes] = mapped_column(
         unique=False,
         nullable=False,
-        docs=docs.imagemedia['blob'],
+        doc=docs.imagemedia['blob'],
         comment=docs.imagemedia['blob'],
     )
     sha512: Mapped[str] = mapped_column(unique=False, nullable=False)
@@ -369,20 +369,20 @@ class ImageMedia(Base):
         ForeignKey('processing_entry._id'),
         unique=False,
         nullable=True,
-        docs=docs.imagemedia['processingentry_id'],
+        doc=docs.imagemedia['processingentry_id'],
         comment=docs.imagemedia['processingentry_id'],
     )
     timeline_index: Mapped[int] = mapped_column(
         unique=False,
         nullable=True,
-        docs=docs.imagemedia['timeline_index'],
+        doc=docs.imagemedia['timeline_index'],
         comment=docs.imagemedia['timeline_index'],
     )
     action_of_origin: Mapped[ActionOfOriginType] = mapped_column(
         ActionOfOriginEnum,
         unique=False,
         nullable=False,
-        docs=docs.imagemedia['action_of_origin'],
+        doc=docs.imagemedia['action_of_origin'],
         comment=docs.imagemedia['action_of_origin'],
     )
     size: Mapped[int] = mapped_column(nullable=False, unique=False)
