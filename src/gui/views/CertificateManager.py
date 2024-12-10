@@ -11,24 +11,50 @@ import functools
 import tkinter.ttk as ttk
 
 from pathlib import Path
-from tkinter import filedialog
-from typing import Sequence, cast
+from typing import Final, Sequence, cast
 
 
-class Title(ttk.Label):
+_common_padding: Final[int] = 5
+
+
+class CommonBase(ttk.Widget):
+    @property
+    def tree(self) -> CertificateList:
+        return self.master.tree  # type: ignore
+
+    @property
+    def buttons(self) -> ButtonFrame:
+        return self.master.buttons  # type: ignore
+
+    @property
+    def title(self) -> Title:
+        return self.master.title  # type: ignore
+
+
+class Title(CommonBase, ttk.Label):
     def __init__(self, master: ttk.Widget):
         super().__init__(
             master, anchor=tk.CENTER, justify=tk.CENTER, text='Certificados'
         )
-        self.pack(side=tk.TOP, fill=tk.X)
-
-
-class ButtonFrame(ttk.Frame):
-    def __init__(self, master: CertificateManager):
-        super().__init__(master, height=10)
 
     def pack(self):
-        super().pack(side=tk.TOP, fill=tk.X)
+        super().pack(
+            side=tk.TOP, fill=tk.X, ipady=_common_padding * 2, anchor=tk.CENTER
+        )
+
+
+class ButtonFrame(CommonBase, ttk.Frame):
+    def __init__(self, master: CertificateManager):
+        super().__init__(master)
+
+    def pack(self):
+        super().pack(
+            side=tk.TOP,
+            anchor=tk.CENTER,
+            before=self.tree,
+            padx=_common_padding,
+            pady=_common_padding,
+        )
 
         p = padding(left=5, right=5)
         w = 15
@@ -64,12 +90,8 @@ class ButtonFrame(ttk.Frame):
         self.add.pack(side=tk.LEFT, before=self.delete)
         self.reload.pack(side=tk.LEFT, after=self.delete)
 
-    @property
-    def tree(self) -> CertificateList:
-        return self.master.tree  # type: ignore
 
-
-class CertificateList(ttk.Treeview):
+class CertificateList(CommonBase, ttk.Treeview):
     def __init__(self, master: ttk.Widget):
         super().__init__(
             master,
@@ -95,10 +117,6 @@ class CertificateList(ttk.Treeview):
         self.bind('<<DeleteItem>>', self.delete_focused)
         self.bind('<<AddItem>>', self.add_item)
 
-    @property
-    def button(self) -> ButtonFrame:
-        return self.master.button  # type: ignore
-
     def get_certs(self) -> Sequence[Path]:
         certs = get_certificates()
         by_creation_time = sorted(certs, key=lambda path: path.stat().st_ctime)
@@ -106,7 +124,7 @@ class CertificateList(ttk.Treeview):
 
     def reload(self, event: tk.Event):
         for i, cert in enumerate(self.get_certs()):
-            sha = cert.stem.lower()
+            sha = cert.stem.lower()  # regular file name if __debug__, else SHA hash
             if self.exists(sha):
                 continue
             cert_type = cert.suffix.removeprefix('.').upper()
@@ -144,16 +162,21 @@ class CertificateList(ttk.Treeview):
 
     def _update_select(self, event: tk.Event):
         if self.focus() == '':
-            self.button.delete.state([tk.DISABLED])
+            self.buttons.delete.state([tk.DISABLED])
             return
-        self.button.delete.state([tk.ACTIVE])
+        self.buttons.delete.state([tk.ACTIVE])
 
 
 class CertificateManager(View):
     def __init__(self, master):
         super().__init__(master)
+        self.title = Title(self)
         self.tree = CertificateList(self)
-        self.tree.pack()
         self.button = ButtonFrame(self)
+        self.pack_in_order()
+
+    def pack_in_order(self):
+        """Packs widgets in the strict order in which they need to."""
+        self.title.pack()
+        self.tree.pack()
         self.button.pack()
-        self.button.pack_configure(before=self.tree)
