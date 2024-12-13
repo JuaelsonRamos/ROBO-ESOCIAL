@@ -265,13 +265,10 @@ class FormEntry:
         self.hide_button.bind('<ButtonRelease-1>', self.show_input)
 
     def toggle_blocked(self, event: tk.Event | None = None):
-        if self.block_button is None:
-            return
         if self._is_blocked:
-            self.block_button.config(state=tk.NORMAL)
+            self.unblock_input()
         else:
-            self.block_button.config(state=tk.DISABLED)
-        self._is_blocked = not self._is_blocked
+            self.block_input()
 
     def add_block_input_button(self, default: bool):
         self._block_default = default or self._block_default
@@ -288,15 +285,15 @@ class FormEntry:
         self.block_button.bind('<Button-1>', self.toggle_blocked)
 
     def block_input(self, event: tk.Event | None = None):
-        if self.block_button is None:
-            return
+        if self.block_button is not None:
         self.block_button.config(state=tk.DISABLED)
+        self.entry.config(state=tk.DISABLED)
         self._is_blocked = True
 
     def unblock_input(self, event: tk.Event | None = None):
-        if self.block_button is None:
-            return
+        if self.block_button is not None:
         self.block_button.config(state=tk.NORMAL)
+        self.entry.config(state=tk.NORMAL)
         self._is_blocked = False
 
 
