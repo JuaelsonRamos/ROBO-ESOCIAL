@@ -271,7 +271,7 @@ class FormEntry:
             self.block_input()
 
     def add_block_input_button(self, default: bool):
-        self._block_default = default or self._block_default
+        self._block_default = default
         self._is_blocked = self._block_default
         state = tk.NORMAL if self._block_default else tk.DISABLED
         self.block_button = ttk.Button(
@@ -283,16 +283,16 @@ class FormEntry:
             padding=2,
         )
         self.block_button.bind('<Button-1>', self.toggle_blocked)
+        if self._block_default:
+            self.block_input()
+        else:
+            self.unblock_input()
 
     def block_input(self, event: tk.Event | None = None):
-        if self.block_button is not None:
-        self.block_button.config(state=tk.DISABLED)
         self.entry.config(state=tk.DISABLED)
         self._is_blocked = True
 
     def unblock_input(self, event: tk.Event | None = None):
-        if self.block_button is not None:
-        self.block_button.config(state=tk.NORMAL)
         self.entry.config(state=tk.NORMAL)
         self._is_blocked = False
 
