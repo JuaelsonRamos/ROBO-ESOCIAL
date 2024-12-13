@@ -15,7 +15,8 @@ import itertools
 import tkinter.ttk as ttk
 
 from pathlib import Path
-from typing import Final, Sequence, cast
+from tkinter import scrolledtext
+from typing import Final, Literal, Sequence, cast
 
 from sqlalchemy import func
 
@@ -157,9 +158,6 @@ class CertificateList(CommonBase, ttk.Treeview):
         self.bind('<<DeleteItem>>', self.delete_focused)
         self.bind('<<AddItem>>', self.add_item)
 
-    def pack(self):
-        super().pack(fill=tk.Y, side=tk.LEFT)
-
     def _define_headings(self):
         self.heading('index', text='#', anchor=tk.CENTER)
         self.column('index', anchor=tk.CENTER, width=32)
@@ -262,18 +260,101 @@ class CertificateList(CommonBase, ttk.Treeview):
 class TreeFrame(tk.Frame):
     def __init__(self, master: CertificateManager):
         super().__init__(master)
-        self.tree = CertificateList(self)  # type: ignore
-        self.bind('<Visibility>', self.resize)
+        self.scrolling_canvas = tk.Canvas(self)
+        self.tree = CertificateList(self.scrolling_canvas)  # type: ignore
+        self.tree_window = self.scrolling_canvas.create_window(
+            0, 0, anchor=tk.NW, window=self.tree
+        )
+        self.scroll = ttk.Scrollbar(self, orient=tk.HORIZONTAL)
+        self.scroll.config(command=self.scrolling_canvas.xview)
+        self.scrolling_canvas.config(xscrollcommand=self.scroll.set)
+        self.scrolling_canvas.bind('<Visibility>', self.resize)
+
+    def xview(
+        self,
+        kind: Literal['moveto', 'scroll'],
+        delta: float | str,
+        unit: Literal['units', 'pages'] | None = None,
+    ):
+        """Moves tree by given float factor. Method compatible with .xview() on canvas, treeview, etc."""
+        if kind != tk.MOVETO:
+            return
+        tree_x = self.tree.winfo_x()
+        tree_width = self.tree.winfo_reqwidth()
+        frame_width = self.get_width()
+        if isinstance(delta, str):
+            delta = float(delta)
+        current = self.scroll.get()
+        is_moving_left: bool = abs(delta) < 0.5
+        is_moving_right: bool = abs(delta) > 0.5
+        # negative factor == left, positive factor == right
+        factor_movement: float = 0
+        pixels_moved: int = 0
+        start: int = 0
+        if delta != 0:
+            if is_moving_left:
+                factor_movement = 0.5 * abs(delta)
+            else:
+                factor_movement = 0.5 * (abs(delta) - 0.5)
+            pixels_moved = math.ceil(frame_width * factor_movement)
+            if is_moving_right:
+                # scrollbar goes to the right, x decreases
+                start = tree_x - pixels_moved
+            elif is_moving_left:
+                # scrollbar goes to the left, x increases
+                start = tree_x + pixels_moved
+            else:
+                start = 0
+            if abs(start) + frame_width >= tree_width:
+                # would overflow
+                if start < 0:
+                    # prevent crop to the right
+                    start = -(tree_width - frame_width)
+                else:
+                    # prevent crop to the left
+                    start = 0
+        self._tree_relative_x = start
+        frame_x = self.winfo_rootx()
+        self._tree_absolute_x = frame_x + start  # if start < 0, adding will subtract
+        self.tree.place(x=self._tree_relative_x)
+        scroll_start: float = abs(start) / tree_width
+        scroll_end: float = (abs(start) + frame_width) / tree_width
+        self.scroll.set(scroll_start, scroll_end)
+
+    def scroll_frame(self, delta: float):
+        self.xview(tk.MOVETO, delta)
+
+    def _init_scrollbar(self, event: tk.Event | None):
+        self.scroll_frame(0)
+        self.tree.unbind('<Visibility>', self._init_scrollbar)  # type: ignore
+
+    def get_width(self):
+        window_size = self.master.winfo_width()
+        return math.ceil(window_size * 0.5)
 
     def resize(self, event: tk.Event | None = None):
-        window_size = self.master.winfo_width()
-        self.max_width = math.ceil(window_size * 0.5)
-        self.config(width=self.max_width)
+        frame_width = self.get_width()
+        tree_width = self.tree.winfo_reqwidth()
+        canvas_height = self.scrolling_canvas.winfo_height()
+        self.config(width=frame_width)
+        self.scrolling_canvas.config(
+            width=frame_width,
+            scrollregion=(0, 0, tree_width, 0),
+        )
+        self.scrolling_canvas.itemconfig(
+            self.tree_window,
+            height=canvas_height,
+        )
 
     def pack(self):
         super().pack(side=tk.LEFT, fill=tk.BOTH, padx=5, pady=5)
         self.pack_propagate(tk.FALSE)
-        self.tree.pack()
+        self.scrolling_canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.TRUE)
+        self.scroll.pack(
+            side=tk.BOTTOM,
+            fill=tk.X,
+            after=self.scrolling_canvas,
+        )
 
 
 class FormEntry:
