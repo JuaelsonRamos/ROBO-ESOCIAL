@@ -191,11 +191,11 @@ class FormEntry:
             master,
             anchor=tk.E,
             justify=tk.RIGHT,
-            padding=5,
-            width=self.label_width,
             textvariable=self._var_label,
         )
         self._var_entry = tk.StringVar(value='')
+        self._entry_text_buffer: str = ''
+        self._hidden_text_buffer: str = ''
         self.entry = ttk.Entry(
             master,
             justify=tk.LEFT,
@@ -212,12 +212,13 @@ class FormEntry:
 
     def grid(self):
         i = self.index
-        self.label.grid(column=0, row=i, sticky=tk.NE)
-        self.entry.grid(column=1, row=i, sticky=tk.NW)
+        pad = 5
+        self.label.grid(column=0, row=i, sticky=tk.E, padx=pad, pady=pad)
+        self.entry.grid(column=1, row=i, sticky=tk.W, padx=pad, pady=pad)
         if self.hide_button:
-            self.hide_button.grid(column=2, row=i, sticky=tk.N)
+            self.hide_button.grid(column=2, row=i, sticky=tk.N, padx=pad, pady=pad)
         if self.block_button:
-            self.block_button.grid(column=3, row=i, sticky=tk.N)
+            self.block_button.grid(column=3, row=i, sticky=tk.N, padx=pad, pady=pad)
 
     def is_hidded(self) -> bool:
         if self.hide_button is None:
@@ -238,19 +239,19 @@ class FormEntry:
         self._var_entry.set(text)
 
     def hide_input(self, event: tk.Event | None = None):
-        if self._is_hidden:
-            return
         self._var_entry.set(self._hidden_text_buffer)
         self._is_hidden = True
+        if self.hide_button is not None:
+            self.hide_button.config(text='!hide')
 
     def show_input(self, event: tk.Event | None = None):
-        if not self._is_hidden:
-            return
         self._var_entry.set(self._entry_text_buffer)
         self._is_hidden = False
+        if self.hide_button is not None:
+            self.hide_button.config(text='hide')
 
     def add_hide_button(self, default: bool):
-        self._hide_default = default or self._hide_default
+        self._hide_default = default
         self._is_hidden = self._hide_default
         state = tk.NORMAL if self._hide_default else tk.DISABLED
         self.hide_button = ttk.Button(
@@ -258,11 +259,13 @@ class FormEntry:
             state=state,
             default=state,
             takefocus=tk.FALSE,
-            text='HIDE',
-            padding=2,
         )
-        self.hide_button.bind('<Button-1>', self.hide_input)
-        self.hide_button.bind('<ButtonRelease-1>', self.show_input)
+        self.hide_button.bind('<Button-1>', self.show_input)
+        self.hide_button.bind('<ButtonRelease-1>', self.hide_input)
+        if self._hide_default:
+            self.hide_input()
+        else:
+            self.show_input()
 
     def toggle_blocked(self, event: tk.Event | None = None):
         if self._is_blocked:
@@ -279,8 +282,6 @@ class FormEntry:
             state=state,
             default=state,
             takefocus=False,
-            text='BLOCK',
-            padding=2,
         )
         self.block_button.bind('<Button-1>', self.toggle_blocked)
         if self._block_default:
@@ -291,10 +292,14 @@ class FormEntry:
     def block_input(self, event: tk.Event | None = None):
         self.entry.config(state=tk.DISABLED)
         self._is_blocked = True
+        if self.block_button is not None:
+            self.block_button.config(text='!block')
 
     def unblock_input(self, event: tk.Event | None = None):
         self.entry.config(state=tk.NORMAL)
         self._is_blocked = False
+        if self.block_button is not None:
+            self.block_button.config(text='block')
 
 
 class CertificateForm(CommonBase, ttk.Frame):
