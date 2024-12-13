@@ -160,27 +160,27 @@ class CertificateList(CommonBase, ttk.Treeview):
 
     def _define_headings(self):
         self.heading('index', text='#', anchor=tk.CENTER)
-        self.column('index', anchor=tk.CENTER, width=32)
+        self.column('index', anchor=tk.CENTER, minwidth=32, width=32)
 
         self.heading('created', text='Data de Criação', anchor=tk.CENTER)
-        self.column('created', anchor=tk.CENTER, width=150)
+        self.column('created', anchor=tk.CENTER, minwidth=125, width=150)
 
         self.heading('last_modified', text='Data Ultima Modificação', anchor=tk.CENTER)
-        self.column('last_modified', anchor=tk.CENTER, width=150)
+        self.column('last_modified', anchor=tk.CENTER, minwidth=125, width=150)
 
         self.heading('origin', text='URL', anchor=tk.W)
-        self.column('origin', anchor=tk.CENTER, minwidth=200, width=300)
+        self.column('origin', anchor=tk.CENTER, minwidth=150, width=250)
 
         self.heading('type', text='Tipo', anchor=tk.CENTER)
-        self.column('type', anchor=tk.CENTER, width=50)
+        self.column('type', anchor=tk.CENTER, minwidth=50, width=60)
 
         self.heading(
             'has_public_key', text='Chave Pública Registrada', anchor=tk.CENTER
         )
-        self.column('has_public_key', anchor=tk.CENTER, minwidth=200, width=200)
+        self.column('has_public_key', anchor=tk.CENTER, minwidth=160, width=160)
 
         self.heading('has_passphrase', text='Senha Registrada', anchor=tk.CENTER)
-        self.column('has_passphrase', anchor=tk.CENTER, minwidth=200, width=200)
+        self.column('has_passphrase', anchor=tk.CENTER, minwidth=160, width=160)
 
     def get_certs(self) -> Sequence[Path]:
         certs = get_certificates()
