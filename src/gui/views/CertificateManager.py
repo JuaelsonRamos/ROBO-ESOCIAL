@@ -8,6 +8,7 @@ from src.gui.utils.units import padding
 from src.gui.views.View import View
 from src.windows import open_file_dialog
 
+import math
 import tkinter as tk
 import functools
 import itertools
@@ -90,7 +91,7 @@ class ButtonFrame(CommonBase, ttk.Frame):
         super().pack(
             side=tk.TOP,
             anchor=tk.CENTER,
-            before=self.tree,
+            after=self.title,
             padx=_common_padding,
             pady=_common_padding,
         )
@@ -157,7 +158,7 @@ class CertificateList(CommonBase, ttk.Treeview):
         self.bind('<<AddItem>>', self.add_item)
 
     def pack(self):
-        super().pack(fill=tk.BOTH, side=tk.LEFT, padx=5, pady=5)
+        super().pack(fill=tk.Y, side=tk.LEFT)
 
     def _define_headings(self):
         self.heading('index', text='#', anchor=tk.CENTER)
@@ -256,6 +257,23 @@ class CertificateList(CommonBase, ttk.Treeview):
             self.buttons.delete.state([tk.DISABLED])
             return
         self.buttons.delete.state([tk.ACTIVE])
+
+
+class TreeFrame(tk.Frame):
+    def __init__(self, master: CertificateManager):
+        super().__init__(master)
+        self.tree = CertificateList(self)  # type: ignore
+        self.bind('<Visibility>', self.resize)
+
+    def resize(self, event: tk.Event | None = None):
+        window_size = self.master.winfo_width()
+        self.max_width = math.ceil(window_size * 0.5)
+        self.config(width=self.max_width)
+
+    def pack(self):
+        super().pack(side=tk.LEFT, fill=tk.BOTH, padx=5, pady=5)
+        self.pack_propagate(tk.FALSE)
+        self.tree.pack()
 
 
 class FormEntry:
@@ -424,7 +442,8 @@ class CertificateManager(View):
     def __init__(self, master):
         super().__init__(master)
         self.title = Title(self)
-        self.tree = CertificateList(self)
+        self.tree_frame = TreeFrame(self)
+        self.tree = self.tree_frame.tree
         self.button = ButtonFrame(self)
         self.form = CertificateForm(self)
         self.pack_in_order()
@@ -432,6 +451,6 @@ class CertificateManager(View):
     def pack_in_order(self):
         """Packs widgets in the strict order in which they need to."""
         self.title.pack()
-        self.tree.pack()
+        self.tree_frame.pack()
         self.button.pack()
         self.form.pack()
