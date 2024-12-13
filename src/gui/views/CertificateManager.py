@@ -265,10 +265,15 @@ class TreeFrame(tk.Frame):
         self.tree_window = self.scrolling_canvas.create_window(
             0, 0, anchor=tk.NW, window=self.tree
         )
+
         self.scroll = ttk.Scrollbar(self, orient=tk.HORIZONTAL)
         self.scroll.config(command=self.scrolling_canvas.xview)
         self.scrolling_canvas.config(xscrollcommand=self.scroll.set)
+
         self.scrolling_canvas.bind('<Visibility>', self.resize)
+        self.scrolling_canvas.bind('<MouseWheel>', self._scroll_mousewheel)
+        self.scroll.bind('<MouseWheel>', self._scroll_mousewheel)
+        self.tree.bind('<MouseWheel>', self._scroll_mousewheel)
 
     def xview(
         self,
@@ -320,6 +325,16 @@ class TreeFrame(tk.Frame):
         scroll_start: float = abs(start) / tree_width
         scroll_end: float = (abs(start) + frame_width) / tree_width
         self.scroll.set(scroll_start, scroll_end)
+
+    def _scroll_mousewheel(self, event: tk.Event):
+        # 1 mouse scroll == 120 on windows, so the wheel's step is 120 at a time
+        acceleration = 1
+        scroll_length = event.delta // 120
+        if scroll_length < 0:
+            scroll_length -= acceleration
+        else:
+            scroll_length += acceleration
+        self.scrolling_canvas.xview_scroll(scroll_length, tk.UNITS)
 
     def scroll_frame(self, delta: float):
         self.xview(tk.MOVETO, delta)
