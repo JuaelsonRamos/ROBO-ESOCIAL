@@ -6,12 +6,15 @@ from src.gui.utils.units import padding
 from src.gui.views.View import View
 from src.windows import open_file_dialog
 
+import io
 import tkinter as tk
 import functools
+import itertools
 import tkinter.ttk as ttk
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Sequence, cast
+from typing import Final, NamedTuple, Sequence, cast
 
 
 _common_padding: Final[int] = 5
@@ -167,12 +170,164 @@ class CertificateList(CommonBase, ttk.Treeview):
         self.buttons.delete.state([tk.ACTIVE])
 
 
+class FormEntry:
+    _get_class_instance_number = itertools.count(0).__next__
+    entries: list[FormEntry] = []
+    label_width: int = 25
+    entry_width: int = 35
+
+    def __init__(
+        self,
+        master: CertificateForm,
+        label_text: str | None = None,
+    ):
+        self.index = self._get_class_instance_number()
+        self.entries.append(self)
+
+        self.master = master
+
+        self._var_label = tk.StringVar(value=label_text or 'Static Data Field:')
+        self.label = ttk.Label(
+            master,
+            anchor=tk.E,
+            justify=tk.RIGHT,
+            padding=5,
+            width=self.label_width,
+            textvariable=self._var_label,
+        )
+        self._var_entry = tk.StringVar(value='')
+        self.entry = ttk.Entry(
+            master,
+            justify=tk.LEFT,
+            textvariable=self._var_entry,
+            width=self.entry_width,
+        )
+
+        self.hide_button: ttk.Button | None = None
+        self._is_hidden = False
+        self._hide_default = False
+        self.block_button: ttk.Button | None = None
+        self._block_default = False
+        self._is_blocked = False
+
+    def grid(self):
+        i = self.index
+        self.label.grid(column=0, row=i, sticky=tk.NE)
+        self.entry.grid(column=1, row=i, sticky=tk.NW)
+        if self.hide_button:
+            self.hide_button.grid(column=2, row=i, sticky=tk.N)
+        if self.block_button:
+            self.block_button.grid(column=3, row=i, sticky=tk.N)
+
+    def is_hidded(self) -> bool:
+        if self.hide_button is None:
+            return False
+        return self._is_hidden
+
+    def is_blocked(self) -> bool:
+        if self.block_button is None:
+            return False
+        return self._is_blocked
+
+    def set_label(self, text: str):
+        self._var_label.set(text)
+
+    def set_value(self, text: str):
+        self._entry_text_buffer = text
+        self._hidden_text_buffer = '*' * len(text)
+        self._var_entry.set(text)
+
+    def hide_input(self, event: tk.Event | None = None):
+        if self._is_hidden:
+            return
+        self._var_entry.set(self._hidden_text_buffer)
+        self._is_hidden = True
+
+    def show_input(self, event: tk.Event | None = None):
+        if not self._is_hidden:
+            return
+        self._var_entry.set(self._entry_text_buffer)
+        self._is_hidden = False
+
+    def add_hide_button(self, default: bool):
+        self._hide_default = default or self._hide_default
+        self._is_hidden = self._hide_default
+        state = tk.NORMAL if self._hide_default else tk.DISABLED
+        self.hide_button = ttk.Button(
+            self.master,
+            state=state,
+            default=state,
+            takefocus=tk.FALSE,
+            text='HIDE',
+            padding=2,
+        )
+        self.hide_button.bind('<Button-1>', self.hide_input)
+        self.hide_button.bind('<ButtonRelease-1>', self.show_input)
+
+    def toggle_blocked(self, event: tk.Event | None = None):
+        if self.block_button is None:
+            return
+        if self._is_blocked:
+            self.block_button.config(state=tk.NORMAL)
+        else:
+            self.block_button.config(state=tk.DISABLED)
+        self._is_blocked = not self._is_blocked
+
+    def add_block_input_button(self, default: bool):
+        self._block_default = default or self._block_default
+        self._is_blocked = self._block_default
+        state = tk.NORMAL if self._block_default else tk.DISABLED
+        self.block_button = ttk.Button(
+            self.master,
+            state=state,
+            default=state,
+            takefocus=False,
+            text='BLOCK',
+            padding=2,
+        )
+        self.block_button.bind('<Button-1>', self.toggle_blocked)
+
+    def block_input(self, event: tk.Event | None = None):
+        if self.block_button is None:
+            return
+        self.block_button.config(state=tk.DISABLED)
+        self._is_blocked = True
+
+    def unblock_input(self, event: tk.Event | None = None):
+        if self.block_button is None:
+            return
+        self.block_button.config(state=tk.NORMAL)
+        self._is_blocked = False
+
+
+class CertificateForm(CommonBase, ttk.Frame):
+    def __init__(self, master: CertificateManager):
+        super().__init__(master)
+        self.create_widgets()
+
+    def pack(self):
+        super().pack(side=tk.LEFT, fill=tk.BOTH, padx=5, pady=5)
+
+    def create_widgets(self):
+        self.created = FormEntry(self)
+        self.last_modified = FormEntry(self)
+        self.browsercontext_id = FormEntry(self)
+        self.origin = FormEntry(self)
+        self.cert_path = FormEntry(self)
+        self.key_path = FormEntry(self)
+        self.pfx_path = FormEntry(self)
+        self.passphrase = FormEntry(self)
+        for entry in FormEntry.entries:
+            entry.grid()
+
+
 class CertificateManager(View):
     def __init__(self, master):
         super().__init__(master)
         self.title = Title(self)
         self.tree = CertificateList(self)
         self.button = ButtonFrame(self)
+        self.form = CertificateForm(self)
         self.pack_in_order()
 
     def pack_in_order(self):
@@ -180,3 +335,4 @@ class CertificateManager(View):
         self.title.pack()
         self.tree.pack()
         self.button.pack()
+        self.form.pack()
