@@ -1,23 +1,59 @@
 from __future__ import annotations
 
 from src.certificate import copy_certificate, delete_certificate, get_certificates
+from src.db import ClientCertificate
+from src.gui.global_runtime_constants import GlobalRuntimeConstants
 from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
 from src.gui.views.View import View
 from src.windows import open_file_dialog
 
-import io
 import tkinter as tk
 import functools
 import itertools
 import tkinter.ttk as ttk
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, NamedTuple, Sequence, cast
+from typing import Final, Sequence, cast
+
+from sqlalchemy import func
 
 
 _common_padding: Final[int] = 5
+
+
+class DatabaseHelper:
+    def __init__(self):
+        super().__init__()
+        self.metadata = ClientCertificate.metadata
+        self.table = self.metadata.tables['clientcertificate']
+
+    @property
+    def engine(self):
+        if not GlobalRuntimeConstants.is_initialized():
+            return
+        return GlobalRuntimeConstants().sqlite  # type:ignore
+
+    def count_certificates(self) -> int:
+        with self.engine.begin() as conn:
+            query = func.count().select().select_from(ClientCertificate._id)
+            quantity = conn.scalar(query)
+            return quantity or 0
+
+    def get_all_certificates(self) -> Sequence[ClientCertificate]:
+        with self.engine.begin() as conn:
+            query = self.table.select()
+            certs = conn.scalars(query).all()
+            return certs
+
+    def get_certificates(self, ids: Sequence[int]) -> Sequence[ClientCertificate]:
+        with self.engine.begin() as conn:
+            query = self.table.select().where(ClientCertificate._id.in_(ids))
+            certs = conn.scalars(query).all()
+            return certs
+
+
+db_helpers = DatabaseHelper()
 
 
 class CommonBase(ttk.Widget):
@@ -96,42 +132,94 @@ class ButtonFrame(CommonBase, ttk.Frame):
 
 class CertificateList(CommonBase, ttk.Treeview):
     def __init__(self, master: ttk.Widget):
+        self.columns = (
+            'index',
+            'created',
+            'last_modified',
+            'origin',
+            'type',
+            'has_public_key',
+            'has_passphrase',
+        )
         super().__init__(
             master,
             show='headings',
-            columns=('index', 'name', 'type'),
+            columns=self.columns,
             selectmode='browse',
         )
-
-    def pack(self):
-        super().pack(fill=tk.BOTH, side=tk.LEFT, padx=5, pady=5)
-
-        self.heading('index', text='#', anchor=tk.CENTER)
-        self.column('index', anchor=tk.CENTER, minwidth=50)
-
-        self.heading('name', text='Nome', anchor=tk.W)
-        self.column('name', anchor=tk.W, minwidth=200)
-
-        self.heading('type', text='Tipo', anchor=tk.CENTER)
-        self.column('type', anchor=tk.CENTER, minwidth=80)
-
+        # prevents column resizing
+        # SEE https://stackoverflow.com/a/71710427/15493645
+        self.bind('<Motion>', 'break')
+        self._define_headings()
         self.bind('<<TreeviewSelect>>', self._update_select)
         self.bind('<<ReloadTree>>', self.reload)
         self.bind('<<DeleteItem>>', self.delete_focused)
         self.bind('<<AddItem>>', self.add_item)
+
+    def pack(self):
+        super().pack(fill=tk.BOTH, side=tk.LEFT, padx=5, pady=5)
+
+    def _define_headings(self):
+        self.heading('index', text='#', anchor=tk.CENTER)
+        self.column('index', anchor=tk.CENTER, width=32)
+
+        self.heading('created', text='Data de Criação', anchor=tk.CENTER)
+        self.column('created', anchor=tk.CENTER, width=150)
+
+        self.heading('last_modified', text='Data Ultima Modificação', anchor=tk.CENTER)
+        self.column('last_modified', anchor=tk.CENTER, width=150)
+
+        self.heading('origin', text='URL', anchor=tk.W)
+        self.column('origin', anchor=tk.CENTER, minwidth=200, width=300)
+
+        self.heading('type', text='Tipo', anchor=tk.CENTER)
+        self.column('type', anchor=tk.CENTER, width=50)
+
+        self.heading(
+            'has_public_key', text='Chave Pública Registrada', anchor=tk.CENTER
+        )
+        self.column('has_public_key', anchor=tk.CENTER, minwidth=200, width=200)
+
+        self.heading('has_passphrase', text='Senha Registrada', anchor=tk.CENTER)
+        self.column('has_passphrase', anchor=tk.CENTER, minwidth=200, width=200)
 
     def get_certs(self) -> Sequence[Path]:
         certs = get_certificates()
         by_creation_time = sorted(certs, key=lambda path: path.stat().st_ctime)
         return by_creation_time
 
+    def _make_item_tree_data(self, cert: ClientCertificate) -> tuple[str, ...]:
+        datetime_format = '%d/%m/%Y %H:%M'
+        _id = str(cert._id)
+        if cert.pfx is not None:
+            _type = 'PFX'
+        else:
+            _type = Path(cert.cert_path).suffix.strip('.').upper()
+        has_public_key = 'Sim' if cert.key is not None else 'Não'
+        has_passphrase = 'Sim' if cert.passphrase is not None else 'Não'
+
+        return (
+            _id,
+            cert.created.strftime(datetime_format),
+            cert.last_modified.strftime(datetime_format),
+            cert.origin,
+            _type,
+            has_public_key,
+            has_passphrase,
+        )
+
     def reload(self, event: tk.Event):
-        for i, cert in enumerate(self.get_certs()):
-            sha = cert.stem.lower()  # regular file name if __debug__, else SHA hash
-            if self.exists(sha):
+        count = db_helpers.count_certificates()
+        if count == 0:
+            return
+        certs = db_helpers.get_all_certificates()
+        for cert in certs:
+            iid = str(cert._id)
+            if self.exists(iid):
+                self.item(iid, values=self._make_item_tree_data(cert))
                 continue
-            cert_type = cert.suffix.removeprefix('.').upper()
-            self.insert('', i, sha, values=(i, sha, cert_type))
+            i = cert._id
+            self.insert('', i, iid, values=self._make_item_tree_data(cert))
 
     def delete_focused(self, event: tk.Event):
         iid = self.focus()
