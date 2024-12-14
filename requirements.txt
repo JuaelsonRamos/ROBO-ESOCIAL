@@ -16,3 +16,5 @@ yamlfix==1.17.0
 git+https://github.com/marcosdly/jsonc@fix/collections-import # jsoncparser
 gitignore_parser==0.1.11
 docformatter==1.7.5
+tksvg==0.7.4
+SQLAlchemy==2.0.36
