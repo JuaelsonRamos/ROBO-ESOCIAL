@@ -82,6 +82,8 @@ class WidgetsNamespace:
     btn_edit: ActionButton
     btn_delete: ActionButton
     btn_reload: ActionButton
+    btn_submit: ActionButton
+    btn_cancel: ActionButton
 
 
 # should be assigned on root instanciation
@@ -679,6 +681,8 @@ class CertificateManager(View):
             self.buttons_frame.edit,
             self.buttons_frame.delete,
             self.buttons_frame.reload,
+            self.form.btn_submit,
+            self.form.btn_cancel,
         )
 
         self.pack_in_order()
