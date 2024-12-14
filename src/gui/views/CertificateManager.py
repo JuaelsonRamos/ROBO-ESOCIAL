@@ -113,10 +113,10 @@ class ActionButton(ttk.Button):
         self.config(command=command)
 
     def disable(self):
-        self.state([tk.DISABLED])
+        self.config(state=tk.DISABLED)
 
     def active(self):
-        self.state([tk.NORMAL])
+        self.config(state=tk.NORMAL)
 
 
 class ButtonFrame(ttk.Frame):
@@ -133,7 +133,8 @@ class ButtonFrame(ttk.Frame):
 
         self.delete.pack(side=tk.LEFT)
         self.add.pack(side=tk.LEFT, before=self.delete)
-        self.reload.pack(side=tk.LEFT, after=self.delete)
+        self.edit.pack(side=tk.LEFT, after=self.delete)
+        self.reload.pack(side=tk.LEFT, after=self.edit)
 
 
 class CertificateList(ttk.Treeview):
@@ -247,6 +248,14 @@ class CertificateList(ttk.Treeview):
             multi_select=True,
         )
         lock.schedule(self, func, self._insert_files, block=False)
+
+    def init_tree_state(self):
+        global _widgets
+        selected = self.selection()
+        if len(selected) > 0:
+            self.selection_remove(selected)
+        _widgets.btn_delete.disable()
+        _widgets.btn_edit.disable()
 
     def assign_tree_events(self):
         global _widgets
@@ -530,6 +539,7 @@ class CertificateManager(View):
 
         self.pack_in_order()
         self.tree.assign_tree_events()
+        self.tree.init_tree_state()
         self.tree_frame.assign_layout_events()
 
     def pack_in_order(self):
