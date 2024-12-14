@@ -14,6 +14,8 @@ import functools
 import itertools
 import tkinter.ttk as ttk
 
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 from tkinter import scrolledtext
 from typing import Final, Literal, Sequence, cast
@@ -58,25 +60,26 @@ class DatabaseHelper:
 db_helpers = DatabaseHelper()
 
 
-class CommonBase(ttk.Widget):
-    @property
-    def tree(self) -> CertificateList:
-        return self.master.tree  # type: ignore
+@dataclass(frozen=False, slots=True)
+class WidgetsNamespace:
+    title: Title
+    buttons_frame: ButtonFrame
+    form: CertificateForm
+    tree: CertificateList
+    tree_frame: TreeFrame
+    tree_canvas: ScrollableCanvas
+    btn_add: ActionButton
+    btn_edit: ActionButton
+    btn_delete: ActionButton
+    btn_update: ActionButton
 
-    @property
-    def buttons(self) -> ButtonFrame:
-        return self.master.buttons  # type: ignore
 
-    @property
-    def title(self) -> Title:
-        return self.master.title  # type: ignore
-
-
-class Title(CommonBase, ttk.Label):
-    def __init__(self, master: ttk.Widget):
+class Title(ttk.Label):
+    def __init__(self, master: CertificateManager):
         super().__init__(
             master, anchor=tk.CENTER, justify=tk.CENTER, text='Certificados'
         )
+        self.parent_widget = master
 
     def pack(self):
         super().pack(
@@ -84,9 +87,18 @@ class Title(CommonBase, ttk.Label):
         )
 
 
-class ButtonFrame(CommonBase, ttk.Frame):
+class ActionButton(ttk.Button):
+    # TODO
+
+    def __init__(self, master: ButtonFrame):
+        super().__init__(master)
+        self.parent_widget = master
+
+
+class ButtonFrame(ttk.Frame):
     def __init__(self, master: CertificateManager):
         super().__init__(master)
+        self.parent_widget = master
 
     def pack(self):
         super().pack(
@@ -132,8 +144,9 @@ class ButtonFrame(CommonBase, ttk.Frame):
         self.reload.pack(side=tk.LEFT, after=self.delete)
 
 
-class CertificateList(CommonBase, ttk.Treeview):
-    def __init__(self, master: ttk.Widget):
+class CertificateList(ttk.Treeview):
+    def __init__(self, master: ScrollableCanvas):
+        self.parent_widget = master
         self.columns = (
             'index',
             'created',
@@ -257,9 +270,18 @@ class CertificateList(CommonBase, ttk.Treeview):
         self.buttons.delete.state([tk.ACTIVE])
 
 
+class ScrollableCanvas(tk.Canvas):
+    # TODO
+
+    def __init__(self, master: TreeFrame):
+        super().__init__(master)
+        self.parent_widget = master
+
+
 class TreeFrame(tk.Frame):
     def __init__(self, master: CertificateManager):
         super().__init__(master)
+        self.parent_widget = master
         self.scrolling_canvas = tk.Canvas(self)
         self.tree = CertificateList(self.scrolling_canvas)  # type: ignore
         self.tree_window = self.scrolling_canvas.create_window(
@@ -504,9 +526,10 @@ class FormEntry:
             self.block_button.config(text='block')
 
 
-class CertificateForm(CommonBase, ttk.Frame):
+class CertificateForm(ttk.Frame):
     def __init__(self, master: CertificateManager):
         super().__init__(master)
+        self.parent_widget = master
         self.create_widgets()
 
     def pack(self):
