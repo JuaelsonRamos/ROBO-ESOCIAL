@@ -774,10 +774,11 @@ class CertificateManager(View):
         )
 
         self.pack_in_order()
-        self.tree.assign_tree_events()
-        self.tree.init_tree_state()
-        self.buttons_frame.assign_buttons_events()
         self.tree_frame.assign_layout_events()
+        self.tree.assign_tree_events()
+        self.buttons_frame.assign_buttons_events()
+        self.form.assign_form_events()
+        self.tree.init_tree_state()
 
     def pack_in_order(self):
         """Packs widgets in the strict order in which they need to."""
