@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from tkinter import scrolledtext
-from typing import Callable, Final, Literal, Sequence, cast
+from typing import Callable, Final, Literal, Sequence, cast, overload
 
 from sqlalchemy import func
 
@@ -99,10 +99,10 @@ class Title(ttk.Label):
 class ActionButton(ttk.Button):
     def __init__(
         self,
-        master: ButtonFrame,
+        master: ttk.Widget,
         text: str = 'ActionButton',
         command: str | Callable = '',
-    ):
+    ) -> None:
         super().__init__(
             master,
             width=15,
@@ -532,6 +532,12 @@ class CertificateForm(ttk.Frame):
 
     def pack(self):
         super().pack(side=tk.LEFT, fill=tk.BOTH, padx=5, pady=5)
+        for entry in FormEntry.entries:
+            entry.grid()
+        cols, rows = self.grid_size()  # values are equivalent to 1-based indexes
+        self.btn_frame.grid(column=0, row=rows, columnspan=cols, ipady=10)
+        self.btn_submit.pack(side=tk.LEFT)
+        self.btn_cancel.pack(side=tk.LEFT, after=self.btn_submit)
 
     def create_widgets(self):
         self.created = FormEntry(self, 'Data Adicionado:')
@@ -551,16 +557,41 @@ class CertificateForm(ttk.Frame):
         self.passphrase = FormEntry(self, 'Senha:')
         self.passphrase.add_block_input_button(default=True)
         self.passphrase.add_hide_button(default=True)
-        for entry in FormEntry.entries:
-            entry.grid()
+        self.btn_frame = ttk.Frame(self)
+        self.btn_submit = ActionButton(self.btn_frame, 'Confirmar')
+        self.btn_cancel = ActionButton(self.btn_frame, 'Cancelar')
 
     def block_all_form_interactions(self):
         for entry in FormEntry.entries:
             entry.disable_all_interactions()
+        self.btn_submit.disable()
+        self.btn_cancel.disable()
 
     def allow_form_interactions(self):
         for entry in FormEntry.entries:
             entry.enable_all_interactions()
+        self.btn_submit.active()
+        self.btn_cancel.active()
+
+    def fill_form_by_db_id(self, _id: int):
+        cert = db_helpers.get_one(_id)
+        if cert is None:
+            return
+        self.created.set_value(cert.created.strftime(FormEntry.datetime_format))
+        if cert.last_modified is not None:
+            self.last_modified.set_value(
+                cert.last_modified.strftime(FormEntry.datetime_format)
+            )
+        self.browsercontext_id.set_value(str(cert.browsercontext_id))
+        self.origin.set_value(cert.origin)
+        if cert.cert_path is not None:
+            self.cert_path.set_value(cert.cert_path)
+        if cert.key_path is not None:
+            self.key_path.set_value(cert.key_path.decode())
+        if cert.pfx_path is not None:
+            self.pfx_path.set_value(cert.pfx_path)
+        if cert.passphrase is not None:
+            self.passphrase.set_value(cert.passphrase)
 
 
 class CertificateManager(View):
