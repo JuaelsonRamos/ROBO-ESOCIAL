@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from tkinter import scrolledtext
-from typing import Final, Literal, Sequence, cast
+from typing import Callable, Final, Literal, Sequence, cast
 
 from sqlalchemy import func
 
@@ -71,7 +71,11 @@ class WidgetsNamespace:
     btn_add: ActionButton
     btn_edit: ActionButton
     btn_delete: ActionButton
-    btn_update: ActionButton
+    btn_reload: ActionButton
+
+
+# should be assigned on root instanciation
+_widgets: WidgetsNamespace = None  # type: ignore
 
 
 class Title(ttk.Label):
@@ -88,56 +92,44 @@ class Title(ttk.Label):
 
 
 class ActionButton(ttk.Button):
-    # TODO
-
-    def __init__(self, master: ButtonFrame):
-        super().__init__(master)
+    def __init__(
+        self,
+        master: ButtonFrame,
+        text: str = 'ActionButton',
+        command: str | Callable = '',
+    ):
+        super().__init__(
+            master,
+            width=15,
+            padding=padding(left=5, right=5),
+            text=text,
+            command=command,
+        )
         self.parent_widget = master
+        self.tk_callback = command
+
+    def set_command(self, command: str | Callable):
+        self.tk_callback = command
+        self.config(command=command)
+
+    def disable(self):
+        self.state([tk.DISABLED])
+
+    def active(self):
+        self.state([tk.NORMAL])
 
 
 class ButtonFrame(ttk.Frame):
     def __init__(self, master: CertificateManager):
         super().__init__(master)
         self.parent_widget = master
+        self.add = ActionButton(self, text='Adicionar')
+        self.delete = ActionButton(self, text='Deletar')
+        self.reload = ActionButton(self, text='Atualizar')
+        self.edit = ActionButton(self, text='Editar')
 
     def pack(self):
-        super().pack(
-            side=tk.TOP,
-            anchor=tk.CENTER,
-            after=self.title,
-            padx=_common_padding,
-            pady=_common_padding,
-        )
-
-        p = padding(left=5, right=5)
-        w = 15
-
-        _add_item = functools.partial(self.tree.event_generate, '<<AddItem>>')
-        self.add = ttk.Button(
-            self,
-            text='Adicionar',
-            width=w,
-            padding=p,
-            command=_add_item,
-        )
-
-        _delete_item = functools.partial(self.tree.event_generate, '<<DeleteItem>>')
-        self.delete = ttk.Button(
-            self,
-            text='Deletar',
-            width=w,
-            padding=p,
-            command=_delete_item,
-        )
-
-        _reload_tree = functools.partial(self.tree.event_generate, '<<ReloadTree>>')
-        self.reload = ttk.Button(
-            self,
-            text='Atualizar',
-            width=w,
-            padding=p,
-            command=_reload_tree,
-        )
+        super().pack(side=tk.TOP, anchor=tk.CENTER, padx=5, pady=5)
 
         self.delete.pack(side=tk.LEFT)
         self.add.pack(side=tk.LEFT, before=self.delete)
@@ -162,14 +154,7 @@ class CertificateList(ttk.Treeview):
             columns=self.columns,
             selectmode='browse',
         )
-        # prevents column resizing
-        # SEE https://stackoverflow.com/a/71710427/15493645
-        self.bind('<Motion>', 'break')
         self._define_headings()
-        self.bind('<<TreeviewSelect>>', self._update_select)
-        self.bind('<<ReloadTree>>', self.reload)
-        self.bind('<<DeleteItem>>', self.delete_focused)
-        self.bind('<<AddItem>>', self.add_item)
 
     def _define_headings(self):
         self.heading('index', text='#', anchor=tk.CENTER)
@@ -263,90 +248,73 @@ class CertificateList(ttk.Treeview):
         )
         lock.schedule(self, func, self._insert_files, block=False)
 
-    def _update_select(self, event: tk.Event):
+    def assign_tree_events(self):
+        global _widgets
+        # prevents column resizing
+        # SEE https://stackoverflow.com/a/71710427/15493645
+        self.bind('<Motion>', 'break')
+        self.bind('<<TreeviewSelect>>', self._toggle_btn_state)
+        self.bind('<<ReloadTree>>', self.reload)
+        self.bind('<<DeleteItem>>', self.delete_focused)
+        self.bind('<<AddItem>>', self.add_item)
+        _reload_tree = functools.partial(self.event_generate, '<<ReloadTree>>')
+        _add_item = functools.partial(self.event_generate, '<<AddItem>>')
+        _delete_item = functools.partial(self.event_generate, '<<DeleteItem>>')
+        _widgets.btn_add.set_command(_add_item)
+        _widgets.btn_delete.set_command(_delete_item)
+        _widgets.btn_reload.set_command(_reload_tree)
+
+    def _toggle_btn_state(self, event: tk.Event):
+        global _widgets
         if self.focus() == '':
-            self.buttons.delete.state([tk.DISABLED])
+            _widgets.btn_delete.disable()
+            _widgets.btn_edit.disable()
             return
-        self.buttons.delete.state([tk.ACTIVE])
+        _widgets.btn_delete.active()
+        _widgets.btn_edit.active()
 
 
 class ScrollableCanvas(tk.Canvas):
-    # TODO
-
     def __init__(self, master: TreeFrame):
         super().__init__(master)
         self.parent_widget = master
+        self.window_id = self.create_window(0, 0, anchor=tk.NW)
+        self.window_widget: ttk.Widget | None = None
+
+    def set_window(self, widget: ttk.Widget):
+        self.itemconfig(self.window_id, window=widget)
+        self.window_widget = widget
+
+    def set_window_height(self, height: int):
+        self.itemconfig(self.window_id, height=height)
+
+    def set_canvas_size(self, width: int):
+        self.config(width=width)
+        if self.window_widget is not None:
+            # scrollregion == tuple[int, ...] == (w, n, e, s)
+            reqwidth = self.window_widget.winfo_reqwidth()
+            self.config(scrollregion=(0, 0, reqwidth, 0))
+            avail_height = self.winfo_height()
+            self.itemconfig(self.window_id, height=avail_height)
 
 
 class TreeFrame(tk.Frame):
     def __init__(self, master: CertificateManager):
         super().__init__(master)
         self.parent_widget = master
-        self.scrolling_canvas = tk.Canvas(self)
+        self.scrolling_canvas = ScrollableCanvas(self)
         self.tree = CertificateList(self.scrolling_canvas)  # type: ignore
-        self.tree_window = self.scrolling_canvas.create_window(
-            0, 0, anchor=tk.NW, window=self.tree
-        )
+        self.scrolling_canvas.set_window(self.tree)
 
         self.scroll = ttk.Scrollbar(self, orient=tk.HORIZONTAL)
         self.scroll.config(command=self.scrolling_canvas.xview)
         self.scrolling_canvas.config(xscrollcommand=self.scroll.set)
 
+    def assign_layout_events(self):
         self.scrolling_canvas.bind('<Visibility>', self.resize)
         self.scrolling_canvas.bind('<MouseWheel>', self._scroll_mousewheel)
         self.scroll.bind('<MouseWheel>', self._scroll_mousewheel)
         self.tree.bind('<MouseWheel>', self._scroll_mousewheel)
-
-    def xview(
-        self,
-        kind: Literal['moveto', 'scroll'],
-        delta: float | str,
-        unit: Literal['units', 'pages'] | None = None,
-    ):
-        """Moves tree by given float factor. Method compatible with .xview() on canvas, treeview, etc."""
-        if kind != tk.MOVETO:
-            return
-        tree_x = self.tree.winfo_x()
-        tree_width = self.tree.winfo_reqwidth()
-        frame_width = self.get_width()
-        if isinstance(delta, str):
-            delta = float(delta)
-        current = self.scroll.get()
-        is_moving_left: bool = abs(delta) < 0.5
-        is_moving_right: bool = abs(delta) > 0.5
-        # negative factor == left, positive factor == right
-        factor_movement: float = 0
-        pixels_moved: int = 0
-        start: int = 0
-        if delta != 0:
-            if is_moving_left:
-                factor_movement = 0.5 * abs(delta)
-            else:
-                factor_movement = 0.5 * (abs(delta) - 0.5)
-            pixels_moved = math.ceil(frame_width * factor_movement)
-            if is_moving_right:
-                # scrollbar goes to the right, x decreases
-                start = tree_x - pixels_moved
-            elif is_moving_left:
-                # scrollbar goes to the left, x increases
-                start = tree_x + pixels_moved
-            else:
-                start = 0
-            if abs(start) + frame_width >= tree_width:
-                # would overflow
-                if start < 0:
-                    # prevent crop to the right
-                    start = -(tree_width - frame_width)
-                else:
-                    # prevent crop to the left
-                    start = 0
-        self._tree_relative_x = start
-        frame_x = self.winfo_rootx()
-        self._tree_absolute_x = frame_x + start  # if start < 0, adding will subtract
-        self.tree.place(x=self._tree_relative_x)
-        scroll_start: float = abs(start) / tree_width
-        scroll_end: float = (abs(start) + frame_width) / tree_width
-        self.scroll.set(scroll_start, scroll_end)
 
     def _scroll_mousewheel(self, event: tk.Event):
         # 1 mouse scroll == 120 on windows, so the wheel's step is 120 at a time
@@ -358,30 +326,10 @@ class TreeFrame(tk.Frame):
             scroll_length += acceleration
         self.scrolling_canvas.xview_scroll(scroll_length, tk.UNITS)
 
-    def scroll_frame(self, delta: float):
-        self.xview(tk.MOVETO, delta)
-
-    def _init_scrollbar(self, event: tk.Event | None):
-        self.scroll_frame(0)
-        self.tree.unbind('<Visibility>', self._init_scrollbar)  # type: ignore
-
-    def get_width(self):
-        window_size = self.master.winfo_width()
-        return math.ceil(window_size * 0.5)
-
     def resize(self, event: tk.Event | None = None):
-        frame_width = self.get_width()
-        tree_width = self.tree.winfo_reqwidth()
-        canvas_height = self.scrolling_canvas.winfo_height()
+        frame_width = math.ceil(self.parent_widget.winfo_width() * 0.5)
         self.config(width=frame_width)
-        self.scrolling_canvas.config(
-            width=frame_width,
-            scrollregion=(0, 0, tree_width, 0),
-        )
-        self.scrolling_canvas.itemconfig(
-            self.tree_window,
-            height=canvas_height,
-        )
+        self.scrolling_canvas.set_canvas_size(frame_width)
 
     def pack(self):
         super().pack(side=tk.LEFT, fill=tk.BOTH, padx=5, pady=5)
@@ -563,13 +511,31 @@ class CertificateManager(View):
         self.title = Title(self)
         self.tree_frame = TreeFrame(self)
         self.tree = self.tree_frame.tree
-        self.button = ButtonFrame(self)
+        self.buttons_frame = ButtonFrame(self)
         self.form = CertificateForm(self)
+
+        global _widgets
+        _widgets = WidgetsNamespace(
+            self.title,
+            self.buttons_frame,
+            self.form,
+            self.tree_frame.tree,
+            self.tree_frame,
+            self.tree_frame.scrolling_canvas,
+            self.buttons_frame.add,
+            self.buttons_frame.edit,
+            self.buttons_frame.delete,
+            self.buttons_frame.reload,
+        )
+
         self.pack_in_order()
+        self.tree.assign_tree_events()
+        self.tree_frame.assign_layout_events()
 
     def pack_in_order(self):
         """Packs widgets in the strict order in which they need to."""
         self.title.pack()
         self.tree_frame.pack()
-        self.button.pack()
+        self.buttons_frame.pack()
+        self.buttons_frame.pack_configure(after=self.title)
         self.form.pack()
