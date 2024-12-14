@@ -407,11 +407,14 @@ class FormEntry:
         )
         self._var_entry = tk.StringVar(value='')
         self._entry_text_buffer: str = ''
+        self._entry_callback = self.master.register(self._check_is_hidden)
         self.entry = ttk.Entry(
             master,
             justify=tk.LEFT,
             textvariable=self._var_entry,
             width=self.entry_width,
+            validate='key',
+            validatecommand=(self._entry_callback, '%d', '%S', '%i'),
         )
 
         self.hide_button: ttk.Button | None = None
@@ -447,13 +450,60 @@ class FormEntry:
 
     def set_value(self, text: str):
         self._entry_text_buffer = text
+        if text != '' and self._is_hidden:
+            self._var_entry.set('*' * len(self._entry_text_buffer))
+            return
         self._var_entry.set(text)
 
+    def _check_is_hidden(self, action: int, text: str, index: str) -> bool:
+        # not insertion nor deletion
+        if action == '-1':
+            return False
+        if text == '':
+            return True
+        i = int(index)
+        if action == '0':
+            # deletion
+            if self._entry_text_buffer == '':
+                # noop
+                self.set_value('')
+                self.entry.icursor(0)
+            elif i == 0:
+                # delete prefix
+                self.set_value(self._entry_text_buffer.removeprefix(text))
+                self.entry.icursor(0)
+            elif i == len(self._entry_text_buffer) - len(text):
+                # delete suffix
+                self.set_value(self._entry_text_buffer.removesuffix(text))
+                self.entry.icursor(len(self._entry_text_buffer))
+            else:
+                # delete in the middle
+                left_side = self._entry_text_buffer[:i]
+                right_side = self._entry_text_buffer[i + len(text) :]
+                self.set_value(left_side + right_side)
+                self.entry.icursor(len(left_side))
+        elif action == '1':
+            # insertion
+            if self._entry_text_buffer == '' or i == 0:
+                # insert prefix
+                self.set_value(text + self._entry_text_buffer)
+                self.entry.icursor(len(text))
+            elif i == len(self._entry_text_buffer):
+                # insert suffix
+                self.set_value(self._entry_text_buffer + text)
+                self.entry.icursor(len(self._entry_text_buffer))
+            else:
+                # insert in the middle
+                left_side = self._entry_text_buffer[:i]
+                right_side = self._entry_text_buffer[i:]
+                self.set_value(left_side + text + right_side)
+                self.entry.icursor(i + len(text))
+        return True
+
     def get_value(self) -> str:
-        return self._entry_text_buffer or self._var_entry.get()
+        return self._entry_text_buffer
 
     def hide_input(self, event: tk.Event | None = None):
-        self._entry_text_buffer = self._var_entry.get()
         self._var_entry.set('*' * len(self._entry_text_buffer))
         self._is_hidden = True
         if self.hide_button is not None:
