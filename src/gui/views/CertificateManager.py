@@ -148,6 +148,17 @@ class ButtonFrame(ttk.Frame):
         self.edit.pack(side=tk.LEFT, after=self.delete)
         self.reload.pack(side=tk.LEFT, after=self.edit)
 
+    def assign_buttons_events(self):
+        global _widgets
+        _edit_item = functools.partial(_widgets.form.event_generate, '<<EditItem>>')
+        _add_item = functools.partial(_widgets.form.event_generate, '<<AddItem>>')
+        _delete_item = functools.partial(_widgets.form.event_generate, '<<DeleteItem>>')
+        _reload_tree = functools.partial(_widgets.tree.event_generate, '<<ReloadTree>>')
+        self.add.set_command(_add_item)
+        self.delete.set_command(_delete_item)
+        self.edit.set_command(_edit_item)
+        self.reload.set_command(_reload_tree)
+
 
 class CertificateList(ttk.Treeview):
     def __init__(self, master: ScrollableCanvas):
@@ -276,14 +287,6 @@ class CertificateList(ttk.Treeview):
         self.bind('<Motion>', 'break')
         self.bind('<<TreeviewSelect>>', self._toggle_btn_state)
         self.bind('<<ReloadTree>>', self.reload)
-        self.bind('<<DeleteItem>>', self.delete_focused)
-        self.bind('<<AddItem>>', self.add_item)
-        _reload_tree = functools.partial(self.event_generate, '<<ReloadTree>>')
-        _add_item = functools.partial(self.event_generate, '<<AddItem>>')
-        _delete_item = functools.partial(self.event_generate, '<<DeleteItem>>')
-        _widgets.btn_add.set_command(_add_item)
-        _widgets.btn_delete.set_command(_delete_item)
-        _widgets.btn_reload.set_command(_reload_tree)
 
     def _toggle_btn_state(self, event: tk.Event):
         global _widgets
@@ -615,6 +618,11 @@ class CertificateForm(ttk.Frame):
         self.btn_submit = ActionButton(self.btn_frame, 'Confirmar')
         self.btn_cancel = ActionButton(self.btn_frame, 'Cancelar')
 
+    def assign_form_events(self):
+        self.bind('<<AddItem>>', self.prepare_add_item)
+        self.bind('<<EditItem>>', self.prepare_edit_item)
+        self.bind('<<DeleteItem>>', self.prepare_delete_item)
+
     def block_all_form_interactions(self):
         for entry in FormEntry.entries:
             entry.disable_all_interactions()
@@ -646,6 +654,15 @@ class CertificateForm(ttk.Frame):
             self.pfx_path.set_value(cert.pfx_path)
         if cert.passphrase is not None:
             self.passphrase.set_value(cert.passphrase)
+
+    def prepare_add_item(self, event: tk.Event | None = None):
+        pass
+
+    def prepare_edit_item(self, event: tk.Event | None = None):
+        pass
+
+    def prepare_delete_item(self, event: tk.Event | None = None):
+        pass
 
     def insert_from_form_fields(self):
         # TODO
@@ -688,6 +705,7 @@ class CertificateManager(View):
         self.pack_in_order()
         self.tree.assign_tree_events()
         self.tree.init_tree_state()
+        self.buttons_frame.assign_buttons_events()
         self.tree_frame.assign_layout_events()
 
     def pack_in_order(self):
