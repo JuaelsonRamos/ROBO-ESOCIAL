@@ -13,6 +13,20 @@
       "request": "launch",
       "module": "src",
       "justMyCode": false
+    },
+    {
+      "name": "GUI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src",
+      "args": ["--no-playwright"]
+    },
+    {
+      "name": "Playwright",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src",
+      "args": ["--no-tkinter"]
     }
   ]
 }
