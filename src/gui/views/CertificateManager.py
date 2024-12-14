@@ -56,6 +56,11 @@ class DatabaseHelper:
             certs = conn.scalars(query).all()
             return certs
 
+    def get_one(self, _id: int) -> ClientCertificate | None:
+        with self.engine.begin() as conn:
+            query = self.table.select().where(ClientCertificate._id == _id)
+            return conn.scalar(query)
+
 
 db_helpers = DatabaseHelper()
 
@@ -187,7 +192,6 @@ class CertificateList(ttk.Treeview):
         return by_creation_time
 
     def _make_item_tree_data(self, cert: ClientCertificate) -> tuple[str, ...]:
-        datetime_format = '%d/%m/%Y %H:%M'
         _id = str(cert._id)
         if cert.pfx is not None:
             _type = 'PFX'
@@ -198,8 +202,8 @@ class CertificateList(ttk.Treeview):
 
         return (
             _id,
-            cert.created.strftime(datetime_format),
-            cert.last_modified.strftime(datetime_format),
+            cert.created.strftime(FormEntry.datetime_format),
+            cert.last_modified.strftime(FormEntry.datetime_format),
             cert.origin,
             _type,
             has_public_key,
@@ -256,6 +260,7 @@ class CertificateList(ttk.Treeview):
             self.selection_remove(selected)
         _widgets.btn_delete.disable()
         _widgets.btn_edit.disable()
+        _widgets.form.block_all_form_interactions()
 
     def assign_tree_events(self):
         global _widgets
@@ -278,9 +283,11 @@ class CertificateList(ttk.Treeview):
         if self.focus() == '':
             _widgets.btn_delete.disable()
             _widgets.btn_edit.disable()
+            _widgets.form.block_all_form_interactions()
             return
         _widgets.btn_delete.active()
         _widgets.btn_edit.active()
+        _widgets.form.allow_form_interactions()
 
 
 class ScrollableCanvas(tk.Canvas):
@@ -356,6 +363,7 @@ class FormEntry:
     entries: list[FormEntry] = []
     label_width: int = 25
     entry_width: int = 35
+    datetime_format = '%d/%m/%Y %H:%M'
 
     def __init__(
         self,
@@ -441,8 +449,6 @@ class FormEntry:
             default=state,
             takefocus=tk.FALSE,
         )
-        self.hide_button.bind('<Button-1>', self.show_input)
-        self.hide_button.bind('<ButtonRelease-1>', self.hide_input)
         if self._hide_default:
             self.hide_input()
         else:
@@ -464,7 +470,6 @@ class FormEntry:
             default=state,
             takefocus=False,
         )
-        self.block_button.bind('<Button-1>', self.toggle_blocked)
         if self._block_default:
             self.block_input()
         else:
@@ -481,6 +486,42 @@ class FormEntry:
         self._is_blocked = False
         if self.block_button is not None:
             self.block_button.config(text='block')
+
+    def _assign_btn_events(self):
+        # this function will override events
+        if self.hide_button is None or self.block_button is None:
+            return
+        self.hide_button.bind('<Button-1>', self.show_input)
+        self.hide_button.bind('<ButtonRelease-1>', self.hide_input)
+        self.block_button.bind('<Button-1>', self.toggle_blocked)
+
+    def _unbind_btn_events(self):
+        if self.hide_button is None or self.block_button is None:
+            return
+        self.hide_button.unbind('<Button-1>')
+        self.hide_button.unbind('<ButtonRelease-1>')
+        self.block_button.unbind('<Button-1>')
+
+    def disable_all_interactions(self):
+        self._unbind_btn_events()
+        self.block_input()
+        self.label.config(state=tk.DISABLED)
+        if self.hide_button is not None:
+            self.hide_button.config(state=tk.DISABLED)
+        if self.block_button is not None:
+            self.block_button.config(state=tk.DISABLED)
+
+    def enable_all_interactions(self):
+        self._assign_btn_events()
+        self.label.config(state=tk.NORMAL)
+        if self.entry.config('default') == tk.DISABLED:
+            self.block_input()
+        elif self.entry.config('default') == tk.NORMAL:
+            self.unblock_input()
+        if self.hide_button is not None:
+            self.hide_button.config(state=tk.NORMAL)
+        if self.block_button is not None:
+            self.block_button.config(state=tk.NORMAL)
 
 
 class CertificateForm(ttk.Frame):
@@ -512,6 +553,14 @@ class CertificateForm(ttk.Frame):
         self.passphrase.add_hide_button(default=True)
         for entry in FormEntry.entries:
             entry.grid()
+
+    def block_all_form_interactions(self):
+        for entry in FormEntry.entries:
+            entry.disable_all_interactions()
+
+    def allow_form_interactions(self):
+        for entry in FormEntry.entries:
+            entry.enable_all_interactions()
 
 
 class CertificateManager(View):
