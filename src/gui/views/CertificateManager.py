@@ -438,6 +438,9 @@ class FormEntry:
         self._hidden_text_buffer = '*' * len(text)
         self._var_entry.set(text)
 
+    def get_value(self) -> str:
+        return self._entry_text_buffer
+
     def hide_input(self, event: tk.Event | None = None):
         self._var_entry.set(self._hidden_text_buffer)
         self._is_hidden = True
