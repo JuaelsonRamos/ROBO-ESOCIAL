@@ -407,7 +407,6 @@ class FormEntry:
         )
         self._var_entry = tk.StringVar(value='')
         self._entry_text_buffer: str = ''
-        self._hidden_text_buffer: str = ''
         self.entry = ttk.Entry(
             master,
             justify=tk.LEFT,
@@ -448,14 +447,14 @@ class FormEntry:
 
     def set_value(self, text: str):
         self._entry_text_buffer = text
-        self._hidden_text_buffer = '*' * len(text)
         self._var_entry.set(text)
 
     def get_value(self) -> str:
-        return self._entry_text_buffer
+        return self._entry_text_buffer or self._var_entry.get()
 
     def hide_input(self, event: tk.Event | None = None):
-        self._var_entry.set(self._hidden_text_buffer)
+        self._entry_text_buffer = self._var_entry.get()
+        self._var_entry.set('*' * len(self._entry_text_buffer))
         self._is_hidden = True
         if self.hide_button is not None:
             # icon should indicate pressing it will show
