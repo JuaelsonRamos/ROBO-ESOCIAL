@@ -299,6 +299,14 @@ class CertificateList(ttk.Treeview):
         _widgets.btn_edit.active()
         _widgets.form.allow_form_interactions()
 
+    def _check_selection(self, event: tk.Event | None = None):
+        global _widgets
+        iid: str | int = self.focus()
+        if iid == '':
+            _widgets.form.event_generate('<<ResetForm>>')
+            return
+        _widgets.form.event_generate('<<PreviewItem>>', state=iid)
+
 
 class ScrollableCanvas(tk.Canvas):
     def __init__(self, master: TreeFrame):
@@ -622,6 +630,8 @@ class CertificateForm(ttk.Frame):
         self.bind('<<AddItem>>', self.prepare_add_item)
         self.bind('<<EditItem>>', self.prepare_edit_item)
         self.bind('<<DeleteItem>>', self.prepare_delete_item)
+        self.bind('<<ResetForm>>', self.reset_form)
+        self.bind('<<PreviewItem>>', self._preview_item_event)
 
     def block_all_form_interactions(self):
         for entry in FormEntry.entries:
@@ -654,6 +664,18 @@ class CertificateForm(ttk.Frame):
             self.pfx_path.set_value(cert.pfx_path)
         if cert.passphrase is not None:
             self.passphrase.set_value(cert.passphrase)
+
+    def reset_form(self, event: tk.Event | None = None):
+        for entry in FormEntry.entries:
+            entry.set_value('')
+        self.btn_cancel.set_command('')
+        self.btn_submit.set_command('')
+        self.block_all_form_interactions()
+
+    def _preview_item_event(self, event: tk.Event):
+        iid: int | str = event.state
+        _id: int = iid if isinstance(iid, int) else int(iid)
+        self.fill_form_by_db_id(_id)
 
     def prepare_add_item(self, event: tk.Event | None = None):
         pass
