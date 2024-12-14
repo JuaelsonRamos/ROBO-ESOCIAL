@@ -83,20 +83,32 @@ def generate_unused_backupfile_path() -> Path:
 _connections: tuple[sqlite3.Connection, ...] = ()
 
 
+class ClientConfig:
+    """
+    Constants used to configure the database at runtime, mostly immediately upon connection.
+
+    Doc references:
+    * `.setlimit() arguments <setlimit>`_
+    * `Designed default limits <defaultlimits>`_
+
+    .. _setlimit: https://www.sqlite.org/c3ref/c_limit_attached.html
+    .. _defaultlimits: https://www.sqlite.org/limits.html
+    """
+
+    # From sqlite3 docs:
+    # > SQLITE_LIMIT_LENGTH
+    # >     The maximum size of any string or BLOB or table row, in bytes.
+    _sizeof_64KiB = 1 * 1024 * 64  # kibibytes, meaning power of 1024
+    SQLITE_LIMIT_LENGTH: Final[int] = _sizeof_64KiB
+    """Size limit of `TEXT` and `BLOB` types in bytes."""
+
+
 def define_connection(filepath: Path | None = None) -> sqlite3.Connection:
     """Create and configure sqlite3 connection."""
     global DB_FILE
     conn = sqlite3.connect(filepath or DB_FILE)
 
-    # Doc references:
-    #   .setlimit() arguments: https://www.sqlite.org/c3ref/c_limit_attached.html
-    #   Designed default limits: https://www.sqlite.org/limits.html
-
-    # From sqlite3 docs:
-    # > SQLITE_LIMIT_LENGTH
-    # >     The maximum size of any string or BLOB or table row, in bytes.
-    sizeof_64KiB = 1 * 1024 * 64  # kibibytes, meaning power of 1024
-    conn.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, sizeof_64KiB)
+    conn.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, ClientConfig.SQLITE_LIMIT_LENGTH)
 
     return conn
 

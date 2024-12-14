@@ -18,4 +18,5 @@ from .client import (
     populate_backup_files,
     register_connection_object,
     toss_connection_object,
+    ClientConfig,
 )
