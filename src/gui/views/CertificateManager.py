@@ -526,10 +526,8 @@ class FormEntry:
     def add_hide_button(self, default: bool):
         self._hide_default = default
         self._is_hidden = self._hide_default
-        state = tk.NORMAL if self._hide_default else tk.DISABLED
         self.hide_button = ttk.Button(
             self.master,
-            state=state,
             takefocus=tk.FALSE,
             padding=0,
         )
@@ -554,7 +552,7 @@ class FormEntry:
     def add_block_input_button(self, default: bool):
         self._block_default = default
         self._is_blocked = self._block_default
-        state = tk.NORMAL if self._block_default else tk.DISABLED
+        state = tk.DISABLED if self._block_default else tk.NORMAL
         self.block_button = ttk.Button(
             self.master,
             state=state,
@@ -588,10 +586,10 @@ class FormEntry:
         self._is_blocked = False
         if self.block_button is not None:
             # button icon should indicate pressing it will LOCK
-            if self._block_input_img_unlocked is None:
+            if self._block_input_img_locked is None:
                 self.block_button.config(text='block')
             else:
-                self.block_button.config(image=self._block_input_img_unlocked)
+                self.block_button.config(image=self._block_input_img_locked)
 
     def reset_blocked_state(self, event: tk.Event | None = None):
         if self._block_default:
@@ -607,17 +605,17 @@ class FormEntry:
 
     def _assign_btn_events(self):
         # this function will override events
-        if self.hide_button is None or self.block_button is None:
-            return
+        if self.hide_button is not None:
         self.hide_button.bind('<Button-1>', self.show_input)
         self.hide_button.bind('<ButtonRelease-1>', self.hide_input)
+        if self.block_button is not None:
         self.block_button.bind('<Button-1>', self.toggle_blocked)
 
     def _unbind_btn_events(self):
-        if self.hide_button is None or self.block_button is None:
-            return
+        if self.hide_button is not None:
         self.hide_button.unbind('<Button-1>')
         self.hide_button.unbind('<ButtonRelease-1>')
+        if self.block_button is not None:
         self.block_button.unbind('<Button-1>')
 
     def disable_all_interactions(self):
