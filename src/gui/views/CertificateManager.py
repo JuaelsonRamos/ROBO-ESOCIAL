@@ -480,7 +480,6 @@ class FormEntry:
         self.hide_button = ttk.Button(
             self.master,
             state=state,
-            default=state,
             takefocus=tk.FALSE,
             padding=0,
         )
@@ -494,10 +493,7 @@ class FormEntry:
                 file=dirs.ASSETS / 'eye.svg',
                 **self._btn_svg_opts,
             )
-        if self._hide_default:
-            self.hide_input()
-        else:
-            self.show_input()
+        self.reset_hidden_state()
 
     def toggle_blocked(self, event: tk.Event | None = None):
         if self._is_blocked:
@@ -512,7 +508,6 @@ class FormEntry:
         self.block_button = ttk.Button(
             self.master,
             state=state,
-            default=state,
             takefocus=False,
             padding=0,
         )
@@ -526,10 +521,7 @@ class FormEntry:
                 file=dirs.ASSETS / 'lock-slash.svg',
                 **self._btn_svg_opts,
             )
-        if self._block_default:
-            self.block_input()
-        else:
-            self.unblock_input()
+        self.reset_blocked_state()
 
     def block_input(self, event: tk.Event | None = None):
         self.entry.config(state=tk.DISABLED)
@@ -550,6 +542,18 @@ class FormEntry:
                 self.block_button.config(text='block')
             else:
                 self.block_button.config(image=self._block_input_img_unlocked)
+
+    def reset_blocked_state(self, event: tk.Event | None = None):
+        if self._block_default:
+            self.block_input()
+        else:
+            self.unblock_input()
+
+    def reset_hidden_state(self, event: tk.Event | None = None):
+        if self._hide_default:
+            self.hide_input()
+        else:
+            self.show_input()
 
     def _assign_btn_events(self):
         # this function will override events
@@ -577,15 +581,13 @@ class FormEntry:
 
     def enable_all_interactions(self):
         self._assign_btn_events()
-        self.label.config(state=tk.NORMAL)
-        if self.entry.config('default') == tk.DISABLED:
-            self.block_input()
-        elif self.entry.config('default') == tk.NORMAL:
-            self.unblock_input()
-        if self.hide_button is not None:
-            self.hide_button.config(state=tk.NORMAL)
         if self.block_button is not None:
+            self.reset_blocked_state()
             self.block_button.config(state=tk.NORMAL)
+        if self.hide_button is not None:
+            self.reset_hidden_state()
+            self.hide_button.config(state=tk.NORMAL)
+        self.label.config(state=tk.NORMAL)
 
 
 class CertificateForm(ttk.Frame):
