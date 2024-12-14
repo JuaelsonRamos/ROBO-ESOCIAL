@@ -226,7 +226,7 @@ class ClientCertificate(Base):
     last_modified: Mapped[datetime] = common_columns.last_modified
     browsercontext_id: Mapped[int] = mapped_column(
         ForeignKey('browsercontext._id'),
-        nullable=False,
+        nullable=True,
         unique=False,
         doc=docs.clientcertificate['browsercontext_id'],
         comment=docs.clientcertificate['browsercontext_id'],
