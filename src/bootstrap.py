@@ -39,6 +39,7 @@ class Directory(metaclass=Singleton):
     )
     BACKUP: Final[Path] = APPDATA / '_Backup'
     DB_BACKUP: Final[Path] = BACKUP / 'Db'
+    ASSETS: Final[Path] = Path('./assets/') if __debug__ else Path('./_Assets/')
 
     # owner=read,write,open ; group=read,open ; others=none
     mode: Final[int] = 0o750
