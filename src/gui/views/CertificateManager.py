@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src import bootstrap
 from src.certificate import copy_certificate, delete_certificate, get_certificates
 from src.db import ClientCertificate
 from src.gui.global_runtime_constants import GlobalRuntimeConstants
@@ -20,10 +21,14 @@ from pathlib import Path
 from tkinter import scrolledtext
 from typing import Callable, Final, Literal, Sequence, cast, overload
 
+import tksvg
+
 from sqlalchemy import func
 
 
 _common_padding: Final[int] = 5
+
+dirs = bootstrap.Directory()
 
 
 class DatabaseHelper:
@@ -364,6 +369,11 @@ class FormEntry:
     label_width: int = 25
     entry_width: int = 35
     datetime_format = '%d/%m/%Y %H:%M'
+    _btn_svg_opts = {'width': 24, 'height': 24}
+    _block_input_img_locked: tksvg.SvgImage | None = None
+    _block_input_img_unlocked: tksvg.SvgImage | None = None
+    _hide_input_img_hidden: tksvg.SvgImage | None = None
+    _hide_input_img_shown: tksvg.SvgImage | None = None
 
     def __init__(
         self,
@@ -402,12 +412,13 @@ class FormEntry:
     def grid(self):
         i = self.index
         pad = 5
-        self.label.grid(column=0, row=i, sticky=tk.E, padx=pad, pady=pad)
-        self.entry.grid(column=1, row=i, sticky=tk.W, padx=pad, pady=pad)
+        self.master.grid_rowconfigure(i, minsize=35, pad=pad)
+        self.label.grid(column=0, row=i, sticky=tk.E, padx=pad)
+        self.entry.grid(column=1, row=i, sticky=tk.W, padx=pad)
         if self.hide_button:
-            self.hide_button.grid(column=2, row=i, sticky=tk.N, padx=pad, pady=pad)
+            self.hide_button.grid(column=2, row=i, padx=pad)
         if self.block_button:
-            self.block_button.grid(column=3, row=i, sticky=tk.N, padx=pad, pady=pad)
+            self.block_button.grid(column=3, row=i)
 
     def is_hidded(self) -> bool:
         if self.hide_button is None:
@@ -431,13 +442,21 @@ class FormEntry:
         self._var_entry.set(self._hidden_text_buffer)
         self._is_hidden = True
         if self.hide_button is not None:
-            self.hide_button.config(text='!hide')
+            # icon should indicate pressing it will show
+            if self._hide_input_img_shown is None:
+                self.hide_button.config(text='!hide')
+            else:
+                self.hide_button.config(image=self._hide_input_img_shown)
 
     def show_input(self, event: tk.Event | None = None):
         self._var_entry.set(self._entry_text_buffer)
         self._is_hidden = False
         if self.hide_button is not None:
-            self.hide_button.config(text='hide')
+            # icon should indicate releasing it will hide
+            if self._hide_input_img_hidden is None:
+                self.hide_button.config(text='hide')
+            else:
+                self.hide_button.config(image=self._hide_input_img_hidden)
 
     def add_hide_button(self, default: bool):
         self._hide_default = default
@@ -448,7 +467,18 @@ class FormEntry:
             state=state,
             default=state,
             takefocus=tk.FALSE,
+            padding=0,
         )
+        if self._hide_input_img_hidden is None:
+            self._hide_input_img_hidden = tksvg.SvgImage(
+                file=dirs.ASSETS / 'eye-closed.svg',
+                **self._btn_svg_opts,
+            )
+        if self._hide_input_img_shown is None:
+            self._hide_input_img_shown = tksvg.SvgImage(
+                file=dirs.ASSETS / 'eye.svg',
+                **self._btn_svg_opts,
+            )
         if self._hide_default:
             self.hide_input()
         else:
@@ -469,7 +499,18 @@ class FormEntry:
             state=state,
             default=state,
             takefocus=False,
+            padding=0,
         )
+        if self._block_input_img_locked is None:
+            self._block_input_img_locked = tksvg.SvgImage(
+                file=dirs.ASSETS / 'lock.svg',
+                **self._btn_svg_opts,
+            )
+        if self._block_input_img_unlocked is None:
+            self._block_input_img_unlocked = tksvg.SvgImage(
+                file=dirs.ASSETS / 'lock-slash.svg',
+                **self._btn_svg_opts,
+            )
         if self._block_default:
             self.block_input()
         else:
@@ -479,13 +520,21 @@ class FormEntry:
         self.entry.config(state=tk.DISABLED)
         self._is_blocked = True
         if self.block_button is not None:
-            self.block_button.config(text='!block')
+            # button icon should indicate pressing it will UNLOCK
+            if self._block_input_img_unlocked is None:
+                self.block_button.config(text='!block')
+            else:
+                self.block_button.config(image=self._block_input_img_unlocked)
 
     def unblock_input(self, event: tk.Event | None = None):
         self.entry.config(state=tk.NORMAL)
         self._is_blocked = False
         if self.block_button is not None:
-            self.block_button.config(text='block')
+            # button icon should indicate pressing it will LOCK
+            if self._block_input_img_unlocked is None:
+                self.block_button.config(text='block')
+            else:
+                self.block_button.config(image=self._block_input_img_unlocked)
 
     def _assign_btn_events(self):
         # this function will override events
@@ -535,9 +584,9 @@ class CertificateForm(ttk.Frame):
         for entry in FormEntry.entries:
             entry.grid()
         cols, rows = self.grid_size()  # values are equivalent to 1-based indexes
-        self.btn_frame.grid(column=0, row=rows, columnspan=cols, ipady=10)
-        self.btn_submit.pack(side=tk.LEFT)
-        self.btn_cancel.pack(side=tk.LEFT, after=self.btn_submit)
+        self.btn_frame.grid(column=0, row=rows, columnspan=cols, pady=10, sticky=tk.EW)
+        self.btn_submit.pack(side=tk.RIGHT)
+        self.btn_cancel.pack(side=tk.RIGHT, before=self.btn_submit)
 
     def create_widgets(self):
         self.created = FormEntry(self, 'Data Adicionado:')
@@ -592,6 +641,18 @@ class CertificateForm(ttk.Frame):
             self.pfx_path.set_value(cert.pfx_path)
         if cert.passphrase is not None:
             self.passphrase.set_value(cert.passphrase)
+
+    def insert_from_form_fields(self):
+        # TODO
+        pass
+
+    def delete_from_form_fields(self):
+        # TODO
+        pass
+
+    def update_from_form_fields(self):
+        # TODO
+        pass
 
 
 class CertificateManager(View):
