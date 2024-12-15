@@ -12,7 +12,7 @@ import argparse
 from pathlib import Path
 from tkinter import ttk
 from types import NoneType
-from typing import Any, Final
+from typing import Final
 
 from playwright.async_api import (
     Browser,
@@ -145,6 +145,7 @@ class GraphicalRuntime:
             echo=__debug__,
             echo_pool=__debug__,
         )
+        db.Base.metadata.create_all(self.sqlite_engine)
         GlobalRuntimeConstants.configure(
             style=ttk.Style(self.app),
             sqlite=self.sqlite_engine,
