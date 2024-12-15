@@ -73,18 +73,18 @@ class Docstrings(metaclass=Singleton):
         'table': 'Association table: one origin to many local_storage',
     }
     cookie_browsercontext = {
-        'table': 'Association table: one browser_context to many cookies',
+        'table': 'Association table: one browsercontext to many cookies',
     }
     origin_browsercontext = {
-        'table': 'Association table: one browser_context to many origins',
+        'table': 'Association table: one browsercontext to many origins',
     }
     clientcertificate = {
-        'browsercontext_id': 'one client_certificate to many browser_contexts',
+        'browsercontext_id': 'one client_certificate to many browsercontexts',
     }
     imagemedia = {
         'blob': 'Blobs are part of a specific processing entry but two binary blobs may be equal by pure chance',
         'timeline_index': "Index indicating it's position in the order of images created. Image 0 was the first created, and so on",
-        'processingentry_id': 'one processing_entry to many image_media',
+        'processingentry_id': 'one processingentry to many image_media',
         'action_of_origin': "action that originated the image, identical images may be originated from diferent actions by pure chance, but they wouldn't be treated differently, even if the difference could be noticed",
     }
 
@@ -314,7 +314,7 @@ TimezoneIdType = Literal[
     'America/Sao_Paulo',
 ]
 TimezoneIdEnum = Enum(
-    *get_args(LocaleType),
+    *get_args(TimezoneIdType),
     name='timezoneid',
     create_constraint=True,
     validate_strings=True,
@@ -373,7 +373,7 @@ class ImageMedia(Base):
     )
     sha512: Mapped[str] = mapped_column(unique=False, nullable=False)
     processingentry_id: Mapped[int] = mapped_column(
-        ForeignKey('processing_entry._id'),
+        ForeignKey('processingentry._id'),
         unique=False,
         nullable=True,
         doc=docs.imagemedia['processingentry_id'],
