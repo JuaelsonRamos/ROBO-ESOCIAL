@@ -57,3 +57,33 @@ class Url(TypeDecorator):
 
     def process_result_value(self, value: Any | None, dialect: Dialect) -> Any | None:
         return urlparse(value) if value is not None else None
+
+
+class DatabaseError(RuntimeError): ...
+
+
+class DBInsertError(DatabaseError): ...
+
+
+class DBDeleteError(DatabaseError): ...
+
+
+class DBUpdateError(DatabaseError): ...
+
+
+class DBSelectError(DatabaseError): ...
+
+
+class DBValueError(DatabaseError): ...
+
+
+class DBEncodingError(DatabaseError): ...
+
+
+class DBTypeError(DatabaseError): ...
+
+
+class DBSQLCheckError(DatabaseError): ...
+
+
+class DBPythonValidationError(DatabaseError): ...

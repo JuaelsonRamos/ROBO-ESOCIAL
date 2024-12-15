@@ -20,3 +20,16 @@ from .client import (
     toss_connection_object,
     ClientConfig,
 )
+
+from .custom_types import (
+    DatabaseError,
+    DBDeleteError,
+    DBEncodingError,
+    DBInsertError,
+    DBPythonValidationError,
+    DBSelectError,
+    DBSQLCheckError,
+    DBTypeError,
+    DBUpdateError,
+    DBValueError,
+)
