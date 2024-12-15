@@ -606,17 +606,17 @@ class FormEntry:
     def _assign_btn_events(self):
         # this function will override events
         if self.hide_button is not None:
-        self.hide_button.bind('<Button-1>', self.show_input)
-        self.hide_button.bind('<ButtonRelease-1>', self.hide_input)
+            self.hide_button.bind('<Button-1>', self.show_input)
+            self.hide_button.bind('<ButtonRelease-1>', self.hide_input)
         if self.block_button is not None:
-        self.block_button.bind('<Button-1>', self.toggle_blocked)
+            self.block_button.bind('<Button-1>', self.toggle_blocked)
 
     def _unbind_btn_events(self):
         if self.hide_button is not None:
-        self.hide_button.unbind('<Button-1>')
-        self.hide_button.unbind('<ButtonRelease-1>')
+            self.hide_button.unbind('<Button-1>')
+            self.hide_button.unbind('<ButtonRelease-1>')
         if self.block_button is not None:
-        self.block_button.unbind('<Button-1>')
+            self.block_button.unbind('<Button-1>')
 
     def disable_all_interactions(self):
         self._unbind_btn_events()
