@@ -217,12 +217,15 @@ class CertificateList(ttk.Treeview):
             _type = Path(cert.cert_path).suffix.strip('.').upper()
         has_public_key = 'Sim' if cert.key is not None else 'Não'
         has_passphrase = 'Sim' if cert.passphrase is not None else 'Não'
+        last_modified = ''
+        if cert.last_modified is not None:
+            last_modified = cert.last_modified.strftime(FormEntry.datetime_format)
 
         return (
             _id,
             cert.created.strftime(FormEntry.datetime_format),
-            cert.last_modified.strftime(FormEntry.datetime_format),
-            cert.origin,
+            last_modified,
+            cert.origin or '',
             _type,
             has_public_key,
             has_passphrase,
