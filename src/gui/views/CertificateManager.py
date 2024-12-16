@@ -56,13 +56,13 @@ class DatabaseHelper:
     def get_certificates(self, ids: Sequence[int]) -> Sequence[ClientCertificate]:
         with self.engine.begin() as conn:
             query = self.table.select().where(ClientCertificate._id.in_(ids))
-            certs = conn.scalars(query).all()
+            certs = conn.execute(query).all()
             return certs
 
     def get_one(self, _id: int) -> ClientCertificate | None:
         with self.engine.begin() as conn:
             query = self.table.select().where(ClientCertificate._id == _id)
-            return conn.scalar(query)
+            return conn.execute(query).one_or_none()  # type: ignore
 
     def insert_one(self, data: dict[str, Any]) -> int | Never:
         with self.engine.begin() as conn:
