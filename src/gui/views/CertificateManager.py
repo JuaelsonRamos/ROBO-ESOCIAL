@@ -191,7 +191,7 @@ class CertificateList(ttk.Treeview):
         self.column('last_modified', anchor=tk.CENTER, minwidth=125, width=150)
 
         self.heading('origin', text='URL', anchor=tk.W)
-        self.column('origin', anchor=tk.CENTER, minwidth=150, width=250)
+        self.column('origin', anchor=tk.W, minwidth=150, width=250)
 
         self.heading('type', text='Tipo', anchor=tk.CENTER)
         self.column('type', anchor=tk.CENTER, minwidth=50, width=60)
@@ -658,7 +658,7 @@ class CertificateForm(ttk.Frame):
         self.created.block_input()
         self.last_modified = FormEntry(self, 'Data Modificado:')
         self.last_modified.block_input()
-        self.browsercontext_id = FormEntry(self, '')
+        self.browsercontext_id = FormEntry(self, 'Contexto de navegador:')
         self.browsercontext_id.block_input()
         self.origin = FormEntry(self, 'Origem:')
         self.origin.add_block_input_button(default=True)
