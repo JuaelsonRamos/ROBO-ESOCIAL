@@ -715,7 +715,10 @@ class CertificateForm(ttk.Frame):
             self.last_modified.set_value(
                 cert.last_modified.strftime(FormEntry.datetime_format)
             )
-        self.browsercontext_id.set_value(str(cert.browsercontext_id))
+        if cert.browsercontext_id is not None:
+            self.browsercontext_id.set_value(str(cert.browsercontext_id))
+        else:
+            self.browsercontext_id.set_value('')
         self.origin.set_value(cert.origin)
         if cert.cert_path is not None:
             self.cert_path.set_value(cert.cert_path)
