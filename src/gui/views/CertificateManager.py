@@ -24,6 +24,9 @@ from sqlalchemy import CursorResult, func
 from sqlalchemy.exc import IntegrityError
 
 
+class EventStateError(ValueError): ...
+
+
 _common_padding: Final[int] = 5
 
 dirs = bootstrap.Directory()
@@ -193,6 +196,9 @@ class CertificateList(ttk.Treeview):
         )
         self._define_headings()
 
+    class EventState:
+        FocusItem = 1000
+
     def _define_headings(self):
         self.heading('index', text='#', anchor=tk.CENTER)
         self.column('index', anchor=tk.CENTER, minwidth=32, width=32)
@@ -257,12 +263,12 @@ class CertificateList(ttk.Treeview):
             i = cert._id
             self.insert('', i, iid, values=self._make_item_tree_data(cert))
         # if a state is provided, treat it as an iid to be selected after reload
-        focus_iid: int | str = event.state
-        if focus_iid is None or focus_iid == '':
+        if event.state != self.EventState.FocusItem:
             return
-        if isinstance(focus_iid, int):
-            focus_iid = str(focus_iid)
-        self.focus(focus_iid)
+        focus_iid: int = event.x
+        if focus_iid < 0:
+            raise EventStateError('treeview iid is less than zero')
+        self.focus(str(focus_iid))
 
     def delete_focused(self, event: tk.Event):
         iid = self.focus()
@@ -824,7 +830,11 @@ class CertificateForm(ttk.Frame):
 
         inserted_id: int = db_helpers.insert_one(data)
         global _widgets
-        _widgets.tree.event_generate('<<ReloadTree>>', state=inserted_id)
+        _widgets.tree.event_generate(
+            '<<ReloadTree>>',
+            state=_widgets.tree.EventState.FocusItem,
+            x=inserted_id,
+        )
 
     def delete_from_form_fields(self):
         # TODO
