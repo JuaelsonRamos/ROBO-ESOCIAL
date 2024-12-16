@@ -265,10 +265,12 @@ class CertificateList(ttk.Treeview):
         # if a state is provided, treat it as an iid to be selected after reload
         if event.state != self.EventState.FocusItem:
             return
-        focus_iid: int = event.x
+        focus_iid: int | str = event.x
         if focus_iid < 0:
             raise EventStateError('treeview iid is less than zero')
-        self.focus(str(focus_iid))
+        focus_iid = str(focus_iid)
+        self.focus(focus_iid)
+        self.selection_set(focus_iid)
 
     def delete_focused(self, event: tk.Event):
         iid = self.focus()
