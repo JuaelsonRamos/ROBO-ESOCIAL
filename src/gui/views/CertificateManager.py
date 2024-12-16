@@ -2,28 +2,26 @@ from __future__ import annotations
 
 from src import bootstrap
 from src.certificate import copy_certificate, delete_certificate, get_certificates
-from src.db import ClientCertificate
+from src.db import ClientCertificate, ClientConfig, DBSelectError
 from src.gui.global_runtime_constants import GlobalRuntimeConstants
-from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
 from src.gui.views.View import View
-from src.windows import open_file_dialog
 
 import math
+import string
 import tkinter as tk
 import functools
 import itertools
 import tkinter.ttk as ttk
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from tkinter import scrolledtext
-from typing import Callable, Final, Literal, Sequence, cast, overload
+from typing import Any, Callable, Final, Never, Sequence, cast
 
 import tksvg
 
-from sqlalchemy import func
+from sqlalchemy import CursorResult, func
+from sqlalchemy.exc import IntegrityError
 
 
 _common_padding: Final[int] = 5
@@ -65,6 +63,21 @@ class DatabaseHelper:
         with self.engine.begin() as conn:
             query = self.table.select().where(ClientCertificate._id == _id)
             return conn.scalar(query)
+
+    def insert_one(self, data: dict[str, Any]) -> int | Never:
+        with self.engine.begin() as conn:
+            try:
+                query = self.table.insert().values(data)
+                result: CursorResult[ClientCertificate] = conn.execute(query)
+            except IntegrityError as err:
+                raise DBSelectError(err) from err
+            if not result.is_insert:
+                raise DBSelectError(
+                    f'could not insert data in {self.table.name=}; {data=}'
+                )
+            if result.inserted_primary_key is None:
+                raise DBSelectError('sequence of inserted primary keys is None')
+            return result.inserted_primary_key[0]
 
 
 db_helpers = DatabaseHelper()
@@ -243,6 +256,13 @@ class CertificateList(ttk.Treeview):
                 continue
             i = cert._id
             self.insert('', i, iid, values=self._make_item_tree_data(cert))
+        # if a state is provided, treat it as an iid to be selected after reload
+        focus_iid: int | str = event.state
+        if focus_iid is None or focus_iid == '':
+            return
+        if isinstance(focus_iid, int):
+            focus_iid = str(focus_iid)
+        self.focus(focus_iid)
 
     def delete_focused(self, event: tk.Event):
         iid = self.focus()
@@ -261,19 +281,6 @@ class CertificateList(ttk.Treeview):
             copy_certificate(v)
         self.event_generate('<<ReloadTree>>')
 
-    def add_item(self, event: tk.Event):
-        lock = TkinterLock()
-        func = functools.partial(
-            open_file_dialog,
-            hwnd=self.winfo_id(),
-            title='Selecione um certificado digital',
-            extensions=[
-                ('Certificado digital', ('*.crt', '*.pem', '*.pfx')),
-            ],
-            multi_select=True,
-        )
-        lock.schedule(self, func, self._insert_files, block=False)
-
     def init_tree_state(self):
         global _widgets
         selected = self.selection()
@@ -289,6 +296,7 @@ class CertificateList(ttk.Treeview):
         # SEE https://stackoverflow.com/a/71710427/15493645
         self.bind('<Motion>', 'break')
         self.bind('<<TreeviewSelect>>', self._toggle_btn_state)
+        self.bind('<<TreeviewSelect>>', self._check_selection, '+')
         self.bind('<<ReloadTree>>', self.reload)
 
     def _toggle_btn_state(self, event: tk.Event):
@@ -730,7 +738,26 @@ class CertificateForm(ttk.Frame):
         self.fill_form_by_db_id(_id)
 
     def prepare_add_item(self, event: tk.Event | None = None):
-        pass
+        self.allow_form_interactions()
+        self.btn_cancel.set_command(self.reset_form)
+        self.btn_submit.set_command(self.insert_from_form_fields)
+        auto_message = '(Preenchimento automático)'
+        self.created.set_value(auto_message)
+        self.created.block_input()
+        self.last_modified.set_value(auto_message)
+        self.last_modified.block_input()
+        self.browsercontext_id.set_value(auto_message)
+        self.origin.set_value('')
+        self.origin.unblock_input()
+        self.cert_path.set_value('')
+        self.cert_path.unblock_input()
+        self.key_path.set_value('')
+        self.key_path.unblock_input()
+        self.pfx_path.set_value('')
+        self.pfx_path.unblock_input()
+        self.passphrase.set_value('')
+        self.passphrase.unblock_input()
+        self.passphrase.hide_input()
 
     def prepare_edit_item(self, event: tk.Event | None = None):
         pass
@@ -739,8 +766,61 @@ class CertificateForm(ttk.Frame):
         pass
 
     def insert_from_form_fields(self):
-        # TODO
-        pass
+        data: dict[str, Any] = {
+            'origin': self.origin.get_value().strip(string.whitespace),
+        }
+        passphrase: str | None = self.passphrase.get_value().strip(string.whitespace)
+        if passphrase == '':
+            passphrase = None
+        cert_path: str | None = self.cert_path.get_value().strip(string.whitespace)
+        cert: bytes | None = None
+        key_path: str | None = self.key_path.get_value().strip(string.whitespace)
+        key: bytes | None = None
+        pfx_path: str | None = self.pfx_path.get_value().strip(string.whitespace)
+        pfx: bytes | None = None
+
+        max_bytes = ClientConfig.SQLITE_LIMIT_LENGTH
+
+        def size_error(p):
+            return ValueError(f'file {p=} is bigger than {max_bytes=}')
+
+        if cert_path == '':
+            cert_path = None
+        elif (p := Path(cert_path)).is_file():
+            if p.stat().st_size > max_bytes:
+                raise size_error(p)
+            cert = p.read_bytes()
+        if key_path == '':
+            key_path = None
+        elif (p := Path(key_path)).is_file():
+            if p.stat().st_size > max_bytes:
+                raise size_error(p)
+            key = p.read_bytes()
+        if pfx_path == '':
+            pfx_path = None
+        elif (p := Path(pfx_path)).is_file():
+            if p.stat().st_size > max_bytes:
+                raise size_error(p)
+            pfx = p.read_bytes()
+
+        if cert is None and pfx is None:
+            raise ValueError(
+                'either a regular certificate of PFX certificate deve ser especificado'
+            )
+
+        data.update(
+            cert_path=cert_path,
+            cert=cert,
+            key_path=key_path,
+            key=key,
+            pfx_path=pfx_path,
+            pfx=pfx,
+            passphrase=passphrase,
+        )
+
+        inserted_id: int = db_helpers.insert_one(data)
+        global _widgets
+        _widgets.tree.event_generate('<<ReloadTree>>', state=inserted_id)
 
     def delete_from_form_fields(self):
         # TODO
