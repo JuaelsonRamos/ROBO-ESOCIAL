@@ -307,6 +307,7 @@ class CertificateList(ttk.Treeview):
         self.bind('<<TreeviewSelect>>', self._check_selection, '+')
         self.bind('<Visibility>', self.reload)
         self.bind('<<ReloadTree>>', self.reload)
+        self.bind('<Button-1>', self._check_clear_selection)
 
     def _toggle_btn_state(self, event: tk.Event):
         global _widgets
@@ -326,6 +327,19 @@ class CertificateList(ttk.Treeview):
             _widgets.form.event_generate('<<ResetForm>>')
             return
         _widgets.form.event_generate('<<PreviewItem>>', state=iid)
+
+    def _check_clear_selection(self, event: tk.Event):
+        # widget element clicked, .e.g. 'heading', 'tree', 'cell', 'nothing'
+        thing_clicked: str = self.identify_region(event.x, event.y)
+        if thing_clicked not in ('nothing', 'heading'):
+            return
+        selection: tuple[str | int, ...] = self.selection()
+        if len(selection) == 0:
+            # mouse event won't know whether an item is already selected
+            return
+        self.focus('')
+        # triggers selection check which will clear form if none is selected
+        self.selection_remove(selection)
 
 
 class ScrollableCanvas(tk.Canvas):
