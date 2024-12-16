@@ -297,6 +297,7 @@ class CertificateList(ttk.Treeview):
         self.bind('<Motion>', 'break')
         self.bind('<<TreeviewSelect>>', self._toggle_btn_state)
         self.bind('<<TreeviewSelect>>', self._check_selection, '+')
+        self.bind('<Visibility>', self.reload)
         self.bind('<<ReloadTree>>', self.reload)
 
     def _toggle_btn_state(self, event: tk.Event):
