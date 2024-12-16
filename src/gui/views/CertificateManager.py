@@ -167,13 +167,27 @@ class ButtonFrame(ttk.Frame):
     def assign_buttons_events(self):
         global _widgets
         _edit_item = functools.partial(_widgets.form.event_generate, '<<EditItem>>')
-        _add_item = functools.partial(_widgets.form.event_generate, '<<AddItem>>')
         _delete_item = functools.partial(_widgets.form.event_generate, '<<DeleteItem>>')
         _reload_tree = functools.partial(_widgets.tree.event_generate, '<<ReloadTree>>')
-        self.add.set_command(_add_item)
+        self.add.set_command(self._add_item_event)
         self.delete.set_command(_delete_item)
         self.edit.set_command(_edit_item)
         self.reload.set_command(_reload_tree)
+
+    def _add_item_event(self, event: tk.Event | None = None):
+        global _widgets
+        # TODO: add way of defining order of event execution independent of widget tree
+        # hierarchy. Currently, the deeper a widget is -- as in, it's inside one which
+        # is inside another and another, etc -- the later it is scheduled to be executed.
+        # NOTE: Maybe override Widget.bind() to map {sequence: callback} globally and
+        # with a context manager like events_in_order(), have an override of
+        # Widget.event_generate() append to a queue that runs in order upon context exit.
+        # NOTE: This is nuts. Perhaps just assign every event to a global map and use it
+        # instead of Widget.event_generate(). It'd be way better to pass state through it,
+        # but I'd have to pay extra attention to the custom mainloop. Oh well...
+        _widgets.tree.event_generate('<<ClearSelection>>')
+        self.update()
+        _widgets.form.event_generate('<<AddItem>>')
 
 
 class CertificateList(ttk.Treeview):
@@ -308,6 +322,7 @@ class CertificateList(ttk.Treeview):
         self.bind('<Visibility>', self.reload)
         self.bind('<<ReloadTree>>', self.reload)
         self.bind('<Button-1>', self._check_clear_selection)
+        self.bind('<<ClearSelection>>', self.clear_selection)
 
     def _toggle_btn_state(self, event: tk.Event):
         global _widgets
@@ -333,6 +348,9 @@ class CertificateList(ttk.Treeview):
         thing_clicked: str = self.identify_region(event.x, event.y)
         if thing_clicked not in ('nothing', 'heading'):
             return
+        self.event_generate('<<ClearSelection>>')
+
+    def clear_selection(self, event: tk.Event | None = None):
         selection: tuple[str | int, ...] = self.selection()
         if len(selection) == 0:
             # mouse event won't know whether an item is already selected
