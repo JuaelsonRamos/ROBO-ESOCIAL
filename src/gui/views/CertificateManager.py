@@ -45,15 +45,15 @@ class DatabaseHelper:
 
     def count_certificates(self) -> int:
         with self.engine.begin() as conn:
-            query = func.count().select().select_from(ClientCertificate._id)
+            query = func.count().select().select_from(ClientCertificate)
             quantity = conn.scalar(query)
             return quantity or 0
 
     def get_all_certificates(self) -> Sequence[ClientCertificate]:
         with self.engine.begin() as conn:
             query = self.table.select()
-            certs = conn.scalars(query).all()
-            return certs
+            certs = conn.execute(query).all()
+            return certs  # type: ignore
 
     def get_certificates(self, ids: Sequence[int]) -> Sequence[ClientCertificate]:
         with self.engine.begin() as conn:
