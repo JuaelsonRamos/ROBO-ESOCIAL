@@ -14,10 +14,12 @@ from sqlalchemy import (
     REAL,
     TEXT,
     Boolean,
+    Connection,
     DateTime,
     Enum,
     ForeignKey,
     MetaData,
+    func,
     sql,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -37,6 +39,14 @@ class Base(DeclarativeBase):
         Url: Url,
         bool: Boolean,
     }
+
+    @classmethod
+    def sync_count(cls, conn: Connection) -> int:
+        query = func.count().select().select_from(cls)
+        result = conn.execute(query).scalar_one_or_none()
+        if result is None:
+            return 0
+        return result
 
 
 BrowserType = Literal['firefox', 'chromium']
