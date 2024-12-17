@@ -80,12 +80,10 @@ def generate_unused_backupfile_path() -> Path:
     return path
 
 
-_connections: tuple[sqlite3.Connection, ...] = ()
-
-
 class ClientConfig:
     """
-    Constants used to configure the database at runtime, mostly immediately upon connection.
+    Constants used to configure the database at runtime, mostly immediately upon
+    connection.
 
     Doc references:
     * `.setlimit() arguments <setlimit>`_
@@ -113,21 +111,19 @@ def define_connection(filepath: Path | None = None) -> sqlite3.Connection:
     return conn
 
 
-def register_connection_object(conn: sqlite3.Connection) -> None:
-    """Prevent connection from being collected."""
-    global _connections
-    _connections = _connections + (conn,)
+def init_sync_sqlite():
+    from .tables import Base
 
+    from src.gui.tkinter_global import TkinterGlobal
 
-def toss_connection_object(conn: sqlite3.Connection) -> None:
-    """Remove persistent reference to connection object, enabling it to be collected."""
-    global _connections
-    _connections = tuple(
-        _stored_conn for _stored_conn in _connections if _stored_conn != conn
+    from sqlalchemy import create_engine
+
+    populate_backup_files()
+    sqlite_engine = create_engine(
+        'sqlite://',
+        creator=define_connection,
+        echo=__debug__,
+        echo_pool=__debug__,
     )
-
-
-def get_connection_objects() -> tuple[sqlite3.Connection, ...]:
-    """Get tuple of connection instances."""
-    global _connections
-    return _connections
+    Base.metadata.create_all(sqlite_engine)
+    TkinterGlobal.sqlite = sqlite_engine
