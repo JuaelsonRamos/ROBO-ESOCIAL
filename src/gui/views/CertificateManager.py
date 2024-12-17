@@ -3,7 +3,7 @@ from __future__ import annotations
 from src import bootstrap
 from src.certificate import copy_certificate, delete_certificate, get_certificates
 from src.db import ClientCertificate, ClientConfig, DBSelectError
-from src.gui.global_runtime_constants import GlobalRuntimeConstants
+from src.gui.tkinter_global import TkinterGlobal
 from src.gui.utils.units import padding
 from src.gui.views.View import View
 
@@ -37,12 +37,7 @@ class DatabaseHelper:
         super().__init__()
         self.metadata = ClientCertificate.metadata
         self.table = self.metadata.tables['clientcertificate']
-
-    @property
-    def engine(self):
-        if not GlobalRuntimeConstants.is_initialized():
-            return
-        return GlobalRuntimeConstants().sqlite  # type:ignore
+        self.engine = TkinterGlobal.sqlite
 
     def count_certificates(self) -> int:
         with self.engine.begin() as conn:
@@ -60,7 +55,7 @@ class DatabaseHelper:
         with self.engine.begin() as conn:
             query = self.table.select().where(ClientCertificate._id.in_(ids))
             certs = conn.execute(query).all()
-            return certs
+            return certs  # type: ignore
 
     def get_one(self, _id: int) -> ClientCertificate | None:
         with self.engine.begin() as conn:
