@@ -6,6 +6,14 @@ from typing import Any, Final, Generator
 import sqlalchemy
 
 
+# pyright: reportAttributeAccessIssue=false, reportAssignmentType=false
+
+
+class TkinterGlobalUnknown(RuntimeError):
+    def __init__(self, name: str, /) -> None:
+        super().__init__(f'property {name=} is does not exist and cannot be defined')
+
+
 class TkinterGlobalUndefined(NotImplementedError):
     def __init__(self, name: str, /) -> None:
         super().__init__(f'property {name=} has not yet been assigned')
@@ -16,13 +24,21 @@ class TkinterGlobalAssigned(RuntimeError):
         super().__init__(f'property {name=} has already been assigned once')
 
 
-class TkinterGlobalType:
-    __slots__ = ('style', 'sqlite')
+class TkinterGlobalMeta(type):
+    """
+    Class to allow methods that mess with property state using super() objects, since
+    class objects are instances of metaclasses, and 'metaassigning' (I invented this
+    term) requires the called setter to be contained in an instance of some sort.
 
-    style: ttk.Style
-    sqlite: sqlalchemy.Engine
+    Event though the setter was being called after instantiation of the regular class,
+    defining these methods in a metaclass fixed the issue. So, yeah.
+    """
+
+    __slots__ = ()
 
     def __getattr__(self, name: str, /) -> Any:
+        if name not in self.__slots__:
+            raise TkinterGlobalUnknown(name)
         if getattr(super(), name, None) is None:
             raise TkinterGlobalUndefined(name)
         return getattr(super(), name)
@@ -30,9 +46,19 @@ class TkinterGlobalType:
     def __getitem__(self, key: str, /) -> Any:
         return self.__getattr__(key)
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        if hasattr(self, name) or getattr(super(), name) is not None:
-            raise TkinterGlobalAssigned(name)
+    def __setattr__(self, name: str, value: Any, /) -> None:
+        try:
+            if getattr(super(), name, None) is not None:
+                raise TkinterGlobalAssigned(name)
+        except TkinterGlobalUndefined:
+            pass  # exist but not yet assigned
+        except TkinterGlobalUnknown as err:
+            # forced expressiveness, announce that it may raise!!
+            raise err
+        setattr(super(), name, value)
+
+    def __setitem__(self, key: str, value: Any, /) -> None:
+        return self.__setattr__(key, value)
 
     def fields(self) -> tuple[str, ...]:
         return self.__slots__
@@ -46,10 +72,19 @@ class TkinterGlobalType:
         try:
             if getattr(super(), name) is None:
                 return False
-        except AttributeError:
+        except (AttributeError, TkinterGlobalUnknown, TkinterGlobalUndefined):
             return False
+        except TkinterGlobalAssigned:
+            return True
         else:
             return True
+
+
+class TkinterGlobalType(metaclass=TkinterGlobalMeta):
+    __slots__ = ('style', 'sqlite')
+
+    style: ttk.Style
+    sqlite: sqlalchemy.Engine
 
 
 TkinterGlobal: Final[TkinterGlobalType] = TkinterGlobalType()
