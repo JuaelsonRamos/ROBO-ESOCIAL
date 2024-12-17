@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from src import bootstrap, db
+from src import bootstrap
 from src.crawl.steps.step import execute_in_order
+from src.db import init_sync_sqlite
 from src.gui.app import App
-from src.gui.global_runtime_constants import GlobalRuntimeConstants
+from src.gui.tkinter_global import TkinterGlobal
 
 import sys
 import asyncio
@@ -21,7 +22,6 @@ from playwright.async_api import (
     Playwright,
     async_playwright,
 )
-from sqlalchemy import create_engine
 
 
 TASK_LIMIT = 5
@@ -138,19 +138,8 @@ class GraphicalRuntime:
     def __init__(self) -> NoneType:
         super().__init__()
         self.app = App()
-        db.populate_backup_files()
-        self.sqlite_engine = create_engine(
-            'sqlite://',
-            creator=db.define_connection,
-            echo=__debug__,
-            echo_pool=__debug__,
-        )
-        db.Base.metadata.create_all(self.sqlite_engine)
-        GlobalRuntimeConstants.configure(
-            style=ttk.Style(self.app),
-            sqlite=self.sqlite_engine,
-        )
-        self.global_constants = GlobalRuntimeConstants()  # type: ignore
+
+        TkinterGlobal.style = ttk.Style(self.app)
 
         import src.gui.asyncio as gui_asyncio
 
@@ -187,12 +176,15 @@ async def mainloop():
         app_dir.ensure_mkdir()
 
     if BrowserRuntime.should_avoid():
+        init_sync_sqlite()
         GraphicalRuntime.single_isolated_runtime_loop()
         return
     if GraphicalRuntime.should_avoid():
+        init_sync_sqlite()
         await BrowserRuntime.single_isolated_runtime_loop()
         return
 
+    init_sync_sqlite()
     async with async_playwright() as p:
         browser_runtime = BrowserRuntime(p)
         graphical_runtime = GraphicalRuntime()
