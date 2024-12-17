@@ -37,7 +37,10 @@ class DatabaseHelper:
         super().__init__()
         self.metadata = ClientCertificate.metadata
         self.table = self.metadata.tables['clientcertificate']
-        self.engine = TkinterGlobal.sqlite
+
+    @property
+    def engine(self):
+        return TkinterGlobal.sqlite
 
     def count_certificates(self) -> int:
         with self.engine.begin() as conn:
