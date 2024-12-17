@@ -80,6 +80,8 @@ class Docstrings(metaclass=Singleton):
     }
     clientcertificate = {
         'browsercontext_id': 'one client_certificate to many browsercontexts',
+        'using_type': 'What kind of certificate is row refering to',
+        'description': 'Unique user-defined description for that certificate',
     }
     imagemedia = {
         'blob': 'Blobs are part of a specific processing entry but two binary blobs may be equal by pure chance',
@@ -219,6 +221,16 @@ class Origin_BrowserContext(Base):
     )
 
 
+CertificateOptions: tuple[str, ...] = ('PFX', 'CRT', 'PEM')
+CertificateType = Literal[*CertificateOptions]
+CertificateEnum = Enum(
+    *get_args(CertificateType),
+    name='certificate',
+    create_constraint=True,
+    validate_strings=True,
+)
+
+
 class ClientCertificate(Base):
     __tablename__ = 'clientcertificate'
     _id: Mapped[int] = common_columns._id
@@ -252,6 +264,19 @@ class ClientCertificate(Base):
     )
     passphrase: Mapped[str] = mapped_column(
         nullable=True, unique=False, server_default=sql.null()
+    )
+    using_type: Mapped[str] = mapped_column(
+        CertificateEnum,
+        nullable=True,
+        unique=False,
+        doc=docs.clientcertificate['using_type'],
+        comment=docs.clientcertificate['using_type'],
+    )
+    description: Mapped[str] = mapped_column(
+        nullable=False,
+        unique=True,
+        doc=docs.clientcertificate['description'],
+        comment=docs.clientcertificate['description'],
     )
 
 
