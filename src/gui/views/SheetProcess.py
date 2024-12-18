@@ -301,6 +301,16 @@ class Tree(ttk.Treeview):
 
         self.bind('<<TreeviewSelect>>', self._set_button_state)
         self.bind('<Visibility>', self._set_button_state)
+        self.bind('<Button-1>', self._check_click_position)
+
+    def _check_click_position(self, event: tk.Event):
+        if self.identify_region(event.x, event.y) not in ('heading', 'nothing'):
+            return
+        self.focus('')
+        selection = self.selection()
+        if len(selection) == 0:
+            return
+        self.selection_remove(selection)
 
     @abstractmethod
     def _set_button_state(self, event: tk.Event): ...
