@@ -299,6 +299,12 @@ class Tree(ttk.Treeview):
             if (width := spec['width']) is not None:
                 self.column(iid, width=width)
 
+        self.bind('<<TreeviewSelect>>', self._set_button_state)
+        self.bind('<Visibility>', self._set_button_state)
+
+    @abstractmethod
+    def _set_button_state(self, event: tk.Event): ...
+
     def pack(self):
         super().pack(side=tk.TOP, fill=tk.BOTH, expand=tk.TRUE)
 
@@ -308,12 +314,28 @@ class Tree(ttk.Treeview):
 
 class ProcessingTree(Tree):
     headings_spec = INPUT_QUEUE
-    # TODO
+
+    def _set_button_state(self, event):
+        if self.focus() == '':
+            _widgets.proc_btn_start.disable()
+            _widgets.proc_btn_pause.disable()
+            _widgets.proc_btn_stop.disable()
+            _widgets.proc_btn_delete.disable()
+            return
+        _widgets.proc_btn_start.enable()
+        _widgets.proc_btn_pause.enable()
+        _widgets.proc_btn_stop.enable()
+        _widgets.proc_btn_delete.enable()
 
 
 class HistoryTree(Tree):
     headings_spec = HISTORY
-    # TODO
+
+    def _set_button_state(self, event):
+        if self.focus() == '':
+            _widgets.hist_export_sheet.disable()
+            return
+        _widgets.hist_export_sheet.enable()
 
 
 class TreeSection(ttk.Frame):
