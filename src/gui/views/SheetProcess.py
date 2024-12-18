@@ -334,8 +334,12 @@ class HistoryTree(Tree):
     def _set_button_state(self, event):
         if self.focus() == '':
             _widgets.hist_export_sheet.disable()
-            return
-        _widgets.hist_export_sheet.enable()
+        else:
+            _widgets.hist_export_sheet.enable()
+        if len(self.get_children()) == 0:
+            _widgets.hist_export_hist.disable()
+        else:
+            _widgets.hist_export_hist.enable()
 
 
 class TreeSection(ttk.Frame):
