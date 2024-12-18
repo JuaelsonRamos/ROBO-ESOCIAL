@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .custom_types import Url, timestamp
 
+from src.gui.tkinter_global import TkinterGlobal
 from src.utils import Singleton
 
 from dataclasses import dataclass
@@ -14,7 +15,6 @@ from sqlalchemy import (
     REAL,
     TEXT,
     Boolean,
-    Connection,
     DateTime,
     Enum,
     ForeignKey,
@@ -41,12 +41,13 @@ class Base(DeclarativeBase):
     }
 
     @classmethod
-    def sync_count(cls, conn: Connection) -> int:
-        query = func.count().select().select_from(cls)
-        result = conn.execute(query).scalar_one_or_none()
-        if result is None:
-            return 0
-        return result
+    def sync_count(cls) -> int:
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = func.count().select().select_from(cls)
+            result = conn.execute(query).scalar_one_or_none()
+            if result is None:
+                return 0
+            return result
 
 
 BrowserType = Literal['firefox', 'chromium']
