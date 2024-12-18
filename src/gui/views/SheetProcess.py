@@ -7,7 +7,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 from abc import abstractmethod
-from typing import Any, Callable, Never, TypedDict, get_type_hints
+from typing import Any, Never, TypedDict, get_type_hints
 
 
 class Heading(TypedDict):
@@ -144,14 +144,17 @@ class Tag:
 class ActionButton(ttk.Button):
     def __init__(self, master: ButtonFrame, text: str):
         super().__init__(
-            master, padding=padding(horizontal=5), text=text, takefocus=tk.TRUE
+            master,
+            padding=padding(horizontal=5),
+            text=text,
+            takefocus=tk.TRUE,
+            command=self.on_click,
         )
         self.parent_widget = master
         _widgets.register(self)
 
-    def set_command(self, command: Callable):
-        """Formal way of setting the buttons' command."""
-        self.config(command=command)
+    @abstractmethod
+    def on_click(self): ...
 
     def pack(self):
         """Generic .pack() that reverses order of packed widgets so that they appear in
