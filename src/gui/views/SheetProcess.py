@@ -1,20 +1,13 @@
 from __future__ import annotations
 
-import src.gui.constants as const
-
-from src.gui.asyncio import Thread
 from src.gui.utils.units import padding
 from src.gui.views.View import View
-from src.utils import extract_from
 
-import time
 import tkinter as tk
-import threading
 import tkinter.ttk as ttk
-import tkinter.filedialog as filedialog
 
-from pathlib import Path
-from typing import Any, TypedDict
+from abc import abstractmethod
+from typing import Any, Callable, Never, TypedDict, get_type_hints
 
 
 class Heading(TypedDict):
@@ -113,175 +106,253 @@ HISTORY: HeadingSequence = (
 )
 
 
-class QueueButton(ttk.Button):
-    def __init__(self, master: ttk.Widget, text: str):
-        super().__init__(master, text=text)
-        # NOTE side=RIGHT orders things in reverse, instead of just justifying position
-        self.pack(side=tk.RIGHT)
+class _widgets:
+    proc_tree: ProcessingTree
+    proc_section: ProcessingSection
+    proc_button_frame: ProcessingButtonFrame
+    proc_btn_start: StartButton
+    proc_btn_pause: PauseButton
+    proc_btn_stop: StopButton
+    proc_btn_add: AddButton
+    proc_btn_delete: DeleteButton
 
-    def before(self, button: ttk.Widget) -> None:
-        self.pack_configure(before=button)
+    hist_tree: HistoryTree
+    hist_section: HistorySection
+    hist_button_frame: HistoryButtonFrame
+    hist_export_sheet: ExportSheetButton
+    hist_export_hist: ExportHistoryButton
+
+    @classmethod
+    def register(cls, widget: ttk.Widget | tk.Widget) -> None | Never:
+        fields = get_type_hints(cls)
+        for name, _type in fields.items():
+            if not isinstance(widget, _type):
+                continue
+            if hasattr(cls, name) and getattr(cls, name, None) is not None:
+                raise RuntimeError('widget already assigned to property in class')
+            setattr(cls, name, widget)
+            return
+        raise TypeError(
+            'widget is not an instance of any property defined in class type hints'
+        )
 
 
-class QueueButtonRow(ttk.Frame):
-    def __init__(self, master: ttk.Widget, text: str):
+class Tag:
+    pass
+
+
+class ActionButton(ttk.Button):
+    def __init__(self, master: ButtonFrame, text: str):
+        super().__init__(
+            master, padding=padding(horizontal=5), text=text, takefocus=tk.TRUE
+        )
+        self.parent_widget = master
+        _widgets.register(self)
+
+    def set_command(self, command: Callable):
+        """Formal way of setting the buttons' command."""
+        self.config(command=command)
+
+    def pack(self):
+        """Generic .pack() that reverses order of packed widgets so that they appear in
+        the the order they were packed.
+        """
+        super().pack(side=tk.RIGHT, padx=(0, 2))
+        # reverse packing order
+        buttons = self.parent_widget.buttons
+        if len(buttons) > 0:
+            self.pack_configure(before=buttons[-1])
+        if len(buttons) == 0 or self not in buttons:
+            buttons.append(self)
+
+    def disable(self):
+        if self['state'] == tk.DISABLED:
+            return
+        self.config(state=tk.DISABLED)
+
+    def enable(self):
+        if self['state'] == tk.NORMAL:
+            return
+        self.config(state=tk.NORMAL)
+
+
+class StartButton(ActionButton):
+    pass
+
+
+class PauseButton(ActionButton):
+    pass
+
+
+class StopButton(ActionButton):
+    pass
+
+
+class AddButton(ActionButton):
+    pass
+
+
+class DeleteButton(ActionButton):
+    pass
+
+
+class ExportSheetButton(ActionButton):
+    pass
+
+
+class ExportHistoryButton(ActionButton):
+    pass
+
+
+class UppercaseStringVar(tk.StringVar):
+    def __init__(
+        self,
+        master: tk.Misc | None = None,
+        value: str | None = None,
+        name: str | None = None,
+    ) -> None:
+        if value is not None:
+            value = value.upper()
+        super().__init__(master, value, name)
+
+    def set(self, value: str) -> None:
+        return super().set(value.upper())
+
+
+class ButtonFrame(ttk.Frame):
+    def __init__(self, master: ttk.Widget, title: str):
         super().__init__(master)
-        self._buttons: list[ttk.Button] = []
-        self.text = text
-        self.pack(anchor=tk.NE, side=tk.TOP, fill=tk.X)
+        _widgets.register(self)
+        self.buttons: list[ActionButton] = []
+        self.title = UppercaseStringVar(value=title)
         self.create_widgets()
 
-    def add_button(self, text: str = 'Placeholder') -> ttk.Button:
-        btn = QueueButton(self, text)
-        if len(self._buttons) > 0:
-            btn.before(self._buttons[-1])
-        self._buttons.append(btn)
-        return btn
+    def pack(self):
+        super().pack(anchor=tk.NE, side=tk.TOP, fill=tk.X)
+        self.label.pack(side=tk.LEFT, anchor=tk.W, fill=tk.Y)
 
     def create_widgets(self):
-        label = ttk.Label(self, text=self.text.upper(), padding=padding(left=5))
-        label.pack(side=tk.LEFT, anchor=tk.W, fill=tk.Y)
+        self.label = ttk.Label(self, textvariable=self.title, padding=padding(left=5))
 
 
-class InteractiveTreeList(ttk.Frame):
-    def __init__(self, master: ttk.Widget, title: str, *, columns: HeadingSequence):
-        super().__init__(master)
-        self.columns = columns
-        self.title = title
-        self.pack(fill=tk.BOTH, expand=tk.TRUE, side=tk.TOP, anchor=tk.NW)
-        self.button_row = QueueButtonRow(self, self.title)
-        self.tree = ShortTree(self, columns=columns)
+class ProcessingButtonFrame(ButtonFrame):
+    def __init__(self, master: ttk.Widget):
+        super().__init__(master, 'Fila de processamento')
 
-    def add_button(self, text: str) -> ttk.Button:
-        return self.button_row.add_button(text)
+    def pack(self):
+        super().pack()
+        self.start.pack()
+        self.pause.pack()
+        self.stop.pack()
+        self.add.pack()
+        self.delete.pack()
 
-
-class ProcessingQueue(InteractiveTreeList):
-    def __init__(self, master):
-        super().__init__(master, 'Fila de Processamento', columns=INPUT_QUEUE)
-
-        self._index = self._gen_next_index()
-
-        self.create_add_button()
-        self.create_delete_button()
-        self.add_button('Começar')
-        self.add_button('Pausar')
-        self.add_button('Parar')
-
-    def create_add_button(self):
-        self.files_lock = threading.Lock()
-
-        add_btn = self.add_button('Adicionar')
-
-        self._files_thread = Thread(
-            name='files_choose', target=self.wait_files, attempt_delay=1.0
-        )
-        self._files_add_thread = Thread(
-            name='files_add', target=self.add_files, attempt_delay=0.5
-        )
-
-        add_btn.config(command=self._files_thread.events.start.set)
-
-        self._files_thread.start()
-        self._files_add_thread.start()
-
-    def create_delete_button(self):
-        btn = self.add_button('Remover')
-
-        def delete_focused():
-            cell = self.tree.focus()
-            if not cell or not self.tree.exists(cell):
-                return
-            self.tree.delete(cell)
-
-        btn.config(command=delete_focused)
-
-    def wait_files(self):
-        with self.files_lock:
-            self.files = filedialog.askopenfilenames(
-                parent=self,
-                title='Selecione um arquivo de planilha de dados',
-                defaultextension='.xlsx',
-                filetypes=[('Todos os arquivos', '*'), ('Arquivo Excel', '.xlsx .xls')],
-            )
-            self._files_add_thread.events.start.set()
-
-    def add_files(self):
-        with self.files_lock:
-            for filename in self.files:
-                data = self.make_row_data(filename)
-                self.tree.insert('', 'end', values=data)
-
-    def _gen_next_index(self):
-        i = 1
-        while True:
-            yield i
-            i += 1
-
-    def make_row_data(self, filename: str) -> list[Any]:
-        # TODO generic, inherited way of making row data
-        path = Path(filename)
-        data: list[Any] = []
-        add = data.append
-        for col in self.columns:
-            match col['iid']:
-                case 'list_order':
-                    add(next(self._index))
-                case 'file_name':
-                    add(path.stem)
-                case 'file_type':
-                    add(path.suffix)
-                case 'storage_size':
-                    add(str(path.stat().st_size))
-                case 'date_added':
-                    add(str(time.time()))
-        return data
+    def create_widgets(self):
+        super().create_widgets()
+        self.start = StartButton(self, 'Começar')
+        self.pause = PauseButton(self, 'Pausar')
+        self.stop = StopButton(self, 'Parar')
+        self.add = AddButton(self, 'Adicionar')
+        self.delete = DeleteButton(self, 'Remover')
 
 
-class HistoryList(InteractiveTreeList):
-    def __init__(self, master):
-        super().__init__(master, 'Histórico', columns=HISTORY)
-        self.add_button('Exportar Planilha')
-        self.add_button('Exportar Histórico')
+class HistoryButtonFrame(ButtonFrame):
+    def __init__(self, master: ttk.Widget):
+        super().__init__(master, 'Histórico')
+
+    def pack(self):
+        super().pack()
+        self.export_sheet.pack()
+        self.export_history.pack()
+
+    def create_widgets(self):
+        super().create_widgets()
+        self.export_sheet = ExportSheetButton(self, 'Exportar Planilha')
+        self.export_history = ExportHistoryButton(self, 'Exportar Histórico')
 
 
-class ShortTree(ttk.Treeview):
-    min_height = 10
-    """Altura mínima em células."""
+class Tree(ttk.Treeview):
+    headings_spec: HeadingSequence
 
-    def __init__(self, master: ttk.Widget, *, columns: HeadingSequence):
-        self.columns = columns
-        self._columns_order = tuple(col['iid'] for col in columns)
+    def __init__(self, master: ttk.Widget):
+        self.columns = tuple(spec['iid'] for spec in self.headings_spec)
 
         super().__init__(
             master,
-            style=const.SHORT_TREE,
-            height=self.min_height,
-            selectmode=tk.EXTENDED,
+            height=10,
+            selectmode=tk.BROWSE,
             takefocus=tk.TRUE,
-            columns=self._columns_order,
+            columns=self.columns,
             show='headings',
         )
-        self.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.TRUE)
 
-        for col in columns:
-            self.heading(col['iid'], **extract_from(col, 'text', 'anchor'))
-            self.column(
-                col['iid'],
-                stretch=tk.FALSE,
-                **extract_from(col, 'width', 'minwidth'),
-            )
+        _widgets.register(self)
 
-        # empty = ['' for _ in range(self.min_height)]
-        # for i in range(self.min_height):
-        #     self.insert('', i, values=empty.copy())
+        for spec in self.headings_spec:
+            iid = spec['iid']
+            anchor: Any = spec['anchor']  # string but the typechecker will complain :/
+            self.heading(iid, text=spec['text'], anchor=anchor)
+            if anchor is not None:
+                self.column(iid, anchor=anchor)
+            if (minwidth := spec['minwidth']) is not None:
+                self.column(iid, minwidth=minwidth)
+            if (width := spec['width']) is not None:
+                self.column(iid, width=width)
+
+    def pack(self):
+        super().pack(side=tk.TOP, fill=tk.BOTH, expand=tk.TRUE)
+
+    @abstractmethod
+    def _make_row_data(self, data: Any) -> tuple[str, ...]: ...
+
+
+class ProcessingTree(Tree):
+    headings_spec = INPUT_QUEUE
+    # TODO
+
+
+class HistoryTree(Tree):
+    headings_spec = HISTORY
+    # TODO
+
+
+class TreeSection(ttk.Frame):
+    def __init__(self, master: ttk.Widget):
+        super().__init__(master)
+        _widgets.register(self)
+        self.create_widgets()
+
+    @abstractmethod
+    def create_widgets(self):
+        self.button_frame: ButtonFrame
+        self.tree: Tree
+
+    def pack(self):
+        super().pack(fill=tk.BOTH, expand=tk.TRUE, side=tk.TOP, anchor=tk.NW)
+        self.button_frame.pack()
+        self.tree.pack()
+
+
+class ProcessingSection(TreeSection):
+    # TODO
+
+    def create_widgets(self):
+        self.button_frame = ProcessingButtonFrame(self)
+        self.tree = ProcessingTree(self)
+
+
+class HistorySection(TreeSection):
+    # TODO
+
+    def create_widgets(self):
+        self.button_frame = HistoryButtonFrame(self)
+        self.tree = HistoryTree(self)
 
 
 class SheetProcess(View):
     def __init__(self, master):
-        super().__init__(master, style=const.VIEW)
-        self.create_widgets()
-
-    def create_widgets(self):
-        ProcessingQueue(self)
-        HistoryList(self)
+        super().__init__(master)
+        self.processing = ProcessingSection(self)
+        self.processing.pack()
+        self.history = HistorySection(self)
+        self.history.pack()
