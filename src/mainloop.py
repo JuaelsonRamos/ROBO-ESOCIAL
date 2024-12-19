@@ -92,9 +92,6 @@ class BrowserRuntime:
             pass
         return path
 
-    class CannotCreateTaskError(RuntimeError):
-        pass
-
     async def create_task(self, *, raise_if_cant: bool) -> asyncio.Task[None] | None:
         if self.queue.empty() or self.semaphore.locked():
             # can't create task, awaiting semaphore would halt coroutine indefinitely

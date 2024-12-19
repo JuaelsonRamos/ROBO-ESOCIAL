@@ -5,18 +5,12 @@ from src import bootstrap
 import hashlib
 
 from pathlib import Path
-from typing import IO, Any, Final, Never
+from typing import IO, Final, Never
 
 
 CERT_STORAGE = bootstrap.Directory().CERT_STORAGE
 
 CERT_SUFFIX: Final[tuple[str, ...]] = ('.crt', '.pem', '.pfx')
-
-
-class CertificateTypeError(Exception): ...
-
-
-class CertificateFileError(Exception): ...
 
 
 def _path(file: str | Path | IO) -> Path:

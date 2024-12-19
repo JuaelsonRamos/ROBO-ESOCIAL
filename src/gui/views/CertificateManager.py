@@ -24,9 +24,6 @@ from sqlalchemy import CursorResult, func
 from sqlalchemy.exc import IntegrityError
 
 
-class EventStateError(ValueError): ...
-
-
 _common_padding: Final[int] = 5
 
 dirs = bootstrap.Directory()

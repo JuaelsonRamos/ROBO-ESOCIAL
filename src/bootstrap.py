@@ -8,14 +8,11 @@ import sys
 from dataclasses import astuple, dataclass
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Final, cast
+from typing import Final
 
 
 # which bootstrapping procedures where already ran
 _state = SimpleNamespace(dirs=False)
-
-
-class AppBootstrapError(RuntimeError): ...
 
 
 @dataclass(frozen=True)

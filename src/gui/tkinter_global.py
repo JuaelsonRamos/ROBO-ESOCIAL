@@ -9,21 +9,6 @@ import sqlalchemy
 # pyright: reportAttributeAccessIssue=false, reportAssignmentType=false
 
 
-class TkinterGlobalUnknown(RuntimeError):
-    def __init__(self, name: str, /) -> None:
-        super().__init__(f'property {name=} is does not exist and cannot be defined')
-
-
-class TkinterGlobalUndefined(NotImplementedError):
-    def __init__(self, name: str, /) -> None:
-        super().__init__(f'property {name=} has not yet been assigned')
-
-
-class TkinterGlobalAssigned(RuntimeError):
-    def __init__(self, name: str, /) -> None:
-        super().__init__(f'property {name=} has already been assigned once')
-
-
 class TkinterGlobalMeta(type):
     """
     Class to allow methods that mess with property state using super() objects, since
