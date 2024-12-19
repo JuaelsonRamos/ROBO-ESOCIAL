@@ -7,19 +7,21 @@ from .util import normalize_column_title
 from src.sistema.models import Column
 from src.utils import EmptyString
 
-from collections.abc import Sequence
+from typing import Self
 
 from openpyxl.cell import Cell
 from openpyxl.worksheet.worksheet import Worksheet
 
 
-class SheetColumns(Sequence):
-    def __init__(self, worksheet: Worksheet) -> None:
-        self.worksheet = worksheet
-        self.row: tuple[Cell, ...]
-        self.row = next(self.worksheet.iter_rows(min_row=2, max_row=2))
+class SheetColumns(tuple[Column, ...]):
+    worksheet: Worksheet
+    row: tuple[Cell, ...]
+
+    def __new__(cls, worksheet: Worksheet) -> Self:
+        cls.worksheet = worksheet
+        cls.row = next(cls.worksheet.iter_rows(min_row=2, max_row=2))
         parsed = []
-        for i, cell in enumerate(self.row):
+        for i, cell in enumerate(cls.row):
             if not isinstance(cell, Cell):
                 raise TypeError('must be spreadsheet Cell object')
             if not isinstance(cell.value, str):
@@ -41,19 +43,4 @@ class SheetColumns(Sequence):
                 case _:
                     col['requirement'] = OPCIONAL
             parsed.append(Column(**col))
-        self._columns = tuple(parsed)
-
-        for attr in (
-            '__iter__',
-            '__hash__',
-            '__reversed__',
-            '__contains__',
-            '__len__',
-            '__getitem__',
-            'index',
-            'count',
-        ):
-            if not hasattr(self._columns, attr):
-                continue
-            method = getattr(self._columns, attr)
-            setattr(self, attr, method)
+        return super(SheetColumns, cls).__new__(cls, parsed)
