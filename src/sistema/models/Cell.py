@@ -6,10 +6,11 @@ from .Model import Model
 from src.sistema.spreadsheet import QualifiedType, QualifiedValue, Requirement
 from src.sistema.validators import Validator
 
-from typing import NamedTuple
+from dataclasses import dataclass
 
 
-class Cell(NamedTuple, Model):  # type: ignore
+@dataclass
+class Cell(Model):
     i: int
     property_name: str
     required: Requirement

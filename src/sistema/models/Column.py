@@ -4,10 +4,11 @@ from .Model import Model
 
 from src.sistema.spreadsheet import Requirement
 
-from typing import NamedTuple
+from dataclasses import dataclass
 
 
-class Column(NamedTuple, Model):  # type: ignore
+@dataclass
+class Column(Model):
     i: int
     original_text: str
     property_name: str

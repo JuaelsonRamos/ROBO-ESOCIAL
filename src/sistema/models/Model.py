@@ -1,53 +1,37 @@
 from __future__ import annotations
 
-from abc import abstractmethod
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    NamedTupleMeta,  # type: ignore
-    SupportsIndex,
-)
+from dataclasses import asdict, astuple, dataclass, fields, replace
+from typing import Any
 
 from pydantic import ConfigDict, TypeAdapter
 
 
-# SEE typing.NamedTupleMeta implementation
+_adapters_registry: dict[type, TypeAdapter] = {}
 
 
-class ModelMeta(NamedTupleMeta):
-    __adapters: dict[type, TypeAdapter] = {}
+@dataclass
+class Model:
+    def type_adapter(self) -> TypeAdapter:
+        T = type(self)
+        if T not in _adapters_registry:
+            _adapters_registry[T] = TypeAdapter(T, config=ConfigDict(strict=False))
+        return _adapters_registry[T]
 
-    def __new__(cls, name, bases, attrs):
-        nm_tpl = super(ModelMeta, cls).__new__(cls, name, bases, attrs)
-        if nm_tpl not in cls.__adapters:
-            cls.__adapters[nm_tpl] = TypeAdapter(
-                nm_tpl, config=ConfigDict(strict=False)
-            )
-        return nm_tpl
+    def astuple(self):
+        return astuple(self)
 
-    def _type_adapter(self) -> TypeAdapter:
-        return self.__adapters[self]
+    def asdict(self):
+        return asdict(self)
 
+    def replace(self, /, **changes):
+        """Return new Model with modified fields denoted by `**changes`."""
+        return replace(self, **changes)
 
-if TYPE_CHECKING:
+    def fields(self):
+        return fields(self)
 
-    class Model:
-        __adapters: ClassVar[dict[type, TypeAdapter]]
-
-        @abstractmethod
-        def _type_adapter(cls) -> TypeAdapter: ...
-
-        @abstractmethod
-        def __getitem__(self, name: str | slice | SupportsIndex, /) -> Any: ...
-
-else:
-
-    class Model(metaclass=ModelMeta):
-        def __getitem__(self, name: str | slice | SupportsIndex, /) -> Any:
-            if isinstance(name, str):
-                try:
-                    return getattr(self, name)
-                except AttributeError as err:
-                    raise IndexError(err)
-            return self.__getitem__(name)
+    def __getitem__(self, name: str, /) -> Any:
+        try:
+            return getattr(self, name)
+        except AttributeError as err:
+            raise IndexError(err)
