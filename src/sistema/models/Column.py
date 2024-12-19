@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from .Model import Model
+from .Model import model
 
 from src.sistema.spreadsheet import Requirement
 
-from dataclasses import dataclass
 
-
-@dataclass
-class Column(Model):
+@model
+class Column:
     i: int
     original_text: str
     property_name: str

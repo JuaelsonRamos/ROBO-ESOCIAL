@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 from .Column import Column
-from .Model import Model
+from .Model import model
 
 from src.sistema.spreadsheet import QualifiedType, QualifiedValue, Requirement
 from src.sistema.validators import Validator
 
-from dataclasses import dataclass
 
-
-@dataclass
-class Cell(Model):
+@model
+class Cell:
     i: int
     property_name: str
     required: Requirement
