@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
 from src.gui.views.View import View
+from src.windows import open_file_dialog
 
+import string
+import hashlib
 import tkinter as tk
+import functools
 import tkinter.ttk as ttk
 
 from abc import abstractmethod
-from typing import Any, Never, TypedDict, get_type_hints
+from datetime import datetime
+from pathlib import Path
+from queue import Empty, SimpleQueue
+from typing import Any, Never, TypedDict, cast, get_type_hints
 
 
 class Heading(TypedDict):
@@ -137,8 +145,31 @@ class _widgets:
         )
 
 
+class _state:
+    filepath_queue: SimpleQueue[Path] = SimpleQueue()
+
+
 class Tag:
-    pass
+    RUNNING = 'running'
+    """
+    Item represents process which is running, but not necessarily performing actions.
+
+    Not having this tag implies the item is not or has never been the subject of any
+    running process.
+    """
+    HALTED = 'halted'
+    """
+    Item represents process which is running but definitelly not performing actions,
+    meaning it is paused/halted in a way that can be resumed later.
+
+    Not having this tag implies the process is running and doing things normally.
+    """
+
+    @classmethod
+    def path(cls, p: Path):
+        """Generate tree item's tag representing a Path object."""
+        _hash = hashlib.md5(str(p).encode()).hexdigest().upper()
+        return f'path={_hash}'
 
 
 class ActionButton(ttk.Button):
@@ -192,7 +223,38 @@ class StopButton(ActionButton):
 
 
 class AddButton(ActionButton):
-    pass
+    def _update_tree(self, value: tuple[Path, ...] | Exception, raised: bool) -> None:
+        if raised:
+            value = cast(Exception, value)
+            raise value
+        value = cast(tuple[Path, ...], value)
+        for p in value:
+            _state.filepath_queue.put_nowait(p)
+        _widgets.proc_tree.event_generate('<<CheckFileQueue>>')
+
+    def on_click(self):
+        lock = TkinterLock()
+        pickable_func = functools.partial(
+            open_file_dialog,
+            hwnd=self.winfo_id(),
+            title='Selecionar Certificado',
+            extensions=[
+                # NOTE: Excel 2010 can be read as .xls as well
+                ('Excel 2010-presente (*.xlsx)', ('*.xlsx',)),
+                # NOTE: openpyxl probably can't make anything out of macros
+                ('Excel Macro 2010-presente (*.xlsm)', ('.xlsm',)),
+                # TODO: differ .xls file BIFF5, BIFF8, BIFF12
+                # SEE: https://support.microsoft.com/en-us/office/file-formats-that-are-supported-in-excel-0943ff2c-6014-4e8d-aaea-b83d51d46247
+                ('Excel 95-2003 (*.xls)', ('*.xls',)),
+                ('Excel XML 2003 (*.xml)', ('*.xml',)),
+                ('Planilha OpenDocument (*.ods)', ('*.ods',)),
+                ('Arquivo CSV (*.csv)', ('*.csv',)),
+                ('Arquivo JSON (*.json)', ('*.json',)),
+                ('Todos os arquivos (*)', ('*',)),
+            ],
+            multi_select=True,
+        )
+        lock.schedule(self, pickable_func, self._update_tree, block=False)
 
 
 class DeleteButton(ActionButton):
@@ -327,6 +389,36 @@ class Tree(ttk.Treeview):
 
 class ProcessingTree(Tree):
     headings_spec = INPUT_QUEUE
+
+    def __init__(self, master: ttk.Widget):
+        super().__init__(master)
+        self.bind('<<CheckFileQueue>>', self._check_file_queue)
+
+    def _make_file_data(self, path: Path) -> tuple[str, ...]:
+        name = path.stem.strip(string.whitespace + string.punctuation)
+        _type = path.suffix.strip('.').upper()
+        sizeof = str(path.stat().st_size / 1000) + 'KB'
+        datetime_format = '%d/%m/%Y %H:%M'
+        created = datetime.now().strftime(datetime_format)
+        return ('-', name, _type, sizeof, created)
+
+    def _check_file_queue(self, event: tk.Event):
+        files = []
+        while True:
+            try:
+                path: Path = _state.filepath_queue.get_nowait()
+                files.append(path)
+            except Empty:
+                break
+        if len(files) == 0:
+            return
+        for path in files:
+            path_tag = Tag.path(path)
+            if len(self.tag_has(path_tag)) > 0:
+                # ignore path if it already exists
+                continue
+            values = self._make_file_data(path)
+            self.insert('', 'end', None, values=values)
 
     def _set_button_state(self, event):
         if self.focus() == '':
