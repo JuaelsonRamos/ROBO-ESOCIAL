@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from .Model import model
 
-from src.sistema.spreadsheet import Requirement
+from src.types import IsRequired
 
 
 @model
 class Column:
-    i: int
+    index: int
     original_text: str
-    property_name: str
-    required: Requirement
+    required: IsRequired

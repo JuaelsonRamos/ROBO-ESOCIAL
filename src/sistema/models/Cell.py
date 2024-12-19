@@ -3,20 +3,17 @@ from __future__ import annotations
 from .Column import Column
 from .Model import model
 
-from src.sistema.spreadsheet import QualifiedType, QualifiedValue, Requirement
 from src.sistema.validators import Validator
+from src.types import CellValue, IsRequired
 
 
 @model
 class Cell:
-    i: int
-    property_name: str
-    required: Requirement
+    index: int
+    required: IsRequired
     is_empty: bool
     is_valid: bool
-    is_arbitrary_string: bool
-    qualified_type: QualifiedType
     validator: Validator
-    original_value: str
-    qualified_value: QualifiedValue | None
+    original_value: str | None
+    parsed_value: CellValue | None
     column_metadata: Column
