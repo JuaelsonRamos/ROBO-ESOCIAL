@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from enum import StrEnum, auto
 
 
@@ -15,3 +16,6 @@ class CellValueType(StrEnum):
     FLOAT = auto()
     DATE = auto()
     BOOL = auto()
+
+
+CellValue = str | int | float | date | bool
