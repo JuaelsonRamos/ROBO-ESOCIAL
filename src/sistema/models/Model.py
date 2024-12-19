@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
-    NamedTupleMeta,# type: ignore
+    NamedTupleMeta,  # type: ignore
     SupportsIndex,
 )
 
@@ -19,7 +19,7 @@ class ModelMeta(NamedTupleMeta):
     __adapters: dict[type, TypeAdapter] = {}
 
     def __new__(cls, name, bases, attrs):
-        nm_tpl = super().__new__(name, bases, attrs)
+        nm_tpl = super(ModelMeta, cls).__new__(cls, name, bases, attrs)
         if nm_tpl not in cls.__adapters:
             cls.__adapters[nm_tpl] = TypeAdapter(
                 nm_tpl, config=ConfigDict(strict=False)
@@ -28,8 +28,6 @@ class ModelMeta(NamedTupleMeta):
 
     def _type_adapter(self) -> TypeAdapter:
         return self.__adapters[self]
-
-
 
 
 if TYPE_CHECKING:
