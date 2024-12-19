@@ -3,6 +3,7 @@ from __future__ import annotations
 from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
 from src.gui.views.View import View
+from src.sistema.spreadsheet import sheet_filedialog_options
 from src.windows import open_file_dialog
 
 import string
@@ -241,20 +242,7 @@ class AddButton(ActionButton):
             open_file_dialog,
             hwnd=self.winfo_id(),
             title='Selecionar Certificado',
-            extensions=[
-                # NOTE: Excel 2010 can be read as .xls as well
-                ('Excel 2010-presente (*.xlsx)', ('*.xlsx',)),
-                # NOTE: openpyxl probably can't make anything out of macros
-                ('Excel Macro 2010-presente (*.xlsm)', ('.xlsm',)),
-                # TODO: differ .xls file BIFF5, BIFF8, BIFF12
-                # SEE: https://support.microsoft.com/en-us/office/file-formats-that-are-supported-in-excel-0943ff2c-6014-4e8d-aaea-b83d51d46247
-                ('Excel 95-2003 (*.xls)', ('*.xls',)),
-                ('Excel XML 2003 (*.xml)', ('*.xml',)),
-                ('Planilha OpenDocument (*.ods)', ('*.ods',)),
-                ('Arquivo CSV (*.csv)', ('*.csv',)),
-                ('Arquivo JSON (*.json)', ('*.json',)),
-                ('Todos os arquivos (*)', ('*',)),
-            ],
+            extensions=sheet_filedialog_options,
             multi_select=True,
         )
         lock.schedule(self, pickable_func, self._update_tree, block=False)
