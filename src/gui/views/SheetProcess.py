@@ -223,6 +223,9 @@ class StopButton(ActionButton):
 
 
 class AddButton(ActionButton):
+    def __init__(self, master: ButtonFrame):
+        super().__init__(master, 'Adicionar')
+
     def _update_tree(self, value: tuple[Path, ...] | Exception, raised: bool) -> None:
         if raised:
             value = cast(Exception, value)
