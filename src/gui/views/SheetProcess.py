@@ -261,7 +261,11 @@ class AddButton(ActionButton):
 
 
 class DeleteButton(ActionButton):
-    pass
+    def __init__(self, master: ButtonFrame):
+        super().__init__(master, 'Remover')
+
+    def on_click(self):
+        _widgets.proc_tree.event_generate('<<DeleteSelected>>')
 
 
 class ExportSheetButton(ActionButton):
@@ -320,8 +324,8 @@ class ProcessingButtonFrame(ButtonFrame):
         self.start = StartButton(self, 'Começar')
         self.pause = PauseButton(self, 'Pausar')
         self.stop = StopButton(self, 'Parar')
-        self.add = AddButton(self, 'Adicionar')
-        self.delete = DeleteButton(self, 'Remover')
+        self.add = AddButton(self)
+        self.delete = DeleteButton(self)
 
 
 class HistoryButtonFrame(ButtonFrame):
@@ -396,6 +400,7 @@ class ProcessingTree(Tree):
     def __init__(self, master: ttk.Widget):
         super().__init__(master)
         self.bind('<<CheckFileQueue>>', self._check_file_queue)
+        self.bind('<<DeleteSelected>>', self._delete_selected)
 
     def _make_file_data(self, path: Path) -> tuple[str, ...]:
         name = path.stem.strip(string.whitespace + string.punctuation)
@@ -422,6 +427,12 @@ class ProcessingTree(Tree):
                 continue
             values = self._make_file_data(path)
             self.insert('', 'end', None, values=values)
+
+    def _delete_selected(self, event: tk.Event):
+        selected = self.selection()
+        if len(selected) == 0:
+            return
+        self.delete(*selected)
 
     def _set_button_state(self, event):
         if self.focus() == '':
