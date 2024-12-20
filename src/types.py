@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 from enum import StrEnum, auto
-from typing import Any, Never
+from typing import Any, Never, TypeVar
 
 from typing_extensions import TypeIs
 
@@ -54,3 +54,4 @@ class CellValueType(StrEnum):
 
 
 CellValue = str | int | float | date | bool
+T_CellValue = TypeVar('T_CellValue', str, int, float, date, bool)

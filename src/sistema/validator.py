@@ -4,7 +4,7 @@ from src.exc import ValidatorException
 from src.sistema.models.Cell import Cell as CellModel
 from src.sistema.models.Column import Column
 from src.sistema.spreadsheet import Fill
-from src.types import CellValueType, IsRequired
+from src.types import CellValueType, IsRequired, T_CellValue
 
 import re
 import string
@@ -29,7 +29,6 @@ def get_requirement(cell: Cell) -> IsRequired:
 
 
 C = TypeVar('C', bound='ValidatorMeta')
-V = TypeVar('V', bound=Any)
 
 
 def _make_slots_from(cls: type, namespace: dict[str, Any]) -> tuple[str, ...]:
@@ -108,7 +107,7 @@ class ValidatorMeta(type):
         raise ValidatorException.RuntimeError
 
 
-class Validator(Generic[V], metaclass=ValidatorMeta):
+class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
     # fmt: off
     """
     Validation and parsing agent for spreadsheet cells.
@@ -161,7 +160,7 @@ class Validator(Generic[V], metaclass=ValidatorMeta):
     # NON-META:
     is_arbitraty_string: bool
     cell_value_type: CellValueType
-    value_type: type
+    value_type: type[T_CellValue]
 
     re_spaces: Pattern[str] = re.compile(f'[{string.whitespace}]+')
     re_punctuation: Pattern[str] = re.compile(f'[{string.punctuation}]+')
@@ -214,7 +213,7 @@ class Validator(Generic[V], metaclass=ValidatorMeta):
         return tuple(_result)
 
     @abstractmethod
-    def parse_value(self, value: Any) -> V | Never:
+    def parse_value(self, value: Any) -> T_CellValue | Never:
         """
         Parse arbitrary value to value of Validator's declared represented type.
 
