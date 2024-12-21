@@ -48,6 +48,21 @@ def _make_slots_from(cls: type, namespace: dict[str, Any]) -> tuple[str, ...]:
     return tuple(all_values)
 
 
+re_spaces: Pattern[str] = re.compile(f'[{string.whitespace}]+')
+re_punctuation: Pattern[str] = re.compile(f'[{string.punctuation}]+')
+re_nonascii: Pattern[str] = re.compile(f'[^{string.printable}]+')
+
+
+def hash_column_title(title: str) -> str:
+    as_ascii = unidecode(title)
+    normalized = as_ascii.strip(string.whitespace + string.punctuation).lower()
+    normalized = re_spaces.sub(' ', normalized)
+    normalized = re_punctuation.sub('*', normalized)
+    normalized = re_nonascii.sub('', normalized)
+    hashed = hashlib.md5(normalized.encode()).hexdigest().upper()
+    return hashed
+
+
 class ValidatorMeta(type):
     """
     Prevent class from being called until both __new__ and __init__ has been ran once,
@@ -162,55 +177,63 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
     cell_value_type: CellValueType
     value_type: type[T_CellValue]
 
-    re_spaces: Pattern[str] = re.compile(f'[{string.whitespace}]+')
-    re_punctuation: Pattern[str] = re.compile(f'[{string.punctuation}]+')
-    re_nonascii: Pattern[str] = re.compile(f'[^{string.printable}]+')
+    # set by __new__
+    known_titles: tuple[str, ...]
+    hashed_known_titles: tuple[str, ...]
+    allow_empty: bool
+
+    # set by __init__
+    column: Column
+    cell: Cell
+    cell_index: int
 
     @classmethod
-    def new(cls: type[Self]) -> type[Self]:
+    def new(
+        cls: type[Self], /, known_titles: Sequence[str], allow_empty: bool = True
+    ) -> type[Self]:
         """Create new class that holds primitive values for parsing and validation."""
         new_class = cls._make_creatable_class()
-        instance = new_class.__new__(new_class)
+        instance = new_class.__new__(new_class, known_titles, allow_empty)
         return instance
 
-    def __new__(cls: type[Self]) -> Self | Never:
+    def __new__(
+        cls: type[Self], /, known_titles: Sequence[str], allow_empty: bool
+    ) -> Self | Never:
         if not cls._can_create_new:
             raise ValidatorException.RuntimeError
         cls._can_initialize = True
         instance = super().__new__(cls)
+        instance.known_titles = tuple(known_titles)
+        instance.hashed_known_titles = tuple(
+            hash_column_title(title) for title in known_titles
+        )
+        instance.allow_empty = allow_empty
         return instance
 
-    def with_data(self, /, known_titles: Sequence[str]) -> Self:
+    def with_data(self, /, column: Column, cell: Cell, cell_index: int) -> Self:
         """
         Creates new Validator and initializes it with provided data.
 
         The Validator returned by this function is a completely new instance!
         """
-        new_instance = self.__new__(type(self))
-        new_instance.__init__(known_titles)
+        new_instance = self.__new__(type(self), self.known_titles, self.allow_empty)
+        new_instance.__init__(column, cell, cell_index)
         return new_instance
 
-    def __init__(self, /, known_titles: Sequence[str]) -> None | Never:
+    def __init__(self, /, column: Column, cell: Cell, cell_index: int) -> None | Never:
         if not self._can_initialize:
             raise ValidatorException.RuntimeError
         self._can_call = True
-        self.title_hashes = tuple(self._hash_nonascii_string(title) for title in known_titles)
+        self.column = column
+        self.cell = cell
+        self.cell_index = cell_index
 
     def __call__(self) -> None | Never:
         if not self._can_call:
             raise ValidatorException.RuntimeError
 
-    def _hash_nonascii_string(self, some_str: str) -> str:
-        as_ascii = unidecode(some_str)
-        normalized = as_ascii.strip(string.whitespace + string.punctuation).lower()
-        normalized = self.re_spaces.sub(' ', normalized)
-        normalized = self.re_punctuation.sub('*', normalized)
-        normalized = self.re_nonascii.sub('', normalized)
-        hashed = hashlib.md5(normalized.encode()).hexdigest().upper()
-        return hashed
-
     @abstractmethod
-    def parse_value(self, value: Any) -> T_CellValue | Never:
+    def parse_value(self) -> T_CellValue | Never:
         """
         Parse arbitrary value to value of Validator's declared represented type.
 
@@ -221,13 +244,13 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
         """
         ...
 
-    def is_value_valid(self, value: Any) -> bool:
+    def is_value_valid(self) -> bool:
         """Parses value and returns `True` if no error occured and value is considered
         to have meaning in the context of this validator (didn't raise
         `InvalidValueError` or `EmptyValueError`).
         """
         try:
-            self.parse_value(value)
+            self.parse_value()
         except (
             ValidatorException.InvalidValueError,
             ValidatorException.EmptyValueError,
@@ -238,17 +261,17 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
         else:
             return True
 
-    def to_dict(self, /, column: Column, cell: Cell, cell_index: int) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
-            'index': cell_index,
-            'required': get_requirement(cell),
+            'index': self.cell_index,
+            'required': get_requirement(self.cell),
             'validator': self,
-            'original_value': cell.value,
-            'column_metadata': column,
+            'original_value': self.cell.value,
+            'column_metadata': self.column,
         }
 
-    def to_model(self, /, column: Column, cell: Cell, cell_index: int) -> CellModel:
-        return CellModel(**self.to_dict(column, cell, cell_index))
+    def to_model(self) -> CellModel:
+        return CellModel(**self.to_dict())
 
     @classmethod
     def meta_hash(cls) -> int:
