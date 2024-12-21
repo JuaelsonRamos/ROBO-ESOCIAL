@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.exc import ValidatorException
 from src.sistema.models.Cell import Cell as CellModel
 from src.sistema.models.Column import Column
-from src.types import CellValue, CellValueType, EmptyValueType, IsRequired, T_CellValue
+from src.types import CellValue, CellValueType, EmptyValueType, IsRequired
 
 import re
 import string
@@ -14,7 +14,7 @@ import itertools
 from abc import abstractmethod
 from datetime import date
 from re import Pattern
-from typing import Any, Generic, Never, NoReturn, Self, Sequence, TypeVar, cast
+from typing import Any, Never, NoReturn, Self, Sequence, TypeVar, cast
 
 from openpyxl.cell.cell import Cell
 from unidecode import unidecode_expect_nonascii as unidecode
@@ -116,7 +116,7 @@ class ValidatorMeta(type):
         raise ValidatorException.RuntimeError
 
 
-class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
+class Validator(metaclass=ValidatorMeta):
     # fmt: off
     """
     Validation and parsing agent for spreadsheet cells.
@@ -169,7 +169,7 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
     # NON-META:
     is_arbitraty_string: bool
     cell_value_type: CellValueType
-    value_type: type[T_CellValue]
+    value_type: type[CellValue]
 
     # set by __new__
     known_titles: tuple[str, ...]
@@ -231,7 +231,7 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
             raise ValidatorException.RuntimeError
 
     @abstractmethod
-    def parse_value(self) -> T_CellValue | EmptyValueType | Never:
+    def parse_value(self) -> CellValue | EmptyValueType | Never:
         """
         Parse arbitrary value to value of Validator's declared represented type.
 
@@ -282,7 +282,7 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
         is_empty: bool = False
         is_valid: bool = False
         value: CellValue | EmptyValueType = self.EmptyValue
-        parsed_value: CellValue | None = None
+        parsed_value: CellValue | EmptyValueType = self.EmptyValue
         try:
             value = self.parse_value()
         except ValidatorException.EmptyValueError:
