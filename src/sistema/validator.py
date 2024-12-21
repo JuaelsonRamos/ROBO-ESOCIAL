@@ -336,6 +336,10 @@ class String(Validator):
     cell_value_type = CellValueType.STRING
     value_type = str
 
+    allow_punctuation: bool
+    allow_digits: bool
+    allow_whitespace: bool
+
     def to_string(self, *, bytes_encoding: str = 'utf-8') -> str:
         """
         Spreadsheet cell's value to valid string.
@@ -380,7 +384,7 @@ class String(Validator):
             raise ValidatorException.RuntimeError(err) from err
         return valid_string
 
-    def parse_value(self):
+    def parse_value(self) -> str | EmptyValueType | Never:
         parsed_value: str = ''
         try:
             parsed_value = self.to_string()
@@ -388,17 +392,60 @@ class String(Validator):
             raise ValidatorException.InvalidValueError(err) from err
         except Exception as err:
             raise ValidatorException.RuntimeError(err) from err
-        # strip blank characters
+        # strip blank characters around meaningful text
         parsed_value = parsed_value.strip(string.whitespace)
         if parsed_value == '':
             if self.allow_empty:
                 return self.EmptyValue
             raise ValidatorException.EmptyValueError
+        if not self.allow_whitespace and ' ' in parsed_value:
+            raise ValidatorException.InvalidValueError
+        if not self.allow_digits and any(chr in parsed_value for chr in string.digits):
+            raise ValidatorException.InvalidValueError
+        if not self.allow_punctuation and any(
+            chr in parsed_value for chr in string.punctuation
+        ):
+            raise ValidatorException.InvalidValueError
         # normalize encoding to ascii
         parsed_value = unidecode(parsed_value)
         # normalize case
         parsed_value = parsed_value.upper()
         return parsed_value
+
+    @classmethod
+    def new(
+        cls: type[Self],
+        /,
+        known_titles: Sequence[str],
+        allow_punctuation: bool = True,
+        allow_digits: bool = True,
+        allow_whitespace: bool = True,
+        allow_empty: bool = True,
+    ) -> type[Self]:
+        new_class = cls._make_creatable_class()
+        return new_class.__new__(
+            new_class,
+            known_titles,
+            allow_punctuation,
+            allow_digits,
+            allow_whitespace,
+            allow_empty,
+        )
+
+    def __new__(
+        cls: type[Self],
+        /,
+        known_titles: Sequence[str],
+        allow_punctuation: bool,
+        allow_digits: bool,
+        allow_whitespace: bool,
+        allow_empty: bool,
+    ) -> Self:
+        instance = super().__new__(cls, known_titles, allow_empty)
+        instance.allow_punctuation = allow_punctuation
+        instance.allow_digits = allow_digits
+        instance.allow_whitespace = allow_whitespace
+        return instance
 
 
 class LetterString(String):
