@@ -12,6 +12,7 @@ import inspect
 import itertools
 
 from abc import abstractmethod
+from datetime import date
 from re import Pattern
 from typing import Any, Generic, Never, NoReturn, Self, Sequence, TypeVar, cast
 
@@ -333,28 +334,64 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
         return cls._hash
 
 
-class String(Validator): ...
+class String(Validator):
+    is_arbitraty_string = True
+    cell_value_type = CellValueType.STRING
+    value_type = str
+    ...  # TODO: implement validator
 
 
-class LetterString(String): ...
+class LetterString(String):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.STRING
+    value_type = str
+    ...  # TODO: implement validator
 
 
-class NumericString(String): ...
+class NumericString(String):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.STRING
+    value_type = str
+    ...  # TODO: implement validator
 
 
-class IntegerString(NumericString): ...
+class IntegerString(NumericString):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.STRING
+    value_type = str
+    ...  # TODO: implement validator
 
 
-class Float(NumericString): ...
+class Float(NumericString):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.FLOAT
+    value_type = float
+    ...  # TODO: implement validator
 
 
-class Integer(IntegerString): ...
+class Integer(IntegerString):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.INT
+    value_type = int
+    ...  # TODO: implement validator
 
 
-class Date(String): ...
+class Date(String):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.DATE
+    value_type = date
+    ...  # TODO: implement validator
 
 
-class Option(String): ...
+class Option(String):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.STRING
+    value_type = str
+    ...  # TODO: implement validator
 
 
-class Boolean(String): ...
+class Boolean(String):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.BOOL
+    value_type = bool
+    ...  # TODO: implement validator
