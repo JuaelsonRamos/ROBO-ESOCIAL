@@ -3,20 +3,21 @@ from __future__ import annotations
 from src.exc import ValidatorException
 from src.sistema.models.Cell import Cell as CellModel
 from src.sistema.models.Column import Column
-from src.types import CellValue, CellValueType, EmptyValueType, IsRequired
+from src.types import CellRichText, CellValue, CellValueType, EmptyValueType, IsRequired
 
 import re
 import string
+import decimal
 import hashlib
 import inspect
+import datetime
 import itertools
 
 from abc import abstractmethod
-from datetime import date
 from re import Pattern
 from typing import Any, Never, NoReturn, Self, Sequence, TypeVar, cast
 
-from openpyxl.cell.cell import Cell
+from openpyxl.cell.cell import TIME_FORMATS, Cell
 from unidecode import unidecode_expect_nonascii as unidecode
 
 
@@ -334,7 +335,70 @@ class String(Validator):
     is_arbitraty_string = True
     cell_value_type = CellValueType.STRING
     value_type = str
-    ...  # TODO: implement validator
+
+    def to_string(self, *, bytes_encoding: str = 'utf-8') -> str:
+        """
+        Spreadsheet cell's value to valid string.
+
+        Raises `ValidatorException.RuntimeError` if the spreadsheet's `Cell` object's
+        value type is unknown, which should not be possible because those are provided
+        by third-party libraries.
+
+        :raises: ValidatorException.RuntimeError
+        """
+        value = self.cell.value
+        valid_string: str = ''
+        # NoneType
+        if value is None:
+            return ''
+        # String
+        elif isinstance(value, str):
+            return value
+        elif isinstance(value, bytes):
+            valid_string = value.decode(encoding=bytes_encoding)
+        # Numeric
+        elif isinstance(value, (int, float)):
+            valid_string = str(value)
+        elif isinstance(value, decimal.Decimal):
+            valid_string = decimal.getcontext().to_sci_string(value)
+
+        elif isinstance(value, CellRichText):
+            # TODO
+            pass
+        # Time
+        elif isinstance(value, (datetime.datetime, datetime.date, datetime.time)):
+            format = TIME_FORMATS[type(value)]
+            valid_string = value.strftime(format)
+        elif isinstance(value, datetime.timedelta):
+            valid_string = str(value)
+        # Boolean
+        elif isinstance(value, bool):
+            valid_string = str(value)
+        # Other
+        else:
+            err = TypeError(f"type of {value} is unknown as a cell value's type")
+            raise ValidatorException.RuntimeError(err) from err
+        return valid_string
+
+    def parse_value(self):
+        parsed_value: str = ''
+        try:
+            parsed_value = self.to_string()
+        except TypeError as err:
+            raise ValidatorException.InvalidValueError(err) from err
+        except Exception as err:
+            raise ValidatorException.RuntimeError(err) from err
+        # strip blank characters
+        parsed_value = parsed_value.strip(string.whitespace)
+        if parsed_value == '':
+            if self.allow_empty:
+                return self.EmptyValue
+            raise ValidatorException.EmptyValueError
+        # normalize encoding to ascii
+        parsed_value = unidecode(parsed_value)
+        # normalize case
+        parsed_value = parsed_value.upper()
+        return parsed_value
 
 
 class LetterString(String):
@@ -375,7 +439,7 @@ class Integer(IntegerString):
 class Date(String):
     is_arbitraty_string = False
     cell_value_type = CellValueType.DATE
-    value_type = date
+    value_type = datetime.date
     ...  # TODO: implement validator
 
 
