@@ -14,7 +14,7 @@ import itertools
 
 from abc import abstractmethod
 from re import Pattern
-from typing import Any, Generic, Iterable, Never, NoReturn, Self, Sequence, TypeVar
+from typing import Any, Generic, Never, NoReturn, Self, Sequence, TypeVar
 
 from openpyxl.cell.cell import Cell
 from unidecode import unidecode_expect_nonascii as unidecode
@@ -194,23 +194,20 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
         if not self._can_initialize:
             raise ValidatorException.RuntimeError
         self._can_call = True
-        self.title_hashes = self._hash_nonascii_string(known_titles)
+        self.title_hashes = tuple(self._hash_nonascii_string(title) for title in known_titles)
 
     def __call__(self) -> None | Never:
         if not self._can_call:
             raise ValidatorException.RuntimeError
 
-    def _hash_nonascii_string(self, strings: Iterable[str]) -> Iterable[str]:
-        _result = []
-        for some_str in strings:
-            as_ascii = unidecode(some_str)
-            normalized = as_ascii.strip(string.whitespace + string.punctuation).lower()
-            normalized = self.re_spaces.sub(' ', normalized)
-            normalized = self.re_punctuation.sub('*', normalized)
-            normalized = self.re_nonascii.sub('', normalized)
-            hashed = hashlib.md5(normalized.encode()).hexdigest().upper()
-            _result.append(hashed)
-        return tuple(_result)
+    def _hash_nonascii_string(self, some_str: str) -> str:
+        as_ascii = unidecode(some_str)
+        normalized = as_ascii.strip(string.whitespace + string.punctuation).lower()
+        normalized = self.re_spaces.sub(' ', normalized)
+        normalized = self.re_punctuation.sub('*', normalized)
+        normalized = self.re_nonascii.sub('', normalized)
+        hashed = hashlib.md5(normalized.encode()).hexdigest().upper()
+        return hashed
 
     @abstractmethod
     def parse_value(self, value: Any) -> T_CellValue | Never:
