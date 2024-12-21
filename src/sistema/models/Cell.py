@@ -4,18 +4,16 @@ from .Column import Column
 from .Model import model
 
 from src.sistema.validators import Validator
-from src.types import IsRequired, T_CellValue
-
-from typing import Any, Generic
+from src.types import CellValue, EmptyValueType, IsRequired, OpenpyxlCell
 
 
 @model
-class Cell(Generic[T_CellValue]):
+class Cell:
     index: int
     required: IsRequired
     is_empty: bool
     is_valid: bool
     validator: Validator
-    original_value: Any
-    parsed_value: T_CellValue | None
+    original_value: OpenpyxlCell.KnownTypes
+    parsed_value: CellValue | EmptyValueType
     column_metadata: Column
