@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.exc import ValidatorException
 from src.sistema.models.Cell import Cell as CellModel
 from src.sistema.models.Column import Column
-from src.types import CellValueType, IsRequired, T_CellValue
+from src.types import CellValue, CellValueType, IsRequired, T_CellValue
 
 import re
 import string
@@ -13,13 +13,19 @@ import itertools
 
 from abc import abstractmethod
 from re import Pattern
-from typing import Any, Generic, Never, NoReturn, Self, Sequence, TypeVar
+from typing import Any, Generic, Never, NoReturn, Self, Sequence, TypeVar, cast
 
 from openpyxl.cell.cell import Cell
 from unidecode import unidecode_expect_nonascii as unidecode
 
 
 C = TypeVar('C', bound='ValidatorMeta')
+
+
+class EmptyValueType(object): ...
+
+
+EmptyValue = EmptyValueType()
 
 
 def _make_slots_from(cls: type, namespace: dict[str, Any]) -> tuple[str, ...]:
@@ -178,6 +184,10 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
     cell: Cell
     cell_index: int
 
+    # static properties
+    EmptyValue: EmptyValueType = EmptyValue
+    """Unique, featureless object to represent an empty cell value."""
+
     @classmethod
     def new(
         cls: type[Self], /, known_titles: Sequence[str], allow_empty: bool = True
@@ -224,9 +234,23 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
             raise ValidatorException.RuntimeError
 
     @abstractmethod
-    def parse_value(self) -> T_CellValue | Never:
+    def parse_value(self) -> T_CellValue | EmptyValueType | Never:
         """
         Parse arbitrary value to value of Validator's declared represented type.
+
+        Implementation details:
+        * If `self.allow_empty=False` then may raise `ValidatorException.EmptyValueError`.
+        * If `ValidatorException.EmptyValueError` is raised, then value is not empty but
+            is not valid either, so if `0` is invalid, then it is not empty, because it
+            could be checked in the first place.
+        * If an error is raised, the value that caused it does not needed to be included
+            as error metadata, because if it is invalid, the way this system makes sense
+            of real world data implies it is arbitrary, and **for now** there's no need
+            to understand and no use case for values that are both invalid and non-empty.
+        * `ValueError` and `TypeError` may be raised because of common python value
+            conversion, like `int('non_digit')`. In these cases, a
+            `ValidatorException.InvalidValueError` will be **raised from** the built-in
+            python errors.
 
         :raises: ValidatorException.InvalidValueError
         :raises: ValidatorException.EmptyValueError
@@ -245,19 +269,45 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
         except (
             ValidatorException.InvalidValueError,
             ValidatorException.EmptyValueError,
-            ValueError,
-            TypeError,
         ):
             return False
         else:
             return True
 
     def to_dict(self) -> dict[str, Any]:
+        """
+        Parses value and return it as a `Cell` model-compliant dict.
+
+        This method doesn't raise, thus, other's must be used to check validity of
+        value.
+        """
+        # Both are False if self.parse_value() raises ValidatorException.InvalidValueError
+        is_empty: bool = False
+        is_valid: bool = False
+        value: CellValue | EmptyValueType = self.EmptyValue
+        parsed_value: CellValue | None = None
+        try:
+            value = self.parse_value()
+        except ValidatorException.EmptyValueError:
+            is_empty = True
+            is_valid = False
+        except Exception:
+            pass
+        if value is self.EmptyValue:
+            is_empty = True
+            is_valid = self.allow_empty
+        else:
+            is_empty = False
+            is_valid = True
+            parsed_value = cast(CellValue, value)
         return {
             'index': self.cell_index,
             'required': IsRequired.from_cell(self.cell),
+            'is_empty': is_empty,
+            'is_valid': is_valid,
             'validator': self,
             'original_value': self.cell.value,
+            'parsed_value': parsed_value,
             'column_metadata': self.column,
         }
 
