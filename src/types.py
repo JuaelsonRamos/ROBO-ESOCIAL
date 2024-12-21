@@ -2,12 +2,19 @@ from __future__ import annotations
 
 from src.sistema.spreadsheet import Fill
 
+import types
+import datetime
+
+from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from enum import StrEnum, auto
+from typing import Any, Never, TypeAlias, TypeVar
 
 import numpy
 
 from openpyxl.cell.cell import Cell
+from openpyxl.cell.rich_text import CellRichText
 from typing_extensions import TypeIs
 
 
@@ -98,3 +105,14 @@ NumpyNumeric = (
     | numpy.floating
     | numpy.integer
 )
+
+
+@dataclass(frozen=True, init=False, slots=True)
+class OpenpyxlCell:
+    NumpyNumeric = NumpyNumeric
+    Numeric = int | float | Decimal
+    Time = datetime.datetime | datetime.date | datetime.time | datetime.timedelta
+    String = str | bytes | CellRichText
+    Boolean: TypeAlias = bool
+    NoneType: TypeAlias = types.NoneType
+    KnownTypes = NumpyNumeric | Numeric | Time | String | Boolean | NoneType
