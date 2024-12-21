@@ -15,7 +15,7 @@ import itertools
 
 from abc import abstractmethod
 from re import Pattern
-from typing import Any, Never, NoReturn, Self, Sequence, TypeVar, cast
+from typing import Any, Final, Never, NoReturn, Self, Sequence, TypeVar, cast
 
 from openpyxl.cell.cell import TIME_FORMATS, Cell
 from typing_extensions import TypeIs
@@ -480,7 +480,43 @@ class NumericString(String):
     is_arbitraty_string = False
     cell_value_type = CellValueType.STRING
     value_type = str
-    ...  # TODO: implement validator
+
+    Infinity: Final[str] = '\u221e'
+    NegativeInfinity: Final[str] = '\u002d\u221e'
+    NaN: Final[str] = 'NaN'
+    NegativeNaN: Final[str] = '-NaN'
+
+    @classmethod
+    def new(
+        cls: type[Self],
+        /,
+        known_titles: Sequence[str],
+        allow_empty: bool = True,
+    ) -> type[Self]:
+        return super().new(
+            known_titles=known_titles,
+            allow_punctuation=True,
+            allow_digits=True,
+            allow_whitespace=False,
+            allow_empty=allow_empty,
+        )
+
+    def parse_value(self) -> str | EmptyValueType | Never:
+        parsed_value = super().parse_value()
+        if is_empty(parsed_value):
+            return parsed_value
+        try:
+            number = decimal.Decimal(parsed_value)
+            if number.is_infinite():
+                return self.NegativeInfinity if number.is_signed() else self.Infinity
+            if number.is_nan() or number.is_qnan() or number.is_snan():
+                return self.NegativeNaN if number.is_signed() else self.NaN
+        except (TypeError, ValueError) as err:
+            raise ValidatorException.InvalidValueError(err) from err
+        except decimal.DecimalException:
+            raise ValidatorException.InvalidValueError
+        else:
+            return parsed_value
 
 
 class IntegerString(NumericString):
