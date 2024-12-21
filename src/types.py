@@ -75,6 +75,10 @@ class CellValueType(StrEnum):
 CellValue = str | int | float | date | bool
 T_CellValue = TypeVar('T_CellValue', str, int, float, date, bool)
 
+
+class EmptyValueType(object): ...
+
+
 NumpyNumeric = (
     numpy.short
     | numpy.ushort

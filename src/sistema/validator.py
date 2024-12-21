@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.exc import ValidatorException
 from src.sistema.models.Cell import Cell as CellModel
 from src.sistema.models.Column import Column
-from src.types import CellValue, CellValueType, IsRequired, T_CellValue
+from src.types import CellValue, CellValueType, EmptyValueType, IsRequired, T_CellValue
 
 import re
 import string
@@ -21,10 +21,6 @@ from unidecode import unidecode_expect_nonascii as unidecode
 
 
 C = TypeVar('C', bound='ValidatorMeta')
-
-
-class EmptyValueType(object): ...
-
 
 EmptyValue = EmptyValueType()
 
