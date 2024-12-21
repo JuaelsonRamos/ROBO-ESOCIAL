@@ -3,7 +3,6 @@ from __future__ import annotations
 from src.exc import ValidatorException
 from src.sistema.models.Cell import Cell as CellModel
 from src.sistema.models.Column import Column
-from src.sistema.spreadsheet import Fill
 from src.types import CellValueType, IsRequired, T_CellValue
 
 import re
@@ -18,14 +17,6 @@ from typing import Any, Generic, Never, NoReturn, Self, Sequence, TypeVar
 
 from openpyxl.cell.cell import Cell
 from unidecode import unidecode_expect_nonascii as unidecode
-
-
-def get_requirement(cell: Cell) -> IsRequired:
-    if cell.fill == Fill.RED:
-        return IsRequired.REQUIRED
-    if cell.fill == Fill.BLUE:
-        return IsRequired.UNCERTAIN
-    return IsRequired.OPTIONAL
 
 
 C = TypeVar('C', bound='ValidatorMeta')
@@ -264,7 +255,7 @@ class Validator(Generic[T_CellValue], metaclass=ValidatorMeta):
     def to_dict(self) -> dict[str, Any]:
         return {
             'index': self.cell_index,
-            'required': get_requirement(self.cell),
+            'required': IsRequired.from_cell(self.cell),
             'validator': self,
             'original_value': self.cell.value,
             'column_metadata': self.column,

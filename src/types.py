@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from src.sistema.spreadsheet import Fill
+
 from datetime import date
 from enum import StrEnum, auto
 from typing import Any, Never, TypeVar
 
+from openpyxl.cell.cell import Cell
 from typing_extensions import TypeIs
 
 
@@ -11,6 +14,14 @@ class IsRequired(StrEnum):
     REQUIRED = auto()
     OPTIONAL = auto()
     UNCERTAIN = auto()
+
+    @classmethod
+    def from_cell(cls, cell: Cell) -> IsRequired:
+        if cell.fill == Fill.RED:
+            return IsRequired.REQUIRED
+        if cell.fill == Fill.BLUE:
+            return IsRequired.UNCERTAIN
+        return IsRequired.OPTIONAL
 
 
 class CellValueType(StrEnum):
