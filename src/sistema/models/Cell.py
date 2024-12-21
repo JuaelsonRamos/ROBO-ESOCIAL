@@ -6,7 +6,7 @@ from .Model import model
 from src.sistema.validators import Validator
 from src.types import IsRequired, T_CellValue
 
-from typing import Generic
+from typing import Any, Generic
 
 
 @model
@@ -16,6 +16,6 @@ class Cell(Generic[T_CellValue]):
     is_empty: bool
     is_valid: bool
     validator: Validator
-    original_value: str | None
+    original_value: Any
     parsed_value: T_CellValue | None
     column_metadata: Column
