@@ -18,12 +18,17 @@ from re import Pattern
 from typing import Any, Never, NoReturn, Self, Sequence, TypeVar, cast
 
 from openpyxl.cell.cell import TIME_FORMATS, Cell
+from typing_extensions import TypeIs
 from unidecode import unidecode_expect_nonascii as unidecode
 
 
 C = TypeVar('C', bound='ValidatorMeta')
 
 EmptyValue = EmptyValueType()
+
+
+def is_empty(value: Any) -> TypeIs[EmptyValueType]:
+    return value is EmptyValue
 
 
 def _make_slots_from(cls: type, namespace: dict[str, Any]) -> tuple[str, ...]:
@@ -452,7 +457,23 @@ class LetterString(String):
     is_arbitraty_string = False
     cell_value_type = CellValueType.STRING
     value_type = str
-    ...  # TODO: implement validator
+
+    @classmethod
+    def new(
+        cls: type[Self],
+        /,
+        known_titles: Sequence[str],
+        allow_punctuation: bool = True,
+        allow_whitespace: bool = True,
+        allow_empty: bool = True,
+    ) -> type[Self]:
+        return super().new(
+            known_titles=known_titles,
+            allow_punctuation=allow_punctuation,
+            allow_digits=False,
+            allow_whitespace=allow_whitespace,
+            allow_empty=allow_empty,
+        )
 
 
 class NumericString(String):
