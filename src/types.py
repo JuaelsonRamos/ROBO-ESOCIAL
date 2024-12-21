@@ -4,7 +4,8 @@ from src.sistema.spreadsheet import Fill
 
 from datetime import date
 from enum import StrEnum, auto
-from typing import Any, Never, TypeVar
+
+import numpy
 
 from openpyxl.cell.cell import Cell
 from typing_extensions import TypeIs
@@ -66,3 +67,34 @@ class CellValueType(StrEnum):
 
 CellValue = str | int | float | date | bool
 T_CellValue = TypeVar('T_CellValue', str, int, float, date, bool)
+
+NumpyNumeric = (
+    numpy.short
+    | numpy.ushort
+    | numpy.intc
+    | numpy.uintc
+    | numpy.int_
+    | numpy.uint
+    | numpy.longlong
+    | numpy.ulonglong
+    | numpy.half
+    | numpy.float16
+    | numpy.single
+    | numpy.double
+    | numpy.longdouble
+    | numpy.int8
+    | numpy.int16
+    | numpy.int32
+    | numpy.int64
+    | numpy.uint8
+    | numpy.uint16
+    | numpy.uint32
+    | numpy.uint64
+    | numpy.intp
+    | numpy.uintp
+    | numpy.float32
+    | numpy.float64
+    | numpy.bool_
+    | numpy.floating
+    | numpy.integer
+)
