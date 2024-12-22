@@ -6,6 +6,7 @@ from src.sistema.models.Column import Column
 from src.types import CellRichText, CellValue, CellValueType, EmptyValueType, IsRequired
 
 import re
+import math
 import string
 import decimal
 import hashlib
@@ -15,7 +16,7 @@ import itertools
 
 from abc import abstractmethod
 from re import Pattern
-from typing import Any, Final, Never, NoReturn, Self, Sequence, TypeVar, cast
+from typing import Any, Never, NoReturn, Self, Sequence, TypeVar, cast
 
 from openpyxl.cell.cell import TIME_FORMATS, Cell
 from typing_extensions import TypeIs
@@ -474,15 +475,35 @@ class LetterString(String):
         )
 
 
+class MagicNumber(str):
+    _hash_trap: int = 0
+
+    def __new__(cls, text: str):
+        string_instance = super().__new__(cls, text)
+        string_instance._hash_trap = hash(object())
+        return string_instance
+
+    def __hash__(self) -> int:
+        return self._hash_trap
+
+
 class NumericString(String):
     is_arbitraty_string = False
     cell_value_type = CellValueType.STRING
     value_type = str
 
-    Infinity: Final[str] = '\u221e'
-    NegativeInfinity: Final[str] = '\u002d\u221e'
-    NaN: Final[str] = 'NaN'
-    NegativeNaN: Final[str] = '-NaN'
+    Infinity: MagicNumber = MagicNumber('\u221e')
+    NegativeInfinity: MagicNumber = MagicNumber('\u002d\u221e')
+    NaN: MagicNumber = MagicNumber('NaN')
+    NegativeNaN: MagicNumber = MagicNumber('-NaN')
+
+    def is_magic_number(self, some_str: str) -> TypeIs[MagicNumber]:
+        return isinstance(some_str, MagicNumber) and (
+            some_str is self.Infinity
+            or some_str is self.NegativeInfinity
+            or some_str is self.NaN
+            or some_str is self.NegativeNaN
+        )
 
     @classmethod
     def new(
@@ -521,7 +542,38 @@ class IntegerString(NumericString):
     is_arbitraty_string = False
     cell_value_type = CellValueType.STRING
     value_type = str
-    ...  # TODO: implement validator
+
+    def parse_value(self) -> str | EmptyValueType | Never:
+        parsed_value = super().parse_value()
+        if self.is_empty(parsed_value) or self.is_magic_number(parsed_value):
+            return parsed_value
+        try:
+            int(parsed_value)
+            return parsed_value
+        except (ValueError, TypeError) as err:
+            raise ValidatorException.InvalidValueError(err) from err
+
+
+class FloatString(NumericString):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.STRING
+    value_type = str
+
+    def parse_value(self) -> str | EmptyValueType | Never:
+        parsed_value = super().parse_value()
+        if self.is_empty(parsed_value) or self.is_magic_number(parsed_value):
+            return parsed_value
+        try:
+            n = float(parsed_value)
+            if math.isinf(n):
+                return (
+                    self.Infinity if math.copysign(1, n) > 0 else self.NegativeInfinity
+                )
+            if math.isnan(n):
+                return self.NaN if math.copysign(1, n) > 0 else self.NegativeNaN
+            return parsed_value
+        except (ValueError, TypeError) as err:
+            raise ValidatorException.InvalidValueError(err) from err
 
 
 class Float(NumericString):
