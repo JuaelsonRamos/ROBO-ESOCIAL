@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.sistema.validator import Validator
+from src.sistema.protocol_types import ValidatorProtocol
 from src.types import CellValue, EmptyValueType, IsRequired, OpenpyxlCell
 
 import itertools
@@ -82,7 +82,7 @@ class Column(Model):
     index: int
     original_text: str
     required: IsRequired
-    validator: Validator
+    validator: ValidatorProtocol
 
 
 class Cell(Model):
@@ -90,7 +90,7 @@ class Cell(Model):
     required: IsRequired
     is_empty: bool
     is_valid: bool
-    validator: Validator
+    validator: ValidatorProtocol
     original_value: OpenpyxlCell.KnownTypes
     parsed_value: CellValue | EmptyValueType
     column_metadata: Column
