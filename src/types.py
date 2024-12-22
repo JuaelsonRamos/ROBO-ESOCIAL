@@ -6,7 +6,6 @@ import types
 import datetime
 
 from dataclasses import dataclass
-from datetime import date
 from decimal import Decimal
 from enum import StrEnum, auto
 from typing import Any, Never, TypeAlias, TypeVar
@@ -38,6 +37,8 @@ class CellValueType(StrEnum):
     FLOAT = auto()
     DATE = auto()
     BOOL = auto()
+    DATETIME = auto()
+    TIMEDELTA = auto()
 
     @classmethod
     def type_class(cls, enum: CellValueType) -> type[CellValue] | Never:
@@ -55,9 +56,13 @@ class CellValueType(StrEnum):
         if enum is cls.FLOAT:
             return float
         if enum is cls.DATE:
-            return date
+            return datetime.date
         if enum is cls.BOOL:
             return bool
+        if enum is cls.DATETIME:
+            return datetime.datetime
+        if enum is cls.TIMEDELTA:
+            return datetime.timedelta
 
     @classmethod
     def is_instance(cls, value: Any) -> TypeIs[CellValue]:
@@ -69,11 +74,33 @@ class CellValueType(StrEnum):
         then `False` is returned, because there isn't any enum member that represents
         the type `Path`.
         """
-        return isinstance(value, (str, int, float, date, bool))
+        return isinstance(
+            value,
+            (
+                str,
+                int,
+                float,
+                datetime.date,
+                datetime.datetime,
+                datetime.timedelta,
+                bool,
+            ),
+        )
 
 
-CellValue = str | int | float | date | bool
-T_CellValue = TypeVar('T_CellValue', str, int, float, date, bool)
+CellValue = (
+    str | int | float | datetime.date | datetime.datetime | datetime.timedelta | bool
+)
+T_CellValue = TypeVar(
+    'T_CellValue',
+    str,
+    int,
+    float,
+    datetime.date,
+    datetime.datetime,
+    datetime.timedelta,
+    bool,
+)
 
 
 class EmptyValueType(object): ...
