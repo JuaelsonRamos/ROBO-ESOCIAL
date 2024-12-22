@@ -520,7 +520,7 @@ class NumericString(String):
             allow_empty=allow_empty,
         )
 
-    def parse_value(self) -> str | EmptyValueType | Never:
+    def parse_value(self) -> str | MagicNumber | EmptyValueType | Never:
         parsed_value = super().parse_value()
         if self.is_empty(parsed_value):
             return parsed_value
@@ -543,7 +543,7 @@ class IntegerString(NumericString):
     cell_value_type = CellValueType.STRING
     value_type = str
 
-    def parse_value(self) -> str | EmptyValueType | Never:
+    def parse_value(self):
         parsed_value = super().parse_value()
         if self.is_empty(parsed_value) or self.is_magic_number(parsed_value):
             return parsed_value
@@ -559,7 +559,7 @@ class FloatString(NumericString):
     cell_value_type = CellValueType.STRING
     value_type = str
 
-    def parse_value(self) -> str | EmptyValueType | Never:
+    def parse_value(self):
         parsed_value = super().parse_value()
         if self.is_empty(parsed_value) or self.is_magic_number(parsed_value):
             return parsed_value
@@ -576,18 +576,28 @@ class FloatString(NumericString):
             raise ValidatorException.InvalidValueError(err) from err
 
 
-class Float(NumericString):
+class Float(FloatString):
     is_arbitraty_string = False
     cell_value_type = CellValueType.FLOAT
     value_type = float
-    ...  # TODO: implement validator
+
+    def parse_value(self) -> float | MagicNumber | EmptyValueType | Never:
+        parsed_value = super().parse_value()
+        if self.is_empty(parsed_value) or self.is_magic_number(parsed_value):
+            return parsed_value
+        return float(parsed_value)
 
 
 class Integer(IntegerString):
     is_arbitraty_string = False
     cell_value_type = CellValueType.INT
     value_type = int
-    ...  # TODO: implement validator
+
+    def parse_value(self) -> int | MagicNumber | EmptyValueType | Never:
+        parsed_value = super().parse_value()
+        if self.is_empty(parsed_value) or self.is_magic_number(parsed_value):
+            return parsed_value
+        return int(parsed_value)
 
 
 class Date(String):
