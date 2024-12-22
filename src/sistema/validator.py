@@ -365,15 +365,14 @@ class String(Validator):
             return value
         elif isinstance(value, bytes):
             valid_string = value.decode(encoding=bytes_encoding)
+        elif isinstance(value, CellRichText):
+            # TODO
+            pass
         # Numeric
         elif isinstance(value, (int, float)):
             valid_string = str(value)
         elif isinstance(value, decimal.Decimal):
             valid_string = decimal.getcontext().to_sci_string(value)
-
-        elif isinstance(value, CellRichText):
-            # TODO
-            pass
         # Time
         elif isinstance(value, (datetime.datetime, datetime.date, datetime.time)):
             format = TIME_FORMATS[type(value)]
@@ -397,10 +396,14 @@ class String(Validator):
             raise ValidatorException.InvalidValueError(err) from err
         except Exception as err:
             raise ValidatorException.RuntimeError(err) from err
-        # strip blank characters around meaningful text
-        parsed_value = parsed_value.strip(string.whitespace)
+        if len(parsed_value) == 0:
+            if self.allow_empty:
+                return self.EmptyValue
+            raise ValidatorException.EmptyValueError
         # normalize encoding to ascii
         parsed_value = unidecode(parsed_value)
+        # strip blank characters around meaningful text
+        parsed_value = parsed_value.strip(string.whitespace)
         # normalize case
         parsed_value = parsed_value.upper()
         if parsed_value == '':
