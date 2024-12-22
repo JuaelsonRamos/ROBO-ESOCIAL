@@ -626,6 +626,18 @@ class UTCDateTime(String):
     zero_timedelta: timedelta = _zero_datetime - _zero_datetime
 
     @classmethod
+    def new(
+        cls: type[Self], /, known_titles: Sequence[str], allow_empty: bool = True
+    ) -> type[Self]:
+        return super().new(
+            known_titles=known_titles,
+            allow_punctuation=True,
+            allow_digits=True,
+            allow_whitespace=True,
+            allow_empty=allow_empty,
+        )
+
+    @classmethod
     def now(cls) -> datetime:
         return datetime.now(tz=timezone.utc)
 
