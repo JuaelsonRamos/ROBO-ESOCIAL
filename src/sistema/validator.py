@@ -741,6 +741,11 @@ class Option(String):
         return cls.hash_column_title(text)
 
     @classmethod
+    def is_option(cls, text: str) -> bool:
+        hashed = cls.hash_option_string(text)
+        return hashed in cls.hashed_options
+
+    @classmethod
     def new(
         cls: type[Self], /, known_titles: Sequence[str], options: Sequence[str]
     ) -> type[Self]:
@@ -754,10 +759,7 @@ class Option(String):
         parsed_value = super().parse_value()
         if self.is_empty(parsed_value):
             return parsed_value
-        hashed = self.hash_option_string(parsed_value)
-        if hashed in self.hashed_options:
-            return parsed_value
-        return self.EmptyValue
+        return parsed_value if self.is_option(parsed_value) else self.EmptyValue
 
 
 class Boolean(Option):
@@ -785,13 +787,11 @@ class Boolean(Option):
         new_class.hashed_truthy = tuple(cls.hash_option_string(text) for text in truthy)
         return new_class
 
-    def parse_value(self) -> bool | Never:
+    def parse_value(self) -> bool | EmptyValueType | Never:
         parsed_value = super().parse_value()
         if self.is_empty(parsed_value):
             return False
         hashed = self.hash_option_string(parsed_value)
-        if hashed in self.hashed_truthy:
-            return True
-        if hashed in self.hashed_falsy:
-            return False
-        return False
+        # self.falsy and self.truthy are contained in self.options, so if it isn't empty
+        # it will always be either True of False
+        return hashed in self.hashed_truthy
