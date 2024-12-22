@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from src.exc import ValidatorException
-from src.sistema.models.Cell import Cell as CellModel
-from src.sistema.models.Column import Column
+from src.sistema.models import (
+    Cell as CellModel,
+    Column,
+)
 from src.types import CellRichText, CellValue, CellValueType, EmptyValueType, IsRequired
 
 import re
