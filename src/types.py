@@ -39,6 +39,7 @@ class CellValueType(StrEnum):
     BOOL = auto()
     DATETIME = auto()
     TIMEDELTA = auto()
+    TIME = auto()
 
     @classmethod
     def type_class(cls, enum: CellValueType) -> type[CellValue] | Never:
@@ -63,6 +64,8 @@ class CellValueType(StrEnum):
             return datetime.datetime
         if enum is cls.TIMEDELTA:
             return datetime.timedelta
+        if enum is cls.TIME:
+            return datetime.time
 
     @classmethod
     def is_instance(cls, value: Any) -> TypeIs[CellValue]:
@@ -82,6 +85,7 @@ class CellValueType(StrEnum):
                 float,
                 datetime.date,
                 datetime.datetime,
+                datetime.time,
                 datetime.timedelta,
                 bool,
             ),
@@ -89,7 +93,14 @@ class CellValueType(StrEnum):
 
 
 CellValue = (
-    str | int | float | datetime.date | datetime.datetime | datetime.timedelta | bool
+    str
+    | int
+    | float
+    | datetime.date
+    | datetime.datetime
+    | datetime.time
+    | datetime.timedelta
+    | bool
 )
 T_CellValue = TypeVar(
     'T_CellValue',
@@ -98,6 +109,7 @@ T_CellValue = TypeVar(
     float,
     datetime.date,
     datetime.datetime,
+    datetime.time,
     datetime.timedelta,
     bool,
 )
