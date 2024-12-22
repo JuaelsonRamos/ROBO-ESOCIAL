@@ -348,7 +348,8 @@ class String(Validator):
     allow_whitespace: bool
     allow_letters: bool
 
-    def to_string(self, *, bytes_encoding: str = 'utf-8') -> str:
+    @classmethod
+    def cell_value_to_string(cls, value: Any, *, bytes_encoding: str = 'utf-8') -> str:
         """
         Spreadsheet cell's value to valid string.
 
@@ -358,7 +359,6 @@ class String(Validator):
 
         :raises: ValidatorException.RuntimeError
         """
-        value = self.cell.value
         valid_string: str = ''
         # NoneType
         if value is None:
@@ -394,7 +394,7 @@ class String(Validator):
     def parse_value(self) -> str | EmptyValueType | Never:
         parsed_value: str = ''
         try:
-            parsed_value = self.to_string()
+            parsed_value = self.cell_value_to_string(self.cell.value)
         except TypeError as err:
             raise ValidatorException.InvalidValueError(err) from err
         except Exception as err:
