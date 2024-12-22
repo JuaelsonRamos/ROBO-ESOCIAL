@@ -42,7 +42,7 @@ class CellValueType(StrEnum):
     TIME = auto()
 
     @classmethod
-    def type_class(cls, enum: CellValueType) -> type[CellValue] | Never:
+    def get_type_class(cls, enum: CellValueType) -> type[CellValue] | Never:
         """
         Returns type class (`int`, `str`, etc) that represents enum value.
 
@@ -66,6 +66,9 @@ class CellValueType(StrEnum):
             return datetime.timedelta
         if enum is cls.TIME:
             return datetime.time
+
+    def as_type_class(self) -> type[CellValue]:
+        return self.get_type_class(self)
 
     @classmethod
     def is_instance(cls, value: Any) -> TypeIs[CellValue]:
