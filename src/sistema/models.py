@@ -82,6 +82,7 @@ class Column(Model):
     index: int
     original_text: str
     required: IsRequired
+    validator: Validator
 
 
 class Cell(Model):
