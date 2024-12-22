@@ -343,6 +343,7 @@ class String(Validator):
     allow_punctuation: bool
     allow_digits: bool
     allow_whitespace: bool
+    allow_letters: bool
 
     def to_string(self, *, bytes_encoding: str = 'utf-8') -> str:
         """
@@ -398,6 +399,10 @@ class String(Validator):
             raise ValidatorException.RuntimeError(err) from err
         # strip blank characters around meaningful text
         parsed_value = parsed_value.strip(string.whitespace)
+        # normalize encoding to ascii
+        parsed_value = unidecode(parsed_value)
+        # normalize case
+        parsed_value = parsed_value.upper()
         if parsed_value == '':
             if self.allow_empty:
                 return self.EmptyValue
@@ -410,10 +415,10 @@ class String(Validator):
             chr in parsed_value for chr in string.punctuation
         ):
             raise ValidatorException.InvalidValueError
-        # normalize encoding to ascii
-        parsed_value = unidecode(parsed_value)
-        # normalize case
-        parsed_value = parsed_value.upper()
+        if not self.allow_letters and any(
+            chr in parsed_value for chr in string.ascii_uppercase
+        ):
+            raise ValidatorException.InvalidValueError
         return parsed_value
 
     @classmethod
@@ -424,6 +429,7 @@ class String(Validator):
         allow_punctuation: bool = True,
         allow_digits: bool = True,
         allow_whitespace: bool = True,
+        allow_letters: bool = True,
         allow_empty: bool = True,
     ) -> type[Self]:
         new_class = cls._make_creatable_class()
@@ -433,6 +439,7 @@ class String(Validator):
             allow_punctuation,
             allow_digits,
             allow_whitespace,
+            allow_letters,
             allow_empty,
         )
 
@@ -443,12 +450,14 @@ class String(Validator):
         allow_punctuation: bool,
         allow_digits: bool,
         allow_whitespace: bool,
+        allow_letters: bool,
         allow_empty: bool,
     ) -> Self:
         instance = super().__new__(cls, known_titles, allow_empty)
         instance.allow_punctuation = allow_punctuation
         instance.allow_digits = allow_digits
         instance.allow_whitespace = allow_whitespace
+        instance.allow_letters = allow_letters
         return instance
 
 
