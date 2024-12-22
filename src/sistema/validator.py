@@ -24,12 +24,6 @@ from unidecode import unidecode_expect_nonascii as unidecode
 
 C = TypeVar('C', bound='ValidatorMeta')
 
-EmptyValue = EmptyValueType()
-
-
-def is_empty(value: Any) -> TypeIs[EmptyValueType]:
-    return value is EmptyValue
-
 
 def _make_slots_from(cls: type, namespace: dict[str, Any]) -> tuple[str, ...]:
     """Create __slots__ tuple."""
@@ -51,16 +45,6 @@ def _make_slots_from(cls: type, namespace: dict[str, Any]) -> tuple[str, ...]:
 re_spaces: Pattern[str] = re.compile(f'[{string.whitespace}]+')
 re_punctuation: Pattern[str] = re.compile(f'[{string.punctuation}]+')
 re_nonascii: Pattern[str] = re.compile(f'[^{string.printable}]+')
-
-
-def hash_column_title(title: str) -> str:
-    as_ascii = unidecode(title)
-    normalized = as_ascii.strip(string.whitespace + string.punctuation).lower()
-    normalized = re_spaces.sub(' ', normalized)
-    normalized = re_punctuation.sub('*', normalized)
-    normalized = re_nonascii.sub('', normalized)
-    hashed = hashlib.md5(normalized.encode()).hexdigest().upper()
-    return hashed
 
 
 class ValidatorMeta(type):
@@ -188,8 +172,22 @@ class Validator(metaclass=ValidatorMeta):
     cell_index: int
 
     # static properties
-    EmptyValue: EmptyValueType = EmptyValue
+    EmptyValue: EmptyValueType = EmptyValueType()
     """Unique, featureless object to represent an empty cell value."""
+
+    @classmethod
+    def is_empty(cls, value: Any) -> TypeIs[EmptyValueType]:
+        return isinstance(value, EmptyValueType) and value is cls.EmptyValue
+
+    @staticmethod
+    def hash_column_title(title: str) -> str:
+        as_ascii = unidecode(title)
+        normalized = as_ascii.strip(string.whitespace + string.punctuation).lower()
+        normalized = re_spaces.sub(' ', normalized)
+        normalized = re_punctuation.sub('*', normalized)
+        normalized = re_nonascii.sub('', normalized)
+        hashed = hashlib.md5(normalized.encode()).hexdigest().upper()
+        return hashed
 
     @classmethod
     def new(
@@ -209,7 +207,7 @@ class Validator(metaclass=ValidatorMeta):
         instance = super().__new__(cls)
         instance.known_titles = tuple(known_titles)
         instance.hashed_known_titles = tuple(
-            hash_column_title(title) for title in known_titles
+            cls.hash_column_title(title) for title in known_titles
         )
         instance.allow_empty = allow_empty
         return instance
@@ -503,7 +501,7 @@ class NumericString(String):
 
     def parse_value(self) -> str | EmptyValueType | Never:
         parsed_value = super().parse_value()
-        if is_empty(parsed_value):
+        if self.is_empty(parsed_value):
             return parsed_value
         try:
             number = decimal.Decimal(parsed_value)
