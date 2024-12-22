@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.sistema.spreadsheet import Fill
+from src.sistema.sheet_constants import Fill
 
 import types
 import datetime
