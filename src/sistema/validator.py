@@ -11,10 +11,10 @@ import string
 import decimal
 import hashlib
 import inspect
-import datetime
 import itertools
 
 from abc import abstractmethod
+from datetime import date, datetime, time, timedelta, timezone
 from re import Pattern
 from typing import Any, Never, NoReturn, Self, Sequence, TypeVar, cast
 
@@ -374,10 +374,10 @@ class String(Validator):
         elif isinstance(value, decimal.Decimal):
             valid_string = decimal.getcontext().to_sci_string(value)
         # Time
-        elif isinstance(value, (datetime.datetime, datetime.date, datetime.time)):
+        elif isinstance(value, (datetime, date, time)):
             format = TIME_FORMATS[type(value)]
             valid_string = value.strftime(format)
-        elif isinstance(value, datetime.timedelta):
+        elif isinstance(value, timedelta):
             valid_string = str(value)
         # Boolean
         elif isinstance(value, bool):
@@ -612,11 +612,108 @@ class Integer(IntegerString):
         return int(parsed_value)
 
 
-class Date(String):
+_zero_datetime = datetime.fromtimestamp(0)
+
+
+class UTCDateTime(String):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.DATETIME
+    value_type = datetime
+    iso_format: str = TIME_FORMATS[datetime]
+    zero_datetime: datetime = _zero_datetime
+    zero_date: date = _zero_datetime.date()
+    zero_time: time = _zero_datetime.time()
+    zero_timedelta: timedelta = _zero_datetime - _zero_datetime
+
+    @classmethod
+    def now(cls) -> datetime:
+        return datetime.now(tz=timezone.utc)
+
+    def parse_value(self) -> datetime | EmptyValueType | Never:
+        parsed_value = super().parse_value()
+        if self.is_empty(parsed_value):
+            return parsed_value
+        if isinstance(self.cell.value, datetime):
+            return self.cell.value.replace(tzinfo=timezone.utc)
+        if isinstance(self.cell.value, date):
+            dttime = datetime.combine(
+                self.cell.value, datetime.min.time(), tzinfo=timezone.utc
+            )
+            return dttime
+        if isinstance(self.cell.value, time):
+            iso_string = self.cell.value.replace(tzinfo=timezone.utc).isoformat()
+            return datetime.fromisoformat(iso_string)
+        dttime: datetime | None = None
+        try:
+            dttime = datetime.fromisoformat(parsed_value)
+        except Exception:
+            pass
+        try:
+            ordinal = int(parsed_value)
+            dttime = datetime.fromordinal(ordinal)
+        except Exception:
+            pass
+        try:
+            timestamp = float(parsed_value)
+            if not math.isfinite(timestamp):
+                raise TypeError
+            dttime = datetime.fromtimestamp(timestamp)
+        except Exception:
+            pass
+        if dttime is None:
+            raise ValidatorException.InvalidValueError
+        return dttime.replace(tzinfo=timezone.utc)
+
+
+class UTCDate(UTCDateTime):
     is_arbitraty_string = False
     cell_value_type = CellValueType.DATE
-    value_type = datetime.date
-    ...  # TODO: implement validator
+    value_type = date
+    iso_format: str = TIME_FORMATS[date]
+
+    @classmethod
+    def now(cls) -> date:
+        return super().now().date()
+
+    def parse_value(self) -> date | EmptyValueType | Never:
+        parsed_value = super().parse_value()
+        if self.is_empty(parsed_value):
+            return parsed_value
+        return parsed_value.date()
+
+
+class UTCTime(UTCDateTime):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.TIME
+    value_type = time
+    iso_format: str = TIME_FORMATS[time]
+
+    @classmethod
+    def now(cls) -> time:
+        return super().now().time()
+
+    def parse_value(self) -> time | EmptyValueType | Never:
+        parsed_value = super().parse_value()
+        if self.is_empty(parsed_value):
+            return parsed_value
+        return parsed_value.time()
+
+
+class UTCTimeDelta(UTCDateTime):
+    is_arbitraty_string = False
+    cell_value_type = CellValueType.TIMEDELTA
+    value_type = timedelta
+
+    @classmethod
+    def now(cls) -> timedelta:
+        return cls.zero_timedelta
+
+    def parse_value(self) -> timedelta | EmptyValueType | Never:
+        parsed_value = super().parse_value()
+        if self.is_empty(parsed_value):
+            return parsed_value
+        delta = parsed_value - self.zero_datetime
+        return delta
 
 
 class Option(String):
