@@ -732,7 +732,32 @@ class Option(String):
     is_arbitraty_string = False
     cell_value_type = CellValueType.STRING
     value_type = str
-    ...  # TODO: implement validator
+    options: tuple[str, ...]
+    hashed_options: tuple[str, ...]
+
+    @classmethod
+    def hash_option_string(cls, text: str) -> str:
+        # column_title hashing is coincidently perfect for this too
+        return cls.hash_column_title(text)
+
+    @classmethod
+    def new(
+        cls: type[Self], /, known_titles: Sequence[str], options: Sequence[str]
+    ) -> type[Self]:
+        new_class = super().new(known_titles, True, True, True, True, True)
+        opts = tuple(iter(options))
+        new_class.options = opts
+        new_class.hashed_options = tuple(cls.hash_option_string(text) for text in opts)
+        return new_class
+
+    def parse_value(self) -> str | EmptyValueType | Never:
+        parsed_value = super().parse_value()
+        if self.is_empty(parsed_value):
+            return parsed_value
+        hashed = self.hash_option_string(parsed_value)
+        if hashed in self.hashed_options:
+            return parsed_value
+        return self.EmptyValue
 
 
 class Boolean(String):
