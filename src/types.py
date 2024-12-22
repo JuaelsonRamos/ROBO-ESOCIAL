@@ -23,12 +23,36 @@ class IsRequired(StrEnum):
     UNCERTAIN = auto()
 
     @classmethod
-    def from_cell(cls, cell: Cell) -> IsRequired:
-        if cell.fill == Fill.RED:
+    def _get_enum(cls, value: Cell | int) -> IsRequired:
+        code: int = value if isinstance(value, int) else value.fill  # type: ignore
+        if code == Fill.RED:
             return IsRequired.REQUIRED
-        if cell.fill == Fill.BLUE:
+        if code == Fill.BLUE:
             return IsRequired.UNCERTAIN
         return IsRequired.OPTIONAL
+
+    @classmethod
+    def _to_code(cls, value: IsRequired) -> int:
+        if value is cls.REQUIRED:
+            return Fill.RED
+        if value is cls.UNCERTAIN:
+            return Fill.BLUE
+        return Fill.WHITE
+
+    @classmethod
+    def from_cell(cls, cell: Cell):
+        return cls._get_enum(cell)
+
+    @classmethod
+    def from_fill_code(cls, fill: int) -> IsRequired:
+        return cls._get_enum(fill)
+
+    @classmethod
+    def get_fill_code(cls, enum: IsRequired) -> int:
+        return cls._to_code(enum)
+
+    def to_fill_code(self) -> int:
+        return self._to_code(self)
 
 
 class CellValueType(StrEnum):
