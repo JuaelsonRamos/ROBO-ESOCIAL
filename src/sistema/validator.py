@@ -43,8 +43,9 @@ def _make_slots_from(cls: type, namespace: dict[str, Any]) -> tuple[str, ...]:
     return tuple(all_values)
 
 
+_escaped_puctuation = '\\' + '\\'.join(string.punctuation)
 re_spaces: Pattern[str] = re.compile(f'[{string.whitespace}]+')
-re_punctuation: Pattern[str] = re.compile(f'[{string.punctuation}]+')
+re_punctuation: Pattern[str] = re.compile(f'[{_escaped_puctuation}]+')
 re_nonascii: Pattern[str] = re.compile(f'[^{string.printable}]+')
 
 
