@@ -760,8 +760,38 @@ class Option(String):
         return self.EmptyValue
 
 
-class Boolean(String):
+class Boolean(Option):
     is_arbitraty_string = False
     cell_value_type = CellValueType.BOOL
     value_type = bool
-    ...  # TODO: implement validator
+    falsy: tuple[str, ...]
+    hashed_falsy: tuple[str, ...]
+    truthy: tuple[str, ...]
+    hashed_truthy: tuple[str, ...]
+
+    @classmethod
+    def new(
+        cls: type[Self],
+        /,
+        known_titles: Sequence[str],
+        falsy: Sequence[str],
+        truthy: Sequence[str],
+    ) -> type[Self]:
+        opts = tuple(itertools.chain(truthy, falsy))
+        new_class = super().new(known_titles, opts)
+        new_class.falsy = tuple(iter(falsy))
+        new_class.hashed_falsy = tuple(cls.hash_option_string(text) for text in falsy)
+        new_class.truthy = tuple(iter(truthy))
+        new_class.hashed_truthy = tuple(cls.hash_option_string(text) for text in truthy)
+        return new_class
+
+    def parse_value(self) -> bool | Never:
+        parsed_value = super().parse_value()
+        if self.is_empty(parsed_value):
+            return False
+        hashed = self.hash_option_string(parsed_value)
+        if hashed in self.hashed_truthy:
+            return True
+        if hashed in self.hashed_falsy:
+            return False
+        return False
