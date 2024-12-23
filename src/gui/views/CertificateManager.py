@@ -14,6 +14,7 @@ import functools
 import itertools
 import tkinter.ttk as ttk
 
+from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Final
@@ -373,6 +374,8 @@ class FormEntry:
     label_width: int = 25
     entry_width: int = 35
     datetime_format = '%d/%m/%Y %H:%M'
+    date_format = '%d/%m/%Y'
+    time_format = '%H:%M'
     _btn_svg_opts = {'width': 24, 'height': 24}
     _block_input_img_locked: tksvg.SvgImage | None = None
     _block_input_img_unlocked: tksvg.SvgImage | None = None
@@ -386,9 +389,8 @@ class FormEntry:
     ):
         self.index = self._get_class_instance_number()
         self.entries.append(self)
-
         self.master = master
-
+        self.entry: ttk.Entry
         self._var_label = tk.StringVar(value=label_text or 'Static Data Field:')
         self.label = ttk.Label(
             master,
@@ -398,22 +400,15 @@ class FormEntry:
         )
         self._var_entry = tk.StringVar(value='')
         self._entry_text_buffer: str = ''
-        self._entry_callback = self.master.register(self._check_is_hidden)
-        self.entry = ttk.Entry(
-            master,
-            justify=tk.LEFT,
-            textvariable=self._var_entry,
-            width=self.entry_width,
-            validate='key',
-            validatecommand=(self._entry_callback, '%d', '%S', '%i'),
-        )
-
         self.hide_button: ttk.Button | None = None
         self._is_hidden = False
         self._hide_default = False
         self.block_button: ttk.Button | None = None
         self._block_default = False
         self._is_blocked = False
+
+    @abstractmethod
+    def create_widgets(self): ...
 
     def grid(self):
         i = self.index
@@ -445,51 +440,6 @@ class FormEntry:
             self._var_entry.set('*' * len(self._entry_text_buffer))
             return
         self._var_entry.set(text)
-
-    def _check_is_hidden(self, action: int, text: str, index: str) -> bool:
-        # not insertion nor deletion
-        if action == '-1':
-            return False
-        if text == '':
-            return True
-        i = int(index)
-        if action == '0':
-            # deletion
-            if self._entry_text_buffer == '':
-                # noop
-                self.set_value('')
-                self.entry.icursor(0)
-            elif i == 0:
-                # delete prefix
-                self.set_value(self._entry_text_buffer.removeprefix(text))
-                self.entry.icursor(0)
-            elif i == len(self._entry_text_buffer) - len(text):
-                # delete suffix
-                self.set_value(self._entry_text_buffer.removesuffix(text))
-                self.entry.icursor(len(self._entry_text_buffer))
-            else:
-                # delete in the middle
-                left_side = self._entry_text_buffer[:i]
-                right_side = self._entry_text_buffer[i + len(text) :]
-                self.set_value(left_side + right_side)
-                self.entry.icursor(len(left_side))
-        elif action == '1':
-            # insertion
-            if self._entry_text_buffer == '' or i == 0:
-                # insert prefix
-                self.set_value(text + self._entry_text_buffer)
-                self.entry.icursor(len(text))
-            elif i == len(self._entry_text_buffer):
-                # insert suffix
-                self.set_value(self._entry_text_buffer + text)
-                self.entry.icursor(len(self._entry_text_buffer))
-            else:
-                # insert in the middle
-                left_side = self._entry_text_buffer[:i]
-                right_side = self._entry_text_buffer[i:]
-                self.set_value(left_side + text + right_side)
-                self.entry.icursor(i + len(text))
-        return True
 
     def get_value(self) -> str:
         return self._entry_text_buffer
@@ -629,6 +579,64 @@ class FormEntry:
         self.label.config(state=tk.NORMAL)
 
 
+class TextEntry(FormEntry):
+    def create_widgets(self):
+        tcl_callback = self.master.register(self._check_is_hidden)
+        self.entry = ttk.Entry(
+            self.master,
+            justify=tk.LEFT,
+            textvariable=self._var_entry,
+            width=self.entry_width,
+            validate='key',
+            validatecommand=(tcl_callback, '%d', '%S', '%i'),
+        )
+
+    def _check_is_hidden(self, action: int, text: str, index: str) -> bool:
+        # not insertion nor deletion
+        if action == '-1':
+            return False
+        if text == '':
+            return True
+        i = int(index)
+        if action == '0':
+            # deletion
+            if self._entry_text_buffer == '':
+                # noop
+                self.set_value('')
+                self.entry.icursor(0)
+            elif i == 0:
+                # delete prefix
+                self.set_value(self._entry_text_buffer.removeprefix(text))
+                self.entry.icursor(0)
+            elif i == len(self._entry_text_buffer) - len(text):
+                # delete suffix
+                self.set_value(self._entry_text_buffer.removesuffix(text))
+                self.entry.icursor(len(self._entry_text_buffer))
+            else:
+                # delete in the middle
+                left_side = self._entry_text_buffer[:i]
+                right_side = self._entry_text_buffer[i + len(text) :]
+                self.set_value(left_side + right_side)
+                self.entry.icursor(len(left_side))
+        elif action == '1':
+            # insertion
+            if self._entry_text_buffer == '' or i == 0:
+                # insert prefix
+                self.set_value(text + self._entry_text_buffer)
+                self.entry.icursor(len(text))
+            elif i == len(self._entry_text_buffer):
+                # insert suffix
+                self.set_value(self._entry_text_buffer + text)
+                self.entry.icursor(len(self._entry_text_buffer))
+            else:
+                # insert in the middle
+                left_side = self._entry_text_buffer[:i]
+                right_side = self._entry_text_buffer[i:]
+                self.set_value(left_side + text + right_side)
+                self.entry.icursor(i + len(text))
+        return True
+
+
 class CertificateForm(ttk.Frame):
     def __init__(self, master: CertificateManager):
         super().__init__(master)
@@ -645,21 +653,21 @@ class CertificateForm(ttk.Frame):
         self.btn_cancel.pack(side=tk.RIGHT, before=self.btn_submit)
 
     def create_widgets(self):
-        self.created = FormEntry(self, 'Data Adicionado:')
+        self.created = TextEntry(self, 'Data Adicionado:')
         self.created.block_input()
-        self.last_modified = FormEntry(self, 'Data Modificado:')
+        self.last_modified = TextEntry(self, 'Data Modificado:')
         self.last_modified.block_input()
-        self.browsercontext_id = FormEntry(self, 'Contexto de navegador:')
+        self.browsercontext_id = TextEntry(self, 'Contexto de navegador:')
         self.browsercontext_id.block_input()
-        self.origin = FormEntry(self, 'Origem:')
+        self.origin = TextEntry(self, 'Origem:')
         self.origin.add_block_input_button(default=True)
-        self.cert_path = FormEntry(self, 'Arquivo de Certificado:')
+        self.cert_path = TextEntry(self, 'Arquivo de Certificado:')
         self.cert_path.add_block_input_button(default=True)
-        self.key_path = FormEntry(self, 'Arquivo de Chave:')
+        self.key_path = TextEntry(self, 'Arquivo de Chave:')
         self.key_path.add_block_input_button(default=True)
-        self.pfx_path = FormEntry(self, 'Arquivo de Certificado PFX:')
+        self.pfx_path = TextEntry(self, 'Arquivo de Certificado PFX:')
         self.pfx_path.add_block_input_button(default=True)
-        self.passphrase = FormEntry(self, 'Senha:')
+        self.passphrase = TextEntry(self, 'Senha:')
         self.passphrase.add_block_input_button(default=True)
         self.passphrase.add_hide_button(default=True)
         self.btn_frame = ttk.Frame(self)
