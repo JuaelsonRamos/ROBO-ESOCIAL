@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from .custom_types import RowDataType, Url, timestamp
-
 from src.exc import Database
 from src.gui.tkinter_global import TkinterGlobal
 
@@ -11,6 +9,7 @@ import string
 from datetime import datetime
 from typing import (
     Annotated,
+    Any,
     ClassVar,
     Generic,
     Literal,
@@ -21,6 +20,7 @@ from typing import (
     cast,
     get_args,
 )
+from urllib.parse import urlparse
 
 from sqlalchemy import (
     BLOB,
@@ -33,6 +33,7 @@ from sqlalchemy import (
     ForeignKey,
     MetaData,
     Row,
+    TypeDecorator,
     delete,
     func,
     insert,
@@ -40,8 +41,39 @@ from sqlalchemy import (
     sql,
     update,
 )
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedColumn, mapped_column
 
+
+# region CUSTOM TYPES
+
+RowDataType = int | float | str | bytes | bool | datetime
+
+
+class timestamp(datetime): ...
+
+
+class Url(TypeDecorator):
+    impl = TEXT
+
+    def process_literal_param(self, value: Any | None, dialect: Dialect) -> str:
+        if value is None:
+            return 'NULL'
+        if not isinstance(value, str):
+            raise TypeError(f'{type(value).__name__=} expected str or None')
+        formatted = value.strip(string.whitespace)
+        url = urlparse(formatted)
+        if url.scheme == '' or url.netloc == '' or '.' not in url.netloc:
+            raise ValueError(f'{url=} scheme or netloc invalid')
+        return f"'{url.geturl()}'"  # literal string is single-quoted
+
+    def process_result_value(self, value: Any | None, dialect: Dialect) -> Any | None:
+        return urlparse(value) if value is not None else None
+
+
+# endregion
+
+# region DOCSTRING PARSING
 
 re_whitespace = re.compile(f'[{string.whitespace}+]')
 
@@ -55,6 +87,11 @@ def doc(text: str) -> SQLDocstring:
     text = text.replace('\n', ' ')
     text = re_whitespace.sub(' ', text).strip(string.whitespace).strip('.').title()
     return {'doc': text, 'comment': text}
+
+
+# endregion
+
+# region BASE CLASS
 
 
 class BaseDict(TypedDict, total=False):
@@ -191,6 +228,8 @@ class Base(DeclarativeBase, Generic[TD]):
             conn.execute(query)
             return row_ids if isinstance(row_ids, tuple) else tuple(row_ids)
 
+
+# endregion
 
 BrowserType = Literal['firefox', 'chromium']
 BrowserEnum = Enum(
