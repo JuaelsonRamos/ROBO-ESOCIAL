@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from src import bootstrap
-from src.certificate import copy_certificate, delete_certificate, get_certificates
-from src.db import ClientCertificate, ClientConfig, DBSelectError
-from src.gui.tkinter_global import TkinterGlobal
+from src.db import ClientCertificate, ClientConfig
+from src.db.tables import ClientCertificateDict
+from src.exc import Tkinter
 from src.gui.utils.units import padding
 from src.gui.views.View import View
 
@@ -16,69 +16,16 @@ import tkinter.ttk as ttk
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Final, Never, Sequence, cast
+from typing import Callable, Final
 
 import tksvg
 
-from sqlalchemy import CursorResult, func
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import Row
 
 
 _common_padding: Final[int] = 5
 
 dirs = bootstrap.Directory()
-
-
-class DatabaseHelper:
-    def __init__(self):
-        super().__init__()
-        self.metadata = ClientCertificate.metadata
-        self.table = self.metadata.tables['clientcertificate']
-
-    @property
-    def engine(self):
-        return TkinterGlobal.sqlite
-
-    def count_certificates(self) -> int:
-        with self.engine.begin() as conn:
-            query = func.count().select().select_from(ClientCertificate)
-            quantity = conn.scalar(query)
-            return quantity or 0
-
-    def get_all_certificates(self) -> Sequence[ClientCertificate]:
-        with self.engine.begin() as conn:
-            query = self.table.select()
-            certs = conn.execute(query).all()
-            return certs  # type: ignore
-
-    def get_certificates(self, ids: Sequence[int]) -> Sequence[ClientCertificate]:
-        with self.engine.begin() as conn:
-            query = self.table.select().where(ClientCertificate._id.in_(ids))
-            certs = conn.execute(query).all()
-            return certs  # type: ignore
-
-    def get_one(self, _id: int) -> ClientCertificate | None:
-        with self.engine.begin() as conn:
-            query = self.table.select().where(ClientCertificate._id == _id)
-            return conn.execute(query).one_or_none()  # type: ignore
-
-    def insert_one(self, data: dict[str, Any]) -> int | Never:
-        with self.engine.begin() as conn:
-            try:
-                query = self.table.insert().values(data)
-                result: CursorResult[ClientCertificate] = conn.execute(query)
-            except IntegrityError as err:
-                raise DBSelectError(err) from err
-            if not result.is_insert:
-                raise DBSelectError(
-                    f'could not insert data in {self.table.name=}; {data=}'
-                )
-            if result.inserted_primary_key is None:
-                raise DBSelectError('sequence of inserted primary keys is None')
-            return result.inserted_primary_key[0]
-
-
-db_helpers = DatabaseHelper()
 
 
 @dataclass(frozen=False, slots=True)
@@ -232,12 +179,9 @@ class CertificateList(ttk.Treeview):
         self.heading('has_passphrase', text='Senha Registrada', anchor=tk.CENTER)
         self.column('has_passphrase', anchor=tk.CENTER, minwidth=160, width=160)
 
-    def get_certs(self) -> Sequence[Path]:
-        certs = get_certificates()
-        by_creation_time = sorted(certs, key=lambda path: path.stat().st_ctime)
-        return by_creation_time
-
-    def _make_item_tree_data(self, cert: ClientCertificate) -> tuple[str, ...]:
+    def _make_item_tree_data(
+        self, cert: Row[tuple[ClientCertificate]]
+    ) -> tuple[str, ...]:
         _id = str(cert._id)
         if cert.pfx is not None:
             _type = 'PFX'
@@ -260,10 +204,19 @@ class CertificateList(ttk.Treeview):
         )
 
     def reload(self, event: tk.Event):
-        count = db_helpers.count_certificates()
+        count = ClientCertificate.sync_count()
         if count == 0:
             return
-        certs = db_helpers.get_all_certificates()
+        certs = ClientCertificate.sync_select_all_columns(
+            '_id',
+            'created',
+            'last_modified',
+            'origin',
+            'pfx',
+            'cert_path',
+            'key',
+            'passphrase',
+        )
         for cert in certs:
             iid = str(cert._id)
             if self.exists(iid):
@@ -276,27 +229,18 @@ class CertificateList(ttk.Treeview):
             return
         focus_iid: int | str = event.x
         if focus_iid < 0:
-            raise EventStateError('treeview iid is less than zero')
+            raise Tkinter.EventStateError('treeview iid is less than zero')
         focus_iid = str(focus_iid)
         self.focus(focus_iid)
         self.selection_set(focus_iid)
 
     def delete_focused(self, event: tk.Event):
-        iid = self.focus()
-        if iid == '':
+        selection = self.selection()
+        if len(selection) == 0:
             return
-        certs = self.get_certs()
-        p = certs[self.index(iid)]
-        delete_certificate(p)
-        self.delete(iid)
-
-    def _insert_files(self, value: tuple[str, ...] | Exception, raised: bool) -> None:
-        if raised:
-            raise cast(Exception, value)
-        value = cast(tuple[str, ...], value)
-        for v in value:
-            copy_certificate(v)
-        self.event_generate('<<ReloadTree>>')
+        ids = tuple(int(iid) for iid in selection)
+        ClientCertificate.sync_delete_many_from_id(*ids)
+        self.delete(*selection)
 
     def init_tree_state(self):
         global _widgets
@@ -742,7 +686,7 @@ class CertificateForm(ttk.Frame):
         self.btn_cancel.active()
 
     def fill_form_by_db_id(self, _id: int):
-        cert = db_helpers.get_one(_id)
+        cert = ClientCertificate.sync_select_one_from_id(_id)
         if cert is None:
             return
         self.created.set_value(cert.created.strftime(FormEntry.datetime_format))
@@ -805,59 +749,47 @@ class CertificateForm(ttk.Frame):
         pass
 
     def insert_from_form_fields(self):
-        data: dict[str, Any] = {
-            'origin': self.origin.get_value().strip(string.whitespace),
-        }
+        origin = self.origin.get_value().strip(string.whitespace)
         passphrase: str | None = self.passphrase.get_value().strip(string.whitespace)
         if passphrase == '':
             passphrase = None
-        cert_path: str | None = self.cert_path.get_value().strip(string.whitespace)
-        cert: bytes | None = None
-        key_path: str | None = self.key_path.get_value().strip(string.whitespace)
-        key: bytes | None = None
-        pfx_path: str | None = self.pfx_path.get_value().strip(string.whitespace)
-        pfx: bytes | None = None
+        cert_path: str = self.cert_path.get_value().strip(string.whitespace)
+        key_path: str = self.key_path.get_value().strip(string.whitespace)
+        pfx_path: str = self.pfx_path.get_value().strip(string.whitespace)
 
         max_bytes = ClientConfig.SQLITE_LIMIT_LENGTH
 
         def size_error(p):
             return ValueError(f'file {p=} is bigger than {max_bytes=}')
 
-        if cert_path == '':
-            cert_path = None
-        elif (p := Path(cert_path)).is_file():
-            if p.stat().st_size > max_bytes:
-                raise size_error(p)
-            cert = p.read_bytes()
-        if key_path == '':
-            key_path = None
-        elif (p := Path(key_path)).is_file():
-            if p.stat().st_size > max_bytes:
-                raise size_error(p)
-            key = p.read_bytes()
-        if pfx_path == '':
-            pfx_path = None
-        elif (p := Path(pfx_path)).is_file():
-            if p.stat().st_size > max_bytes:
-                raise size_error(p)
-            pfx = p.read_bytes()
-
-        if cert is None and pfx is None:
-            raise ValueError(
-                'either a regular certificate of PFX certificate deve ser especificado'
-            )
-
-        data.update(
-            cert_path=cert_path,
-            cert=cert,
-            key_path=key_path,
-            key=key,
-            pfx_path=pfx_path,
-            pfx=pfx,
-            passphrase=passphrase,
+        data = ClientCertificateDict(
+            origin=origin,
+            cert_path=None,
+            cert=None,
+            key_path=None,
+            key=None,
+            pfx_path=None,
+            pfx=None,
+            passphrase=passphrase or None,
+            # TODO: implement gui cert type selection
+            using_type='PFX',
+            description='',
         )
 
-        inserted_id: int = db_helpers.insert_one(data)
+        if cert_path != '' and (p := Path(cert_path)).is_file():
+            if p.stat().st_size > max_bytes:
+                raise size_error(p)
+            data.update(cert_path=str(p.absolute()), cert=p.read_bytes())
+        if key_path != '' and (p := Path(key_path)).is_file():
+            if p.stat().st_size > max_bytes:
+                raise size_error(p)
+            data.update(key_path=str(p.absolute()).encode(), key=p.read_bytes())
+        if pfx_path != '' and (p := Path(pfx_path)).is_file():
+            if p.stat().st_size > max_bytes:
+                raise size_error(p)
+            data.update(pfx_path=str(p.absolute()), pfx=p.read_bytes())
+
+        inserted_id: int = ClientCertificate.sync_insert_one(data)
         global _widgets
         _widgets.tree.event_generate(
             '<<ReloadTree>>',
