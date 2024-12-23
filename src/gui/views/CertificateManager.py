@@ -689,6 +689,8 @@ class FileEntry(TextEntry):
 
 
 class CertificateForm(ttk.Frame):
+    autofill_message = '(Preenchimento automático)'
+
     def __init__(self, master: CertificateManager):
         super().__init__(master)
         self.parent_widget = master
@@ -733,7 +735,9 @@ class CertificateForm(ttk.Frame):
         self.passphrase.add_hide_button(default=True)
         self.btn_frame = ttk.Frame(self)
         self.btn_submit = ActionButton(self.btn_frame, 'Confirmar')
-        self.btn_cancel = ActionButton(self.btn_frame, 'Cancelar')
+        self.btn_cancel = ActionButton(
+            self.btn_frame, 'Cancelar', command=self.reset_form
+        )
 
     def assign_form_events(self):
         self.bind('<<AddItem>>', self.prepare_add_item)
@@ -792,14 +796,12 @@ class CertificateForm(ttk.Frame):
 
     def prepare_add_item(self, event: tk.Event | None = None):
         self.allow_form_interactions()
-        self.btn_cancel.set_command(self.reset_form)
         self.btn_submit.set_command(self.insert_from_form_fields)
-        auto_message = '(Preenchimento automático)'
-        self.created.set_value(auto_message)
+        self.created.set_value(self.autofill_message)
         self.created.block_input()
-        self.last_modified.set_value(auto_message)
+        self.last_modified.set_value(self.autofill_message)
         self.last_modified.block_input()
-        self.browsercontext_id.set_value(auto_message)
+        self.browsercontext_id.set_value(self.autofill_message)
         self.browsercontext_id.block_input()
         self.description.set_value('')
         self.description.unblock_input()
@@ -816,12 +818,45 @@ class CertificateForm(ttk.Frame):
         self.passphrase.hide_input()
 
     def prepare_edit_item(self, event: tk.Event | None = None):
-        pass
+        global _widgets
+        iid = _widgets.tree.focus()
+        if iid == '':
+            return
+        cert = ClientCertificate.sync_select_one_from_id(int(iid))
+        if cert is None:
+            return
+        data = ClientCertificateDict(**cert._asdict())
+        self.allow_form_interactions()
+        self.btn_submit.set_command(self.update_from_form_fields)
+        if 'created' in data:
+            self.created.set_value(data['created'].strftime(FormEntry.datetime_format))
+        else:
+            self.created.set_value(self.autofill_message)
+        if 'last_modified' in data and (value := data['last_modified']) is not None:
+            self.last_modified.set_value(value.strftime(FormEntry.datetime_format))
+        else:
+            self.last_modified.set_value(self.autofill_message)
+        if (
+            'browsercontext_id' in data
+            and (value := data['browsercontext_id']) is not None
+        ):
+            self.browsercontext_id.set_value(str(value))
+        else:
+            self.browsercontext_id.set_value(self.autofill_message)
+        if 'key_path' in data and (value := data['key_path']) is not None:
+            self.key_path.set_value(value.decode())
+        else:
+            self.key_path.set_value('')
+        self.description.set_value(data.get('description', None) or '')
+        self.origin.set_value(data.get('origin', None) or '')
+        self.cert_path.set_value(data.get('cert_path', None) or '')
+        self.pfx_path.set_value(data.get('pfx_path', None) or '')
+        self.passphrase.set_value(data.get('passphrase', None) or '')
 
     def prepare_delete_item(self, event: tk.Event | None = None):
         pass
 
-    def insert_from_form_fields(self):
+    def form_db_row_data(self) -> ClientCertificateDict:
         origin = self.origin.get_value().strip(string.whitespace)
         description = self.description.get_value().strip(string.whitespace)
         passphrase: str | None = self.passphrase.get_value().strip(string.whitespace)
@@ -863,6 +898,10 @@ class CertificateForm(ttk.Frame):
                 raise size_error(p)
             data.update(pfx_path=str(p.absolute()), pfx=p.read_bytes())
 
+        return data
+
+    def insert_from_form_fields(self):
+        data = self.form_db_row_data()
         inserted_id: int = ClientCertificate.sync_insert_one(data)
         global _widgets
         _widgets.tree.event_generate(
@@ -876,8 +915,13 @@ class CertificateForm(ttk.Frame):
         pass
 
     def update_from_form_fields(self):
-        # TODO
-        pass
+        global _widgets
+        data = self.form_db_row_data()
+        iid = _widgets.tree.focus()
+        if iid == '':
+            raise ValueError('empty iid')
+        _id = int(iid)
+        ClientCertificate.sync_update_one_from_id(data, _id)
 
 
 class CertificateManager(View):
