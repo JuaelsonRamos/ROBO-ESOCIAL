@@ -11,6 +11,7 @@ import string
 from datetime import datetime
 from typing import (
     Annotated,
+    ClassVar,
     Generic,
     Literal,
     Self,
@@ -56,7 +57,11 @@ def doc(text: str) -> SQLDocstring:
     return {'doc': text, 'comment': text}
 
 
-TD = TypeVar('TD', bound=dict[str, RowDataType])
+class BaseDict(TypedDict, total=False):
+    _id: int
+
+
+TD = TypeVar('TD', bound=BaseDict)
 
 
 class Base(DeclarativeBase, Generic[TD]):
@@ -74,7 +79,7 @@ class Base(DeclarativeBase, Generic[TD]):
         bool: Boolean,
     }
 
-    typed_dict: TD
+    typed_dict: ClassVar[type[TD]]  # type: ignore
 
     # Common columns
     _id: Mapped[int] = mapped_column(
@@ -232,8 +237,21 @@ class CommonColumns:
         )
 
 
+class CookieDict(BaseDict):
+    browser: BrowserType
+    name: str
+    value: str
+    domain: str
+    path: str
+    expires: float
+    http_only: bool
+    secure: bool
+    same_site: SameSiteType
+
+
 class Cookie(Base):
     __tablename__ = 'cookie'
+    typed_dict = CookieDict
     browser: Mapped[BrowserType] = mapped_column(
         BrowserEnum,
         nullable=False,
@@ -252,6 +270,14 @@ class Cookie(Base):
     )
 
 
+class LocalStorageDict(BaseDict):
+    created: datetime
+    last_modified: datetime | None
+    origin_id: int
+    name: str
+    value: str
+
+
 _local_storage_value_doc = """
     Length of name and value are theorically infinite as long as the total storage
     taken by name=value pairs doesn't exceed 5MiB, whether thats five 1MiB pairs
@@ -261,6 +287,7 @@ _local_storage_value_doc = """
 
 class LocalStorage(Base):
     __tablename__ = 'localstorage'
+    typed_dict = LocalStorageDict
     created: Mapped[datetime] = CommonColumns.created()
     last_modified: Mapped[datetime] = CommonColumns.last_modified()
     origin_id: Mapped[int] = mapped_column(
@@ -279,10 +306,21 @@ class LocalStorage(Base):
     )
 
 
+class OriginDict(BaseDict):
+    created: datetime
+    origin: str
+
+
 class Origin(Base):
     __tablename__ = 'origin'
+    typed_dict = OriginDict
     created: Mapped[datetime] = CommonColumns.created()
     origin: Mapped[Url] = mapped_column(nullable=False, unique=False)
+
+
+class Origin_LocalStorageDict(BaseDict):
+    origin_id: int
+    localstorage_id: int
 
 
 _origin_localstorage_doc = doc('Association table: many origin to many local_storage')
@@ -290,6 +328,7 @@ _origin_localstorage_doc = doc('Association table: many origin to many local_sto
 
 class Origin_LocalStorage(Base):
     __tablename__ = 'origin_localstorage'
+    typed_dict = Origin_LocalStorageDict
     __table_args__ = {'comment': _origin_localstorage_doc['comment']}
     __doc__ = _origin_localstorage_doc['doc']
     origin_id: Mapped[int] = mapped_column(
@@ -300,6 +339,11 @@ class Origin_LocalStorage(Base):
     )
 
 
+class Cookie_BrowserContextDict(BaseDict):
+    browsercontext_id: int
+    cookie_id: int
+
+
 _cookie_browsercontext_doc = doc(
     'Association table: many browsercontext to many cookie'
 )
@@ -307,6 +351,7 @@ _cookie_browsercontext_doc = doc(
 
 class Cookie_BrowserContext(Base):
     __tablename__ = 'cookie_browsercontext'
+    typed_dict = Cookie_BrowserContextDict
     __table_args__ = {'comment': _cookie_browsercontext_doc['comment']}
     __doc__ = _cookie_browsercontext_doc['doc']
     browsercontext_id: Mapped[int] = mapped_column(
@@ -319,11 +364,17 @@ class Cookie_BrowserContext(Base):
     )
 
 
+class Origin_CookieDict(BaseDict):
+    cookie_id: int
+    origin_id: int
+
+
 _origin_browsercontext_doc = doc('Association table: many cookie to many origin')
 
 
 class Origin_Cookie(Base):
     __tablename__ = 'origin_cookie'
+    typed_dict = Origin_CookieDict
     __table_args__ = {'comment': _origin_browsercontext_doc['comment']}
     __doc__ = _origin_browsercontext_doc['doc']
     cookie_id: Mapped[int] = mapped_column(
@@ -346,8 +397,25 @@ CertificateEnum = Enum(
 )
 
 
+class ClientCertificateDict(BaseDict):
+    created: datetime
+    last_modified: datetime | None
+    browsercontext_id: int | None
+    origin: str
+    cert_path: str | None
+    cert: bytes | None
+    key_path: bytes | None
+    key: bytes | None
+    pfx_path: str | None
+    pfx: bytes | None
+    passphrase: str | None
+    using_type: str | None
+    description: str
+
+
 class ClientCertificate(Base):
     __tablename__ = 'clientcertificate'
+    typed_dict = ClientCertificateDict
     created: Mapped[datetime] = CommonColumns.created()
     last_modified: Mapped[datetime] = CommonColumns.last_modified()
     browsercontext_id: Mapped[int] = mapped_column(
@@ -457,8 +525,24 @@ TimezoneIdEnum = Enum(
 )
 
 
+class BrowserContextDict(BaseDict):
+    created: datetime
+    last_modified: datetime | None
+    accept_downloads: bool
+    offline: bool
+    javascript_enabled: bool
+    is_mobile: bool
+    has_touch: bool
+    colorscheme: ColorSchemeType
+    reduced_motion: ReducedMotionType
+    forced_colors: ForcedColorsType
+    locale: LocaleType
+    timezone_id: TimezoneIdType
+
+
 class BrowserContext(Base):
     __tablename__ = 'browsercontext'
+    typed_dict = BrowserContextDict
     created: Mapped[datetime] = CommonColumns.created()
     last_modified: Mapped[datetime] = CommonColumns.last_modified()
     accept_downloads: Mapped[bool] = mapped_column(nullable=False, unique=False)
@@ -481,8 +565,13 @@ class BrowserContext(Base):
     )
 
 
+class ProcessingEntryDict(BaseDict):
+    created: datetime
+
+
 class ProcessingEntry(Base):
     __tablename__ = 'processingentry'
+    typed_dict = ProcessingEntryDict
     created: Mapped[datetime] = CommonColumns.created()
 
 
@@ -495,8 +584,22 @@ ActionOfOriginEnum = Enum(
 )
 
 
+class ImageMediaDict(BaseDict):
+    created: datetime
+    blob: bytes
+    sha512: str
+    md5: str
+    processingentry_id: int | None
+    timeline_index: int | None
+    action_of_origin: ActionOfOriginType
+    dize: int
+    width: int
+    height: int
+
+
 class ImageMedia(Base):
     __tablename__ = 'imagemedia'
+    typed_dict = ImageMediaDict
     created: Mapped[datetime] = CommonColumns.created()
     blob: Mapped[bytes] = mapped_column(
         unique=False,
@@ -537,8 +640,27 @@ class ImageMedia(Base):
     height: Mapped[int] = mapped_column(nullable=False, unique=False)
 
 
+class WorksheetDict(BaseDict):
+    created: datetime
+    last_modified: datetime | None
+    title: str
+    workbook_index: int
+    dimensions: str
+    columns: int
+    rows: int
+    mime_type: str
+    min_row: int
+    max_row: int
+    min_col: int
+    max_col: int
+    model_cell: str
+    model_name: str
+    model_code: int
+
+
 class Worksheet(Base):
     __tablename__ = 'worksheet'
+    typed_dict = WorksheetDict
     created: Mapped[datetime] = CommonColumns.created()
     last_modified: Mapped[datetime] = CommonColumns.last_modified()
     title: Mapped[str] = mapped_column(unique=False, nullable=False)
@@ -556,8 +678,27 @@ class Worksheet(Base):
     model_code: Mapped[int] = mapped_column(unique=False, nullable=False)
 
 
+class WorkbookDict(BaseDict):
+    created: datetime
+    last_modified: datetime | None
+    sha512: str
+    md5: str
+    blob: bytes
+    epoch: int
+    mime_type: str
+    path: str
+    template: bool
+    excel_base_date: str | None
+    file_type_suffix: str
+    file_type_description: str
+    file_size: str
+    blob_size: int
+    original_path: str
+
+
 class Workbook(Base):
     __tablename__ = 'workbook'
+    typed_dict = WorkbookDict
     created: Mapped[datetime] = CommonColumns.created()
     last_modified: Mapped[datetime] = CommonColumns.last_modified()
     sha512: Mapped[str] = mapped_column(unique=True, nullable=False)
