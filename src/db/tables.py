@@ -9,7 +9,17 @@ import re
 import string
 
 from datetime import datetime
-from typing import Generic, Literal, TypeVar, TypedDict, cast, get_args
+from typing import (
+    Annotated,
+    Generic,
+    Literal,
+    Self,
+    Sequence,
+    TypeVar,
+    TypedDict,
+    cast,
+    get_args,
+)
 
 from sqlalchemy import (
     BLOB,
@@ -21,6 +31,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     MetaData,
+    Row,
     delete,
     func,
     insert,
@@ -28,7 +39,7 @@ from sqlalchemy import (
     sql,
     update,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, MappedColumn, mapped_column
 
 
 re_whitespace = re.compile(f'[{string.whitespace}+]')
@@ -80,6 +91,13 @@ class Base(DeclarativeBase, Generic[TD]):
             return result
 
     @classmethod
+    def sync_select_all_ids(cls):
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = select(cls._id)
+            result = conn.scalars(query).all()
+            return tuple(result)
+
+    @classmethod
     def sync_delete_one_from_id(cls, _id: int):
         with TkinterGlobal.sqlite.begin() as conn:
             query = delete(cls).where(cls._id == _id)
@@ -94,7 +112,7 @@ class Base(DeclarativeBase, Generic[TD]):
             return row_ids if isinstance(row_ids, tuple) else tuple(row_ids)
 
     @classmethod
-    def sync_insert_one(cls, data: TD) -> int:
+    def sync_insert_one(cls, data: TD):
         with TkinterGlobal.sqlite.begin() as conn:
             query = insert(cls).values(**data)
             result = conn.execute(query)
@@ -116,6 +134,36 @@ class Base(DeclarativeBase, Generic[TD]):
         with TkinterGlobal.sqlite.begin() as conn:
             query = select(cls).where(cls._id == _id)
             return conn.execute(query).one_or_none()
+
+    @classmethod
+    def sync_select_all_columns(cls, *columns: str):
+        cols: list[MappedColumn[RowDataType]]
+        try:
+            cols = [getattr(cls, name) for name in columns]
+        except AttributeError as err:
+            raise Database.SelectError(err) from err
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = select(*cols)
+            result = conn.execute(query).all()
+            tup: Annotated[tuple[Row[tuple[Self]], ...], len(columns)]
+            tup = result if isinstance(result, tuple) else tuple(result)
+            return tup
+
+    @classmethod
+    def sync_select_columns_from_id(
+        cls, columns: Sequence[str], row_ids: Sequence[str]
+    ):
+        cols: list[MappedColumn[RowDataType]]
+        try:
+            cols = [getattr(cls, name) for name in columns]
+        except AttributeError as err:
+            raise Database.SelectError(err) from err
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = select(*cols).where(cls._id.in_(row_ids))
+            result = conn.execute(query).all()
+            tup: Annotated[tuple[Row[tuple[Self]], ...], len(columns)]
+            tup = result if isinstance(result, tuple) else tuple(result)
+            return tup
 
     @classmethod
     def sync_select_many_from_id(cls, *row_ids: int):
