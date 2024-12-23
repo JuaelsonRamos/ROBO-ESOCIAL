@@ -276,7 +276,7 @@ class CommonColumns:
         )
 
 
-class CookieDict(BaseDict):
+class CookieDict(BaseDict, total=False):
     browser: BrowserType
     name: str
     value: str
@@ -309,7 +309,7 @@ class Cookie(Base):
     )
 
 
-class LocalStorageDict(BaseDict):
+class LocalStorageDict(BaseDict, total=False):
     created: datetime
     last_modified: datetime | None
     origin_id: int
@@ -345,7 +345,7 @@ class LocalStorage(Base):
     )
 
 
-class OriginDict(BaseDict):
+class OriginDict(BaseDict, total=False):
     created: datetime
     origin: str
 
@@ -357,7 +357,7 @@ class Origin(Base):
     origin: Mapped[Url] = mapped_column(nullable=False, unique=False)
 
 
-class Origin_LocalStorageDict(BaseDict):
+class Origin_LocalStorageDict(BaseDict, total=False):
     origin_id: int
     localstorage_id: int
 
@@ -378,7 +378,7 @@ class Origin_LocalStorage(Base):
     )
 
 
-class Cookie_BrowserContextDict(BaseDict):
+class Cookie_BrowserContextDict(BaseDict, total=False):
     browsercontext_id: int
     cookie_id: int
 
@@ -403,7 +403,7 @@ class Cookie_BrowserContext(Base):
     )
 
 
-class Origin_CookieDict(BaseDict):
+class Origin_CookieDict(BaseDict, total=False):
     cookie_id: int
     origin_id: int
 
@@ -436,7 +436,7 @@ CertificateEnum = Enum(
 )
 
 
-class ClientCertificateDict(BaseDict):
+class ClientCertificateDict(BaseDict, total=False):
     created: datetime
     last_modified: datetime | None
     browsercontext_id: int | None
@@ -564,7 +564,7 @@ TimezoneIdEnum = Enum(
 )
 
 
-class BrowserContextDict(BaseDict):
+class BrowserContextDict(BaseDict, total=False):
     created: datetime
     last_modified: datetime | None
     accept_downloads: bool
@@ -604,7 +604,7 @@ class BrowserContext(Base):
     )
 
 
-class ProcessingEntryDict(BaseDict):
+class ProcessingEntryDict(BaseDict, total=False):
     created: datetime
 
 
@@ -623,7 +623,7 @@ ActionOfOriginEnum = Enum(
 )
 
 
-class ImageMediaDict(BaseDict):
+class ImageMediaDict(BaseDict, total=False):
     created: datetime
     blob: bytes
     sha512: str
@@ -679,7 +679,7 @@ class ImageMedia(Base):
     height: Mapped[int] = mapped_column(nullable=False, unique=False)
 
 
-class WorksheetDict(BaseDict):
+class WorksheetDict(BaseDict, total=False):
     created: datetime
     last_modified: datetime | None
     title: str
@@ -717,7 +717,7 @@ class Worksheet(Base):
     model_code: Mapped[int] = mapped_column(unique=False, nullable=False)
 
 
-class WorkbookDict(BaseDict):
+class WorkbookDict(BaseDict, total=False):
     created: datetime
     last_modified: datetime | None
     sha512: str
