@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from .custom_types import Url, timestamp
+from .custom_types import RowDataType, Url, timestamp
 
+from src.exc import Database
 from src.gui.tkinter_global import TkinterGlobal
 from src.utils import Singleton
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, get_args
+from typing import Generic, Literal, TypeVar, cast, get_args
 
 from sqlalchemy import (
     BLOB,
@@ -19,13 +20,20 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     MetaData,
+    delete,
     func,
+    insert,
+    select,
     sql,
+    update,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-class Base(DeclarativeBase):
+TD = TypeVar('TD', bound=dict[str, RowDataType])
+
+
+class Base(DeclarativeBase, Generic[TD]):
     metadata = MetaData()
     type_annotation_map = {
         # standard sqlite3 type associaions
@@ -40,6 +48,11 @@ class Base(DeclarativeBase):
         bool: Boolean,
     }
 
+    typed_dict: TD
+
+    # Common columns
+    _id: Mapped[int]
+
     @classmethod
     def sync_count(cls) -> int:
         with TkinterGlobal.sqlite.begin() as conn:
@@ -48,6 +61,65 @@ class Base(DeclarativeBase):
             if result is None:
                 return 0
             return result
+
+    @classmethod
+    def sync_delete_one_from_id(cls, _id: int):
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = delete(cls).where(cls._id == _id)
+            conn.execute(query)
+            return _id
+
+    @classmethod
+    def sync_delete_many_from_id(cls, *row_ids: int):
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = delete(cls).where(cls._id.in_(row_ids))
+            conn.execute(query)
+            return row_ids if isinstance(row_ids, tuple) else tuple(row_ids)
+
+    @classmethod
+    def sync_insert_one(cls, data: TD) -> int:
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = insert(cls).values(**data)
+            result = conn.execute(query)
+            if result.inserted_primary_key is None:
+                raise Database.InsertError
+            return cast(int, result.inserted_primary_key[0])
+
+    @classmethod
+    def sync_insert_many(cls, *row_data: TD):
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = insert(cls).values(*row_data)
+            result = conn.execute(query)
+            if len(result.inserted_primary_key_rows) == 0:
+                raise Database.InsertError
+            return tuple(cast(int, row[0]) for row in result)
+
+    @classmethod
+    def sync_select_one_from_id(cls, _id: int):
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = select(cls).where(cls._id == _id)
+            return conn.execute(query).one_or_none()
+
+    @classmethod
+    def sync_select_many_from_id(cls, *row_ids: int):
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = select(cls).where(cls._id.in_(row_ids))
+            result = conn.execute(query).all()
+            return result if isinstance(result, tuple) else tuple(result)
+
+    @classmethod
+    def sync_update_one_from_id(cls, data: TD, _id: int):
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = update(cls).where(cls._id == _id).values(**data)
+            conn.execute(query)
+            return _id
+
+    @classmethod
+    def sync_update_many_from_id(cls, data: TD, *row_ids: int):
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = update(cls).where(cls._id.in_(row_ids)).values(**data)
+            conn.execute(query)
+            return row_ids if isinstance(row_ids, tuple) else tuple(row_ids)
 
 
 BrowserType = Literal['firefox', 'chromium']

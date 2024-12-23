@@ -12,6 +12,8 @@ from sqlalchemy.engine.interfaces import Dialect
 
 # pyright: reportArgumentType=false
 
+RowDataType = int | float | str | bytes | bool | datetime
+
 
 class timestamp(datetime):
     def __new__(
