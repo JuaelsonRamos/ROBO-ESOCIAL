@@ -285,7 +285,7 @@ class Origin(Base):
     origin: Mapped[Url] = mapped_column(nullable=False, unique=False)
 
 
-_origin_localstorage_doc = doc('Association table: one origin to many local_storage')
+_origin_localstorage_doc = doc('Association table: many origin to many local_storage')
 
 
 class Origin_LocalStorage(Base):
@@ -301,7 +301,7 @@ class Origin_LocalStorage(Base):
 
 
 _cookie_browsercontext_doc = doc(
-    'Association table: one browsercontext to many cookies'
+    'Association table: many browsercontext to many cookie'
 )
 
 
@@ -319,17 +319,15 @@ class Cookie_BrowserContext(Base):
     )
 
 
-_origin_browsercontext_doc = doc(
-    'Association table: one browsercontext to many origins'
-)
+_origin_browsercontext_doc = doc('Association table: many cookie to many origin')
 
 
-class Origin_BrowserContext(Base):
-    __tablename__ = 'origin_browsercontext'
+class Origin_Cookie(Base):
+    __tablename__ = 'origin_cookie'
     __table_args__ = {'comment': _origin_browsercontext_doc['comment']}
     __doc__ = _origin_browsercontext_doc['doc']
-    browsercontext_id: Mapped[int] = mapped_column(
-        ForeignKey('browsercontext._id'),
+    cookie_id: Mapped[int] = mapped_column(
+        ForeignKey('cookie._id'),
         nullable=False,
         unique=False,
     )
