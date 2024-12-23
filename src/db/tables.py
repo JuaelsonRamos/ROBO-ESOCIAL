@@ -539,6 +539,8 @@ class ImageMedia(Base):
 
 class Worksheet(Base):
     __tablename__ = 'worksheet'
+    created: Mapped[datetime] = CommonColumns.created()
+    last_modified: Mapped[datetime] = CommonColumns.last_modified()
     title: Mapped[str] = mapped_column(unique=False, nullable=False)
     workbook_index: Mapped[int] = mapped_column(unique=False, nullable=False)
     dimensions: Mapped[str] = mapped_column(unique=False, nullable=False)
