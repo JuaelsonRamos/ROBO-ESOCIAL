@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from src.db import ClientCertificate as t
-from src.gui.tkinter_global import TkinterGlobal
+from src.db import ClientCertificate
 from src.gui.utils.units import padding
 
 import tkinter as tk
@@ -10,8 +9,6 @@ from dataclasses import dataclass
 from itertools import zip_longest
 from tkinter import ttk
 from typing import Callable, cast
-
-from sqlalchemy import select
 
 
 @dataclass(frozen=False, slots=True)
@@ -25,12 +22,6 @@ class WidgetNamespace:
 
 # should be assigned upon main widget initialization
 _widgets: WidgetNamespace = None  # type: ignore
-
-
-def get_db_rows():
-    with TkinterGlobal.sqlite.begin() as conn:
-        query = select(t._id, t.description, t.using_type)
-        return conn.execute(query).all()
 
 
 class CertificateList(ttk.Treeview):
@@ -50,9 +41,11 @@ class CertificateList(ttk.Treeview):
         self.column('type', anchor=tk.CENTER, minwidth=50, width=50)
 
     def fill_tree(self, event: tk.Event):
-        if t.sync_count() == 0:
+        if ClientCertificate.sync_count() == 0:
             return
-        rows = get_db_rows()
+        rows = ClientCertificate.sync_select_all_columns(
+            '_id', 'description', 'using_type'
+        )
         rows = sorted(rows, key=lambda r: r[0])  # sort by _id
         iids = sorted(int(iid) for iid in self.get_children())
         for row, iid in zip_longest(rows, iids, fillvalue=None):
@@ -61,14 +54,13 @@ class CertificateList(ttk.Treeview):
                 iid = cast(int, iid)  # if row is None, then iid isn't
                 self.delete(iid)
                 continue
-            _id, description, _type = row.tuple()
-            values = (str(_id), description, _type)
+            values = (str(row._id), row.description, row.using_type)
             if iid is None:
                 # not enough items for too many db rows
-                self.insert('', 'end', _id, values=values)
+                self.insert('', 'end', row._id, values=values)
                 continue
             # item with iid=_id already exist, so modify it
-            self.item(_id, values=values)
+            self.item(row._id, values=values)
 
     def _notify_selection(self, event: tk.Event):
         global _widgets
