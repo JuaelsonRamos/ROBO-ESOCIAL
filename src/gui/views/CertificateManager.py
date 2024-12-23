@@ -763,7 +763,6 @@ class CertificateForm(ttk.Frame):
         if cert is None:
             raise ValueError('cert does not exist')
         data = ClientCertificateDict(**cert._asdict())
-        self.btn_submit.set_command(self.update_from_form_fields)
         if 'created' in data:
             self.created.set_value(data['created'].strftime(FormEntry.datetime_format))
         else:
@@ -832,6 +831,7 @@ class CertificateForm(ttk.Frame):
         _id = int(iid)
         self.allow_form_interactions()
         self.fill_form_by_db_id(_id)
+        self.btn_submit.set_command(self.update_from_form_fields)
         self.created.block_input()
         self.last_modified.block_input()
         self.browsercontext_id.block_input()
@@ -844,7 +844,20 @@ class CertificateForm(ttk.Frame):
         self.passphrase.hide_input()
 
     def prepare_delete_item(self, event: tk.Event | None = None):
-        pass
+        global _widgets
+        iid = _widgets.tree.focus()
+        if iid == '':
+            return
+        _id = int(iid)
+        self.allow_form_interactions()
+        self.fill_form_by_db_id(_id)
+        for entry in FormEntry.entries:
+            entry.block_input()
+            if entry.block_button is not None:
+                entry.block_button.config(state=tk.DISABLED)
+            if entry.hide_button is not None:
+                entry.hide_button.config(state=tk.NORMAL)
+        self.btn_submit.set_command(self.delete_from_form_fields)
 
     def form_db_row_data(self) -> ClientCertificateDict:
         origin = self.origin.get_value().strip(string.whitespace)
@@ -901,8 +914,12 @@ class CertificateForm(ttk.Frame):
         )
 
     def delete_from_form_fields(self):
-        # TODO
-        pass
+        global _widgets
+        iid = _widgets.tree.focus()
+        if iid == '':
+            raise ValueError('empty iid')
+        _id = int(iid)
+        ClientCertificate.sync_delete_one_from_id(_id)
 
     def update_from_form_fields(self):
         global _widgets
