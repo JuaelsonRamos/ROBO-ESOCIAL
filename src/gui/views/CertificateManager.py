@@ -710,6 +710,8 @@ class CertificateForm(ttk.Frame):
         self.last_modified.block_input()
         self.browsercontext_id = TextEntry(self, 'Contexto de navegador:')
         self.browsercontext_id.block_input()
+        self.description = TextEntry(self, 'Descrição:')
+        self.description.unblock_input()
         self.origin = TextEntry(self, 'Origem:')
         self.origin.add_block_input_button(default=True)
         self.cert_path = FileEntry(
@@ -756,6 +758,7 @@ class CertificateForm(ttk.Frame):
         cert = ClientCertificate.sync_select_one_from_id(_id)
         if cert is None:
             return
+        self.description.set_value(cert.description)
         self.created.set_value(cert.created.strftime(FormEntry.datetime_format))
         if cert.last_modified is not None:
             self.last_modified.set_value(
@@ -797,6 +800,9 @@ class CertificateForm(ttk.Frame):
         self.last_modified.set_value(auto_message)
         self.last_modified.block_input()
         self.browsercontext_id.set_value(auto_message)
+        self.browsercontext_id.block_input()
+        self.description.set_value('')
+        self.description.unblock_input()
         self.origin.set_value('')
         self.origin.unblock_input()
         self.cert_path.set_value('')
@@ -817,6 +823,7 @@ class CertificateForm(ttk.Frame):
 
     def insert_from_form_fields(self):
         origin = self.origin.get_value().strip(string.whitespace)
+        description = self.description.get_value().strip(string.whitespace)
         passphrase: str | None = self.passphrase.get_value().strip(string.whitespace)
         if passphrase == '':
             passphrase = None
@@ -840,7 +847,7 @@ class CertificateForm(ttk.Frame):
             passphrase=passphrase or None,
             # TODO: implement gui cert type selection
             using_type='PFX',
-            description='',
+            description=description,
         )
 
         if cert_path != '' and (p := Path(cert_path)).is_file():
