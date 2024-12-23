@@ -4,11 +4,12 @@ from .custom_types import RowDataType, Url, timestamp
 
 from src.exc import Database
 from src.gui.tkinter_global import TkinterGlobal
-from src.utils import Singleton
 
-from dataclasses import dataclass
+import re
+import string
+
 from datetime import datetime
-from typing import Generic, Literal, TypeVar, cast, get_args
+from typing import Generic, Literal, TypeVar, TypedDict, cast, get_args
 
 from sqlalchemy import (
     BLOB,
@@ -28,6 +29,20 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+re_whitespace = re.compile(f'[{string.whitespace}+]')
+
+
+class SQLDocstring(TypedDict):
+    doc: str
+    comment: str
+
+
+def doc(text: str) -> SQLDocstring:
+    text = text.replace('\n', ' ')
+    text = re_whitespace.sub(' ', text).strip(string.whitespace).strip('.').title()
+    return {'doc': text, 'comment': text}
 
 
 TD = TypeVar('TD', bound=dict[str, RowDataType])
@@ -141,41 +156,6 @@ SameSiteEnum = Enum(
 )
 
 
-@dataclass(frozen=False, init=True, slots=True)
-class Docstrings(metaclass=Singleton):
-    cookie = {'browser': 'which playwright browser does these cookies are valid for'}
-    localstorage = {
-        'name_value': """
-            length of name and value are theorically infinite as long as the total storage
-            taken by name=value pairs doesn't exceed 5MiB, whether thats five 1MiB pairs
-            (strings), or one 5MiB pair, doesn't matter
-        """
-    }
-    _common = {
-        'last_modified': 'datetime value is only non-null in case it has been modified at least once, while a creation date is always present',
-    }
-    origin_localstorage = {
-        'table': 'Association table: one origin to many local_storage',
-    }
-    cookie_browsercontext = {
-        'table': 'Association table: one browsercontext to many cookies',
-    }
-    origin_browsercontext = {
-        'table': 'Association table: one browsercontext to many origins',
-    }
-    clientcertificate = {
-        'browsercontext_id': 'one client_certificate to many browsercontexts',
-        'using_type': 'What kind of certificate is row refering to',
-        'description': 'Unique user-defined description for that certificate',
-    }
-    imagemedia = {
-        'blob': 'Blobs are part of a specific processing entry but two binary blobs may be equal by pure chance',
-        'timeline_index': "Index indicating it's position in the order of images created. Image 0 was the first created, and so on",
-        'processingentry_id': 'one processingentry to many image_media',
-        'action_of_origin': "action that originated the image, identical images may be originated from diferent actions by pure chance, but they wouldn't be treated differently, even if the difference could be noticed",
-    }
-
-
 class CommonColumns:
     @classmethod
     def created(cls):
@@ -197,10 +177,11 @@ class CommonColumns:
             unique=False,
             server_default=sql.null(),
             server_onupdate=sql.func.now(),
+            **doc("""
+                Datetime value is only non-null in case it has been modified at least
+                once, while a creation date is always present
+            """),
         )
-
-
-docs = Docstrings()
 
 
 class Cookie(Base):
@@ -209,8 +190,7 @@ class Cookie(Base):
         BrowserEnum,
         nullable=False,
         unique=False,
-        doc=docs.cookie['browser'],
-        comment=docs.cookie['browser'],
+        **doc('which playwright browser does these cookies are valid for'),
     )
     name: Mapped[str] = mapped_column(nullable=False, unique=False)
     value: Mapped[str] = mapped_column(nullable=False, unique=False, default='')
@@ -224,6 +204,13 @@ class Cookie(Base):
     )
 
 
+_local_storage_value_doc = """
+    Length of name and value are theorically infinite as long as the total storage
+    taken by name=value pairs doesn't exceed 5MiB, whether thats five 1MiB pairs
+    (strings), or one 5MiB pair, doesn't matter
+"""
+
+
 class LocalStorage(Base):
     __tablename__ = 'localstorage'
     created: Mapped[datetime] = CommonColumns.created()
@@ -235,14 +222,12 @@ class LocalStorage(Base):
         nullable=False,
         unique=False,
         default='',
-        doc=docs.localstorage['name_value'],
-        comment=docs.localstorage['name_value'],
+        **doc(_local_storage_value_doc),
     )
     value: Mapped[str] = mapped_column(
         nullable=False,
         unique=False,
-        doc=docs.localstorage['name_value'],
-        comment=docs.localstorage['name_value'],
+        **doc(_local_storage_value_doc),
     )
 
 
@@ -252,10 +237,13 @@ class Origin(Base):
     origin: Mapped[Url] = mapped_column(nullable=False, unique=False)
 
 
+_origin_localstorage_doc = doc('Association table: one origin to many local_storage')
+
+
 class Origin_LocalStorage(Base):
     __tablename__ = 'origin_localstorage'
-    __table_args__ = {'comment': docs.origin_localstorage['table']}
-    __doc__ = docs.origin_localstorage['table']
+    __table_args__ = {'comment': _origin_localstorage_doc['comment']}
+    __doc__ = _origin_localstorage_doc['doc']
     origin_id: Mapped[int] = mapped_column(
         ForeignKey('origin._id'), nullable=False, unique=False
     )
@@ -264,10 +252,15 @@ class Origin_LocalStorage(Base):
     )
 
 
+_cookie_browsercontext_doc = doc(
+    'Association table: one browsercontext to many cookies'
+)
+
+
 class Cookie_BrowserContext(Base):
     __tablename__ = 'cookie_browsercontext'
-    __table_args__ = {'comment': docs.cookie_browsercontext['table']}
-    __doc__ = docs.cookie_browsercontext['table']
+    __table_args__ = {'comment': _cookie_browsercontext_doc['comment']}
+    __doc__ = _cookie_browsercontext_doc['doc']
     browsercontext_id: Mapped[int] = mapped_column(
         ForeignKey('browsercontext._id'),
         nullable=False,
@@ -278,10 +271,15 @@ class Cookie_BrowserContext(Base):
     )
 
 
+_origin_browsercontext_doc = doc(
+    'Association table: one browsercontext to many origins'
+)
+
+
 class Origin_BrowserContext(Base):
     __tablename__ = 'origin_browsercontext'
-    __table_args__ = {'comment': docs.origin_browsercontext['table']}
-    __doc__ = docs.origin_browsercontext['table']
+    __table_args__ = {'comment': _origin_browsercontext_doc['comment']}
+    __doc__ = _origin_browsercontext_doc['doc']
     browsercontext_id: Mapped[int] = mapped_column(
         ForeignKey('browsercontext._id'),
         nullable=False,
@@ -310,8 +308,7 @@ class ClientCertificate(Base):
         ForeignKey('browsercontext._id'),
         nullable=True,
         unique=False,
-        doc=docs.clientcertificate['browsercontext_id'],
-        comment=docs.clientcertificate['browsercontext_id'],
+        **doc('one client_certificate to many browsercontexts'),
     )
     origin: Mapped[str] = mapped_column(nullable=False, unique=False)
     cert_path: Mapped[str] = mapped_column(
@@ -339,14 +336,12 @@ class ClientCertificate(Base):
         CertificateEnum,
         nullable=True,
         unique=False,
-        doc=docs.clientcertificate['using_type'],
-        comment=docs.clientcertificate['using_type'],
+        **doc('What kind of certificate is row refering to'),
     )
     description: Mapped[str] = mapped_column(
         nullable=False,
         unique=True,
-        doc=docs.clientcertificate['description'],
-        comment=docs.clientcertificate['description'],
+        **doc('Unique user-defined description for that certificate'),
     )
 
 
@@ -460,29 +455,35 @@ class ImageMedia(Base):
     blob: Mapped[bytes] = mapped_column(
         unique=False,
         nullable=False,
-        doc=docs.imagemedia['blob'],
-        comment=docs.imagemedia['blob'],
+        **doc("""
+            Blobs are part of a specific processing entry but two binary blobs may
+            be equal by pure chance
+        """),
     )
     sha512: Mapped[str] = mapped_column(unique=False, nullable=False)
     processingentry_id: Mapped[int] = mapped_column(
         ForeignKey('processingentry._id'),
         unique=False,
         nullable=True,
-        doc=docs.imagemedia['processingentry_id'],
-        comment=docs.imagemedia['processingentry_id'],
+        **doc('One processingentry to many image_media'),
     )
     timeline_index: Mapped[int] = mapped_column(
         unique=False,
         nullable=True,
-        doc=docs.imagemedia['timeline_index'],
-        comment=docs.imagemedia['timeline_index'],
+        **doc("""
+            Index indicating it's position in the order of images created. Image 0 was
+            the first created, and so on
+        """),
     )
     action_of_origin: Mapped[ActionOfOriginType] = mapped_column(
         ActionOfOriginEnum,
         unique=False,
         nullable=False,
-        doc=docs.imagemedia['action_of_origin'],
-        comment=docs.imagemedia['action_of_origin'],
+        **doc("""
+            Action that originated the image, identical images may be originated from
+            diferent actions by pure chance, but they wouldn't be treated differently,
+            even if the difference could be noticed"
+        """),
     )
     size: Mapped[int] = mapped_column(nullable=False, unique=False)
     width: Mapped[int] = mapped_column(nullable=False, unique=False)
