@@ -51,7 +51,9 @@ class Base(DeclarativeBase, Generic[TD]):
     typed_dict: TD
 
     # Common columns
-    _id: Mapped[int]
+    _id: Mapped[int] = mapped_column(
+        autoincrement=True, primary_key=True, nullable=False, unique=True
+    )
 
     @classmethod
     def sync_count(cls) -> int:
@@ -174,29 +176,22 @@ class Docstrings(metaclass=Singleton):
     }
 
 
-@dataclass(frozen=False, init=True, slots=True)
-class CommonColumns(metaclass=Singleton):
-    @property
-    def _id(self):
-        return mapped_column(
-            autoincrement=True, primary_key=True, nullable=False, unique=True
-        )
-
-    @property
-    def created(self):
+class CommonColumns:
+    @classmethod
+    def created(cls):
         return mapped_column(
             nullable=False, unique=False, server_default=sql.func.now()
         )
 
-    @property
-    def url(self):
+    @classmethod
+    def url(cls):
         return mapped_column(
             nullable=False,
             unique=False,
         )
 
-    @property
-    def last_modified(self):
+    @classmethod
+    def last_modified(cls):
         return mapped_column(
             nullable=True,
             unique=False,
@@ -206,12 +201,10 @@ class CommonColumns(metaclass=Singleton):
 
 
 docs = Docstrings()
-common_columns = CommonColumns()
 
 
 class Cookie(Base):
     __tablename__ = 'cookie'
-    _id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
     browser: Mapped[BrowserType] = mapped_column(
         BrowserEnum,
         nullable=False,
@@ -233,9 +226,8 @@ class Cookie(Base):
 
 class LocalStorage(Base):
     __tablename__ = 'localstorage'
-    _id: Mapped[int] = common_columns._id
-    created: Mapped[datetime] = common_columns.created
-    last_modified: Mapped[datetime] = common_columns.last_modified
+    created: Mapped[datetime] = CommonColumns.created()
+    last_modified: Mapped[datetime] = CommonColumns.last_modified()
     origin_id: Mapped[int] = mapped_column(
         ForeignKey('origin._id'), nullable=False, unique=False
     )
@@ -256,8 +248,7 @@ class LocalStorage(Base):
 
 class Origin(Base):
     __tablename__ = 'origin'
-    _id: Mapped[int] = common_columns._id
-    created: Mapped[datetime] = common_columns.created
+    created: Mapped[datetime] = CommonColumns.created()
     origin: Mapped[Url] = mapped_column(nullable=False, unique=False)
 
 
@@ -265,7 +256,6 @@ class Origin_LocalStorage(Base):
     __tablename__ = 'origin_localstorage'
     __table_args__ = {'comment': docs.origin_localstorage['table']}
     __doc__ = docs.origin_localstorage['table']
-    _id: Mapped[int] = common_columns._id
     origin_id: Mapped[int] = mapped_column(
         ForeignKey('origin._id'), nullable=False, unique=False
     )
@@ -278,7 +268,6 @@ class Cookie_BrowserContext(Base):
     __tablename__ = 'cookie_browsercontext'
     __table_args__ = {'comment': docs.cookie_browsercontext['table']}
     __doc__ = docs.cookie_browsercontext['table']
-    _id: Mapped[int] = common_columns._id
     browsercontext_id: Mapped[int] = mapped_column(
         ForeignKey('browsercontext._id'),
         nullable=False,
@@ -293,7 +282,6 @@ class Origin_BrowserContext(Base):
     __tablename__ = 'origin_browsercontext'
     __table_args__ = {'comment': docs.origin_browsercontext['table']}
     __doc__ = docs.origin_browsercontext['table']
-    _id: Mapped[int] = common_columns._id
     browsercontext_id: Mapped[int] = mapped_column(
         ForeignKey('browsercontext._id'),
         nullable=False,
@@ -316,9 +304,8 @@ CertificateEnum = Enum(
 
 class ClientCertificate(Base):
     __tablename__ = 'clientcertificate'
-    _id: Mapped[int] = common_columns._id
-    created: Mapped[datetime] = common_columns.created
-    last_modified: Mapped[datetime] = common_columns.last_modified
+    created: Mapped[datetime] = CommonColumns.created()
+    last_modified: Mapped[datetime] = CommonColumns.last_modified()
     browsercontext_id: Mapped[int] = mapped_column(
         ForeignKey('browsercontext._id'),
         nullable=True,
@@ -431,9 +418,8 @@ TimezoneIdEnum = Enum(
 
 class BrowserContext(Base):
     __tablename__ = 'browsercontext'
-    _id: Mapped[int] = common_columns._id
-    created: Mapped[datetime] = common_columns.created
-    last_modified: Mapped[datetime] = common_columns.last_modified
+    created: Mapped[datetime] = CommonColumns.created()
+    last_modified: Mapped[datetime] = CommonColumns.last_modified()
     accept_downloads: Mapped[bool] = mapped_column(nullable=False, unique=False)
     offline: Mapped[bool] = mapped_column(nullable=False, unique=False)
     javascript_enabled: Mapped[bool] = mapped_column(nullable=False, unique=False)
@@ -456,8 +442,7 @@ class BrowserContext(Base):
 
 class ProcessingEntry(Base):
     __tablename__ = 'processingentry'
-    _id: Mapped[int] = common_columns._id
-    created: Mapped[datetime] = common_columns.created
+    created: Mapped[datetime] = CommonColumns.created()
 
 
 ActionOfOriginType = Literal['processing', 'preview', 'recording']
@@ -471,8 +456,7 @@ ActionOfOriginEnum = Enum(
 
 class ImageMedia(Base):
     __tablename__ = 'imagemedia'
-    _id: Mapped[int] = common_columns._id
-    created: Mapped[datetime] = common_columns.created
+    created: Mapped[datetime] = CommonColumns.created()
     blob: Mapped[bytes] = mapped_column(
         unique=False,
         nullable=False,
