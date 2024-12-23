@@ -761,26 +761,33 @@ class CertificateForm(ttk.Frame):
     def fill_form_by_db_id(self, _id: int):
         cert = ClientCertificate.sync_select_one_from_id(_id)
         if cert is None:
-            return
-        self.description.set_value(cert.description)
-        self.created.set_value(cert.created.strftime(FormEntry.datetime_format))
-        if cert.last_modified is not None:
-            self.last_modified.set_value(
-                cert.last_modified.strftime(FormEntry.datetime_format)
-            )
-        if cert.browsercontext_id is not None:
-            self.browsercontext_id.set_value(str(cert.browsercontext_id))
+            raise ValueError('cert does not exist')
+        data = ClientCertificateDict(**cert._asdict())
+        self.btn_submit.set_command(self.update_from_form_fields)
+        if 'created' in data:
+            self.created.set_value(data['created'].strftime(FormEntry.datetime_format))
         else:
-            self.browsercontext_id.set_value('')
-        self.origin.set_value(cert.origin)
-        if cert.cert_path is not None:
-            self.cert_path.set_value(cert.cert_path)
-        if cert.key_path is not None:
-            self.key_path.set_value(cert.key_path.decode())
-        if cert.pfx_path is not None:
-            self.pfx_path.set_value(cert.pfx_path)
-        if cert.passphrase is not None:
-            self.passphrase.set_value(cert.passphrase)
+            self.created.set_value(self.autofill_message)
+        if 'last_modified' in data and (value := data['last_modified']) is not None:
+            self.last_modified.set_value(value.strftime(FormEntry.datetime_format))
+        else:
+            self.last_modified.set_value(self.autofill_message)
+        if (
+            'browsercontext_id' in data
+            and (value := data['browsercontext_id']) is not None
+        ):
+            self.browsercontext_id.set_value(str(value))
+        else:
+            self.browsercontext_id.set_value(self.autofill_message)
+        if 'key_path' in data and (value := data['key_path']) is not None:
+            self.key_path.set_value(value.decode())
+        else:
+            self.key_path.set_value('')
+        self.description.set_value(data.get('description', None) or '')
+        self.origin.set_value(data.get('origin', None) or '')
+        self.cert_path.set_value(data.get('cert_path', None) or '')
+        self.pfx_path.set_value(data.get('pfx_path', None) or '')
+        self.passphrase.set_value(data.get('passphrase', None) or '')
 
     def reset_form(self, event: tk.Event | None = None):
         for entry in FormEntry.entries:
@@ -822,36 +829,19 @@ class CertificateForm(ttk.Frame):
         iid = _widgets.tree.focus()
         if iid == '':
             return
-        cert = ClientCertificate.sync_select_one_from_id(int(iid))
-        if cert is None:
-            return
-        data = ClientCertificateDict(**cert._asdict())
+        _id = int(iid)
         self.allow_form_interactions()
-        self.btn_submit.set_command(self.update_from_form_fields)
-        if 'created' in data:
-            self.created.set_value(data['created'].strftime(FormEntry.datetime_format))
-        else:
-            self.created.set_value(self.autofill_message)
-        if 'last_modified' in data and (value := data['last_modified']) is not None:
-            self.last_modified.set_value(value.strftime(FormEntry.datetime_format))
-        else:
-            self.last_modified.set_value(self.autofill_message)
-        if (
-            'browsercontext_id' in data
-            and (value := data['browsercontext_id']) is not None
-        ):
-            self.browsercontext_id.set_value(str(value))
-        else:
-            self.browsercontext_id.set_value(self.autofill_message)
-        if 'key_path' in data and (value := data['key_path']) is not None:
-            self.key_path.set_value(value.decode())
-        else:
-            self.key_path.set_value('')
-        self.description.set_value(data.get('description', None) or '')
-        self.origin.set_value(data.get('origin', None) or '')
-        self.cert_path.set_value(data.get('cert_path', None) or '')
-        self.pfx_path.set_value(data.get('pfx_path', None) or '')
-        self.passphrase.set_value(data.get('passphrase', None) or '')
+        self.fill_form_by_db_id(_id)
+        self.created.block_input()
+        self.last_modified.block_input()
+        self.browsercontext_id.block_input()
+        self.description.unblock_input()
+        self.origin.unblock_input()
+        self.cert_path.unblock_input()
+        self.key_path.unblock_input()
+        self.pfx_path.unblock_input()
+        self.passphrase.unblock_input()
+        self.passphrase.hide_input()
 
     def prepare_delete_item(self, event: tk.Event | None = None):
         pass
