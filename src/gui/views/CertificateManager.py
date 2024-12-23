@@ -4,8 +4,10 @@ from src import bootstrap
 from src.db import ClientCertificate, ClientConfig
 from src.db.tables import ClientCertificateDict
 from src.exc import Tkinter
+from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
 from src.gui.views.View import View
+from src.windows import open_file_dialog
 
 import math
 import string
@@ -17,7 +19,7 @@ import tkinter.ttk as ttk
 from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Final
+from typing import Callable, Final, Sequence
 
 import tksvg
 
@@ -368,11 +370,12 @@ class TreeFrame(tk.Frame):
         )
 
 
-class FormEntry:
+class FormEntry(ttk.Frame):
     _get_class_instance_number = itertools.count(0).__next__
     entries: list[FormEntry] = []
     label_width: int = 25
     entry_width: int = 35
+    pad: int = 5
     datetime_format = '%d/%m/%Y %H:%M'
     date_format = '%d/%m/%Y'
     time_format = '%H:%M'
@@ -387,9 +390,9 @@ class FormEntry:
         master: CertificateForm,
         label_text: str | None = None,
     ):
+        super().__init__(master, takefocus=tk.FALSE)
         self.index = self._get_class_instance_number()
         self.entries.append(self)
-        self.master = master
         self.entry: ttk.Entry
         self._var_label = tk.StringVar(value=label_text or 'Static Data Field:')
         self.label = ttk.Label(
@@ -412,14 +415,13 @@ class FormEntry:
 
     def grid(self):
         i = self.index
-        pad = 5
-        self.master.grid_rowconfigure(i, minsize=35, pad=pad)
-        self.label.grid(column=0, row=i, sticky=tk.E, padx=pad)
-        self.entry.grid(column=1, row=i, sticky=tk.W, padx=pad)
-        if self.hide_button:
-            self.hide_button.grid(column=2, row=i, padx=pad)
+        self.master.grid_rowconfigure(i, minsize=35, pad=self.pad)
+        super().grid(column=0, row=i, sticky=tk.EW)
+        self.label.pack(side=tk.LEFT, padx=self.pad)
         if self.block_button:
-            self.block_button.grid(column=3, row=i)
+            self.block_button.pack(side=tk.RIGHT)
+        if self.hide_button:
+            self.hide_button.pack(side=tk.RIGHT, padx=self.pad)
 
     def is_hidded(self) -> bool:
         if self.hide_button is None:
@@ -636,6 +638,55 @@ class TextEntry(FormEntry):
                 self.entry.icursor(i + len(text))
         return True
 
+    def grid(self):
+        super().grid()
+        self.entry.pack(side=tk.LEFT, padx=self.pad, fill=tk.X)
+
+
+class FileEntry(TextEntry):
+    _open_file_img: tksvg.SvgImage
+
+    def __init__(self, master, label_text, extensions: Sequence[tuple]):
+        super().__init__(master, label_text)
+        self._open_file_img = tksvg.SvgImage(
+            dirs.ASSETS / 'submit-document.svg', **self._btn_svg_opts
+        )
+        self._filedialog_options = extensions
+
+    def create_widgets(self):
+        self.open = ttk.Button(
+            self, takefocus=tk.TRUE, command=self.open_file, image=self._open_file_img
+        )
+        self.entry = ttk.Entry(self, justify=tk.LEFT, width=self.entry_width)
+
+    def _insert_path(self, value: str | Exception, raised: bool) -> None:
+        if raised:
+            raise value  # type: ignore
+        self.set_value(value)  # type: ignore
+
+    def open_file(self):
+        _callback = functools.partial(
+            open_file_dialog,
+            hwnd=self.winfo_id(),
+            title='Selecionar arquivo (Certificado Digital)',
+            extensions=self._filedialog_options,
+            multi_select=False,
+        )
+        lock = TkinterLock()
+        lock.schedule(self, _callback, self._insert_path, block=False)
+
+    def grid(self):
+        super().grid()
+        self.open.pack(side=tk.LEFT)
+
+    def block_input(self, event: tk.Event | None = None):
+        super().block_input(event)
+        self.open.config(state=tk.DISABLED)
+
+    def unblock_input(self, event: tk.Event | None = None):
+        super().unblock_input(event)
+        self.open.config(state=tk.NORMAL)
+
 
 class CertificateForm(ttk.Frame):
     def __init__(self, master: CertificateManager):
@@ -661,11 +712,19 @@ class CertificateForm(ttk.Frame):
         self.browsercontext_id.block_input()
         self.origin = TextEntry(self, 'Origem:')
         self.origin.add_block_input_button(default=True)
-        self.cert_path = TextEntry(self, 'Arquivo de Certificado:')
+        self.cert_path = FileEntry(
+            self, 'Arquivo de Certificado:', [('Certificado PFX (*.pfx)', ('*.pfx',))]
+        )
         self.cert_path.add_block_input_button(default=True)
-        self.key_path = TextEntry(self, 'Arquivo de Chave:')
+        self.key_path = FileEntry(
+            self,
+            'Arquivo de Chave:',
+            [('Certificado Digital (*.crt;*.pem)', ('*.crt', '*.pem'))],
+        )
         self.key_path.add_block_input_button(default=True)
-        self.pfx_path = TextEntry(self, 'Arquivo de Certificado PFX:')
+        self.pfx_path = FileEntry(
+            self, 'Arquivo de Certificado PFX:', [('Chave de Certificado (*)', ('*',))]
+        )
         self.pfx_path.add_block_input_button(default=True)
         self.passphrase = TextEntry(self, 'Senha:')
         self.passphrase.add_block_input_button(default=True)
