@@ -508,7 +508,8 @@ class ImageMedia(Base):
             be equal by pure chance
         """),
     )
-    sha512: Mapped[str] = mapped_column(unique=False, nullable=False)
+    sha512: Mapped[str] = mapped_column(unique=True, nullable=False)
+    md5: Mapped[str] = mapped_column(unique=True, nullable=False)
     processingentry_id: Mapped[int] = mapped_column(
         ForeignKey('processingentry._id'),
         unique=False,
@@ -536,3 +537,39 @@ class ImageMedia(Base):
     size: Mapped[int] = mapped_column(nullable=False, unique=False)
     width: Mapped[int] = mapped_column(nullable=False, unique=False)
     height: Mapped[int] = mapped_column(nullable=False, unique=False)
+
+
+class Worksheet(Base):
+    __tablename__ = 'worksheet'
+    title: Mapped[str] = mapped_column(unique=False, nullable=False)
+    workbook_index: Mapped[int] = mapped_column(unique=False, nullable=False)
+    dimensions: Mapped[str] = mapped_column(unique=False, nullable=False)
+    columns: Mapped[int] = mapped_column(unique=False, nullable=False)
+    rows: Mapped[int] = mapped_column(unique=False, nullable=False)
+    mime_type: Mapped[str] = mapped_column(unique=False, nullable=False)
+    min_row: Mapped[int] = mapped_column(unique=False, nullable=False)
+    max_row: Mapped[int] = mapped_column(unique=False, nullable=False)
+    min_col: Mapped[int] = mapped_column(unique=False, nullable=False)
+    max_col: Mapped[int] = mapped_column(unique=False, nullable=False)
+    model_cell: Mapped[str] = mapped_column(unique=False, nullable=False)
+    model_name: Mapped[str] = mapped_column(unique=False, nullable=False)
+    model_code: Mapped[int] = mapped_column(unique=False, nullable=False)
+
+
+class Workbook(Base):
+    __tablename__ = 'workbook'
+    created: Mapped[datetime] = CommonColumns.created()
+    last_modified: Mapped[datetime] = CommonColumns.last_modified()
+    sha512: Mapped[str] = mapped_column(unique=True, nullable=False)
+    md5: Mapped[str] = mapped_column(unique=True, nullable=False)
+    blob: Mapped[bytes] = mapped_column(unique=True, nullable=False)
+    epoch: Mapped[int] = mapped_column(unique=False, nullable=False)
+    mime_type: Mapped[str] = mapped_column(unique=False, nullable=False)
+    path: Mapped[str] = mapped_column(unique=False, nullable=False)
+    template: Mapped[bool] = mapped_column(unique=False, nullable=False)
+    excel_base_date: Mapped[str] = mapped_column(unique=False, nullable=True)
+    file_type_suffix: Mapped[str] = mapped_column(unique=False, nullable=False)
+    file_type_description: Mapped[str] = mapped_column(unique=False, nullable=False)
+    file_size: Mapped[str] = mapped_column(unique=False, nullable=False)
+    blob_size: Mapped[int] = mapped_column(unique=False, nullable=False)
+    original_path: Mapped[Url] = mapped_column(unique=False, nullable=False)
