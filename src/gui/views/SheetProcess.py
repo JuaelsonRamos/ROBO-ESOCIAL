@@ -1,22 +1,29 @@
 from __future__ import annotations
 
+from src.db.tables import TkinterGlobal, Workbook, WorkbookDict, Worksheet
+from src.exc import SheetParsing
 from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
 from src.gui.views.View import View
-from src.sistema.spreadsheet import sheet_filedialog_options
+from src.sistema.sheet import Sheet
+from src.sistema.sheet_constants import SHEET_FILEDIALOG_OPTIONS
 from src.windows import open_file_dialog
 
+import re
 import string
-import hashlib
 import tkinter as tk
 import functools
 import tkinter.ttk as ttk
 
 from abc import abstractmethod
-from datetime import datetime
 from pathlib import Path
-from queue import Empty, SimpleQueue
 from typing import Any, Never, TypedDict, cast, get_type_hints
+
+from sqlalchemy import delete, func, select
+from unidecode import unidecode_expect_nonascii as unidecode
+
+
+re_whitespace = re.compile(f'[{string.whitespace}]+')
 
 
 class Heading(TypedDict):
@@ -146,10 +153,6 @@ class _widgets:
         )
 
 
-class _state:
-    filepath_queue: SimpleQueue[Path] = SimpleQueue()
-
-
 class Tag:
     RUNNING = 'running'
     """
@@ -165,12 +168,6 @@ class Tag:
 
     Not having this tag implies the process is running and doing things normally.
     """
-
-    @classmethod
-    def path(cls, p: Path):
-        """Generate tree item's tag representing a Path object."""
-        _hash = hashlib.md5(str(p).encode()).hexdigest().upper()
-        return f'path={_hash}'
 
 
 class ActionButton(ttk.Button):
@@ -227,14 +224,36 @@ class AddButton(ActionButton):
     def __init__(self, master: ButtonFrame):
         super().__init__(master, 'Adicionar')
 
-    def _update_tree(self, value: tuple[Path, ...] | Exception, raised: bool) -> None:
+    def _insert_to_db(self, value: tuple[Path, ...] | Exception, raised: bool) -> None:
         if raised:
             value = cast(Exception, value)
             raise value
         value = cast(tuple[Path, ...], value)
         for p in value:
-            _state.filepath_queue.put_nowait(p)
-        _widgets.proc_tree.event_generate('<<CheckFileQueue>>')
+            sheetobj = Sheet(p)
+            with TkinterGlobal.sqlite.begin() as conn:
+                sha = sheetobj.db_workbook.get('sha512', None)
+                if sha is None:
+                    raise SheetParsing.ValueError('sha512 does not exist')
+                query = (
+                    select(func.count())
+                    .select_from(Workbook)
+                    .where(Workbook.sha512 == sha)
+                )
+                count = conn.execute(query).one_or_none() or 0
+                if count > 0:
+                    # spreadsheet already exists in db
+                    continue
+            if len(sheetobj.worksheets) == 0:
+                raise SheetParsing.ValueError('no worksheets exist in spreadsheet')
+            inserted_id: int = Workbook.sync_insert_one(sheetobj.db_workbook)
+            db_sheets = []
+            for sheet_dict in sheetobj.db_worksheets:
+                _dict = sheet_dict.copy()
+                _dict['workbook_id'] = inserted_id
+                db_sheets.append(_dict)
+            Worksheet.sync_insert_many(*db_sheets)
+        _widgets.proc_tree.event_generate('<<ReloadTree>>')
 
     def on_click(self):
         lock = TkinterLock()
@@ -242,10 +261,10 @@ class AddButton(ActionButton):
             open_file_dialog,
             hwnd=self.winfo_id(),
             title='Selecionar Certificado',
-            extensions=sheet_filedialog_options,
+            extensions=SHEET_FILEDIALOG_OPTIONS,
             multi_select=True,
         )
-        lock.schedule(self, pickable_func, self._update_tree, block=False)
+        lock.schedule(self, pickable_func, self._insert_to_db, block=False)
 
 
 class DeleteButton(ActionButton):
@@ -253,6 +272,23 @@ class DeleteButton(ActionButton):
         super().__init__(master, 'Remover')
 
     def on_click(self):
+        iid = _widgets.proc_tree.focus()
+        if iid == '':
+            return
+        _id = int(iid)
+        with TkinterGlobal.sqlite.begin() as conn:
+            query = select(Worksheet._id).where(Worksheet.workbook_id == _id)
+            ids = conn.execute(query).all()
+            if len(ids) > 0:
+                # no worksheets exist
+                del_query = delete(Worksheet).where(Worksheet._id.in_(ids))
+                conn.execute(del_query)
+            query = select(Workbook._id).where(Workbook._id == _id)
+            db_id = conn.execute(query).one_or_none()
+            if db_id is not None:
+                # workbook doesn't exist
+                del_query = delete(Workbook).where(Workbook._id == db_id)
+                conn.execute(del_query)
         _widgets.proc_tree.event_generate('<<DeleteSelected>>')
 
 
@@ -387,34 +423,45 @@ class ProcessingTree(Tree):
 
     def __init__(self, master: ttk.Widget):
         super().__init__(master)
-        self.bind('<<CheckFileQueue>>', self._check_file_queue)
+        self.bind('<<ReloadTree>>', self.force_reload_tree)
         self.bind('<<DeleteSelected>>', self._delete_selected)
 
-    def _make_file_data(self, path: Path) -> tuple[str, ...]:
-        name = path.stem.strip(string.whitespace + string.punctuation)
-        _type = path.suffix.strip('.').upper()
-        sizeof = str(path.stat().st_size / 1000) + 'KB'
-        datetime_format = '%d/%m/%Y %H:%M'
-        created = datetime.now().strftime(datetime_format)
-        return ('-', name, _type, sizeof, created)
+    def _make_file_data(self, db_book: WorkbookDict) -> tuple[str, ...]:
+        path = Path(db_book.get('original_path', ''))
+        name = unidecode(path.stem)
+        name = re_whitespace.sub(' ', name)
+        name = name.strip(string.whitespace + string.punctuation)
+        description = db_book.get('file_type_description', '')
+        file_size = db_book.get('file_size', 0)
+        if file_size > 1e6:
+            # megabytes ballpark
+            sizeof = format(file_size / 1e6, '.2f') + 'MB'
+        elif file_size > 1e3:
+            # kilobytes ballpark
+            sizeof = format(file_size / 1e3, '.2f') + 'KB'
+        else:
+            # simple bytes ballpark
+            sizeof = str(file_size) + 'B'
+        if 'created' in db_book:
+            datetime_format = '%d/%m/%Y %H:%M'
+            created = db_book['created'].strftime(datetime_format)
+        else:
+            created = ''
+        return ('-', name, description, sizeof, created)
 
-    def _check_file_queue(self, event: tk.Event):
-        files = []
-        while True:
-            try:
-                path: Path = _state.filepath_queue.get_nowait()
-                files.append(path)
-            except Empty:
-                break
-        if len(files) == 0:
+    def force_reload_tree(self, event: tk.Event | None = None):
+        if Workbook.sync_count() == 0:
             return
-        for path in files:
-            path_tag = Tag.path(path)
-            if len(self.tag_has(path_tag)) > 0:
-                # ignore path if it already exists
+        db_books = Workbook.sync_select_all_columns(
+            '_id', 'original_path', 'file_type_description', 'file_size', 'created'
+        )
+        for book in db_books:
+            iid = book._id
+            values = self._make_file_data(WorkbookDict(**book._asdict()))
+            if self.exists(iid):
+                self.item(iid, values=values)
                 continue
-            values = self._make_file_data(path)
-            self.insert('', 'end', None, values=values)
+            self.insert('', iid, iid, values=values)
 
     def _delete_selected(self, event: tk.Event):
         selected = self.selection()
