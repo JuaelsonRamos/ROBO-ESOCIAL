@@ -21,7 +21,7 @@ class App(tk.Tk):
         self.propagate(tk.FALSE)
         self._exit_flag: bool = False
         self._quit_flag: bool = False
-        self._render_lock = TkinterLock()
+        self._render_lock = TkinterLock
         self.fps, self.frametime = self._calc_monitor_frametimes()
 
         self.protocol('WM_DELETE_WINDOW', self.schedule_quit)

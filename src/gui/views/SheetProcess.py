@@ -297,7 +297,7 @@ class AddButton(ActionButton):
         _widgets.proc_tree.event_generate('<<ReloadTree>>')
 
     def on_click(self):
-        lock = TkinterLock()
+        lock = TkinterLock
         pickable_func = functools.partial(
             open_file_dialog,
             hwnd=self.winfo_id(),

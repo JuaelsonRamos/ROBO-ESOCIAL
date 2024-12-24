@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from src.utils import Singleton
-
 import asyncio
 
 from asyncio import Future
@@ -13,7 +11,7 @@ from typing import Any, Callable, Generic, TypeVar
 RetValue = TypeVar('RetValue', Any, Exception)
 
 
-class TkinterLock(Generic[RetValue], metaclass=Singleton):
+class TkinterLockType(Generic[RetValue]):
     def __init__(self) -> None:
         self.executor = ProcessPoolExecutor(1)
         self.loop = asyncio.get_event_loop()
@@ -60,3 +58,6 @@ class TkinterLock(Generic[RetValue], metaclass=Singleton):
         if on_done is not None:
             self._state['on_done'] = on_done
             fut.add_done_callback(self._done_callback)
+
+
+TkinterLock = TkinterLockType()

@@ -670,7 +670,7 @@ class FileEntry(TextEntry):
             extensions=self._filedialog_options,
             multi_select=False,
         )
-        lock = TkinterLock()
+        lock = TkinterLock
         lock.schedule(self, _callback, self._insert_path, block=False)
 
     def grid(self):
