@@ -192,8 +192,7 @@ class Sheet:
             sequence.append(obj)
         return tuple(sequence)
 
-    def iter_rows(self) -> Generator[tuple[Cell, ...], None, None]:
-        # TODO generator yields model
+    def iter_row_cells(self) -> Generator[tuple[Cell, ...], None, None]:
         headings_index: int = 2
         return self.get_sheet().iter_rows(
             min_row=headings_index + 1,
@@ -202,8 +201,7 @@ class Sheet:
             max_col=self.columns,
         )
 
-    def iter_columns(self) -> Generator[tuple[Cell, ...], None, None]:
-        # TODO generator yields model
+    def iter_column_cells(self) -> Generator[tuple[Cell, ...], None, None]:
         headings_index: int = 2
         return self.get_sheet().iter_cols(
             min_row=headings_index + 1,
@@ -211,3 +209,33 @@ class Sheet:
             min_col=1,
             max_col=self.columns,
         )
+
+    def iter_and_validate_row_cell_models(
+        self,
+    ) -> Generator[tuple[model.Cell], None, None | Never]:
+        for row in self.iter_row_cells():
+            if len(row) > len(self._column_models):
+                raise SheetParsing.ValueError('more row cells than columns in sheet')
+            model_sequence = []
+            for i, cell in enumerate(row):
+                column_model = self._column_models[i]
+                validator_instance = cast(
+                    validator.Validator, column_model.validator
+                ).with_data(column_model, cell)
+                valid_cell_model = validator_instance.to_model()
+                model_sequence.append(valid_cell_model)
+            yield tuple(model_sequence)
+
+    def iter_and_validate_column_cell_models(
+        self,
+    ) -> Generator[tuple[model.Cell], None, None | Never]:
+        for i, col in enumerate(self.iter_column_cells()):
+            model_sequence = []
+            for cell in col:
+                column_model = self._column_models[i]
+                validator_instance = cast(
+                    validator.Validator, column_model.validator
+                ).with_data(column_model, cell)
+                valid_cell_model = validator_instance.to_model()
+                model_sequence.append(valid_cell_model)
+            yield tuple(model_sequence)
