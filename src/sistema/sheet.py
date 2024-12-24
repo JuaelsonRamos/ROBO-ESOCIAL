@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import src.db.tables as table
+import src.sistema.models as model
+import src.sistema.validator as validator
+import src.sistema.sheet_data_schema as sheet_schema
 
 from src.exc import SheetParsing
+from src.sistema.protocol_types import ValidatorProtocol
 from src.sistema.sheet_constants import DEFAULT_MODEL_CELL
-from src.types import EmptyValueType, SheetModel
+from src.types import EmptyValueType, IsRequired, SheetModel
 
 import io
 import re
@@ -12,7 +16,7 @@ import string
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Generator, Never, Sequence
+from typing import Any, Generator, Never, Sequence, cast
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.cell.cell import Cell
@@ -32,17 +36,23 @@ class Sheet:
     db_worksheets: Sequence[table.WorksheetDict]
     _sheet: Worksheet | None
     columns: int
+    _column_models: tuple[model.Column, ...] = ()
     rows: int
     dimensions: tuple[str, str]
     model: SheetModel
     model_code: int
     model_name: str
+    schema: Sequence[validator.Validator]
     path: Path
     st_size: int
     st_created: float
     st_modified: float
 
     EmptyString: EmptyValueType = EmptyValueType()
+
+    @property
+    def column_models(self) -> tuple[model.Column, ...]:
+        return self._column_models
 
     @property
     def sheet(self):
@@ -54,9 +64,14 @@ class Sheet:
         self.columns = another.max_column
         self.rows = another.max_row
         cell = another[DEFAULT_MODEL_CELL]
-        self.model = SheetModel.enum_from_cell(cell)
+        self.model = SheetModel.enum_from_cell(cell)  # raises
         self.model_code = SheetModel.code_from_cell(cell)
         self.model_name = SheetModel.name_from_cell(cell)
+        if self.model == SheetModel.MODELO_1:
+            self.schema = sheet_schema.MODELO_1
+        elif self.model == SheetModel.MODELO_2:
+            self.schema = sheet_schema.MODELO_2
+        self._column_models = self._make_column_models()
 
     def get_sheet(self) -> Worksheet:
         if self._sheet is None:
@@ -159,6 +174,23 @@ class Sheet:
             raise SheetParsing.ValueError(f'column {index=} does not exist')
         col = next(self.get_sheet().iter_cols(min_col=index, max_col=index))
         return col
+
+    def headings(self):
+        return self.row(2)
+
+    def _make_column_models(self) -> tuple[model.Column, ...]:
+        sequence: list[model.Column] = []
+        for i, cell in enumerate(self.headings()):
+            cell_validator = next(val for val in self.schema if val.matches(cell))
+            text = validator.String.cell_value_to_string(cell.value)
+            obj = model.Column(
+                index=i,
+                original_text=text,
+                required=IsRequired.from_cell(cell),
+                validator=cast(ValidatorProtocol, cell_validator),
+            )
+            sequence.append(obj)
+        return tuple(sequence)
 
     def iter_rows(self) -> Generator[tuple[Cell, ...], None, None]:
         # TODO generator yields model
