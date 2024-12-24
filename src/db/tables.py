@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from src.db import ClientConfig
 from src.exc import Database
 from src.gui.tkinter_global import TkinterGlobal
+from src.sistema.sheet_constants import SHEET_FILETYPE_ASSOCIATIONS
 
 import re
 import string
+import hashlib
 
 from datetime import datetime
+from pathlib import Path
 from typing import (
     Annotated,
     Any,
@@ -22,6 +26,7 @@ from typing import (
 )
 from urllib.parse import urlparse
 
+from openpyxl import load_workbook
 from sqlalchemy import (
     BLOB,
     INTEGER,
@@ -723,14 +728,14 @@ class WorkbookDict(BaseDict, total=False):
     sha512: str
     md5: str
     blob: bytes
-    epoch: int
+    epoch: datetime
     mime_type: str
     path: str
     template: bool
-    excel_base_date: str | None
+    excel_base_date: datetime | None
     file_type_suffix: str
     file_type_description: str
-    file_size: str
+    file_size: int
     blob_size: int
     original_path: str
 
@@ -743,13 +748,43 @@ class Workbook(Base):
     sha512: Mapped[str] = mapped_column(unique=True, nullable=False)
     md5: Mapped[str] = mapped_column(unique=True, nullable=False)
     blob: Mapped[bytes] = mapped_column(unique=True, nullable=False)
-    epoch: Mapped[int] = mapped_column(unique=False, nullable=False)
+    epoch: Mapped[datetime] = mapped_column(unique=False, nullable=False)
     mime_type: Mapped[str] = mapped_column(unique=False, nullable=False)
     path: Mapped[str] = mapped_column(unique=False, nullable=False)
     template: Mapped[bool] = mapped_column(unique=False, nullable=False)
-    excel_base_date: Mapped[str] = mapped_column(unique=False, nullable=True)
+    excel_base_date: Mapped[datetime] = mapped_column(unique=False, nullable=True)
     file_type_suffix: Mapped[str] = mapped_column(unique=False, nullable=False)
     file_type_description: Mapped[str] = mapped_column(unique=False, nullable=False)
-    file_size: Mapped[str] = mapped_column(unique=False, nullable=False)
+    file_size: Mapped[int] = mapped_column(unique=False, nullable=False)
     blob_size: Mapped[int] = mapped_column(unique=False, nullable=False)
-    original_path: Mapped[Url] = mapped_column(unique=False, nullable=False)
+    original_path: Mapped[str] = mapped_column(unique=False, nullable=False)
+
+    @classmethod
+    def from_file(cls, path: Path) -> WorkbookDict:
+        max_bytes = ClientConfig.SQLITE_LIMIT_LENGTH
+        file_size = path.stat().st_size
+        if file_size > max_bytes:
+            raise Database.ValueError(f'file too big: {file_size=} > {max_bytes=}')
+        blob = path.read_bytes()
+        book = load_workbook(path, read_only=True)
+        suffix = path.suffix.lower()
+        desc: str | None = None
+        for sheet_desc, suffix_globs in SHEET_FILETYPE_ASSOCIATIONS:
+            if any(suffix == glob.lstrip('*').lower() for glob in suffix_globs):
+                desc = sheet_desc
+                break
+        return WorkbookDict(
+            sha512=hashlib.sha512(blob).hexdigest().upper(),
+            md5=hashlib.md5(blob).hexdigest().upper(),
+            blob=blob,
+            epoch=book.epoch,
+            mime_type=book.mime_type,
+            path=book.path,
+            template=book.template,
+            excel_base_date=book.excel_base_date or None,
+            file_type_suffix=suffix,
+            file_type_description=desc or '',
+            file_size=file_size,
+            blob_size=len(blob),
+            original_path=str(path),
+        )
