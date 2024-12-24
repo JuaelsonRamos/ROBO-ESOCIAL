@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import src.sistema.validator as validator
+
+from src.exc import SheetCell, SheetParsing, ValidatorException
 from src.sistema.sheet_constants import Fill
 
 import types
+import string
 import datetime
 
 from dataclasses import dataclass
@@ -15,6 +19,7 @@ import numpy
 from openpyxl.cell.cell import Cell
 from openpyxl.cell.rich_text import CellRichText
 from typing_extensions import TypeIs
+from unidecode import unidecode_expect_nonascii as unidecode
 
 
 class IsRequired(StrEnum):
@@ -53,6 +58,45 @@ class IsRequired(StrEnum):
 
     def to_fill_code(self) -> int:
         return self._to_code(self)
+
+
+class SheetModel(StrEnum):
+    MODELO_1 = auto()
+    MODELO_2 = auto()
+
+    @classmethod
+    def enum_from_cell(cls, cell: Cell) -> SheetModel | Never:
+        try:
+            cell_value = validator.String.cell_value_to_string(cell.value)
+        except ValidatorException.RuntimeError as err:
+            raise SheetParsing.TypeError(err) from err
+        cell_value = unidecode(cell_value).strip(string.whitespace).lower()
+        if cell_value == '':
+            empty_base_err = SheetCell.ValueError(
+                'cell containing sheet model description is empty'
+            )
+            raise SheetParsing.EmptyString(empty_base_err) from empty_base_err
+        model_spec: tuple[str, ...] = tuple(cell_value.split(' '))
+        if len(model_spec) != 2:
+            raise SheetParsing.ValueError(f'cannot infer model code by {cell_value=}')
+        match model_spec:
+            case ('modelo', '1'):
+                return cls.MODELO_1
+            case ('modelo', '2'):
+                return cls.MODELO_2
+        raise SheetParsing.ValueError(
+            f"canont infer worksheet's model by cell {cell.coordinate=}"
+        )
+
+    @classmethod
+    def code_from_cell(cls, cell: Cell) -> int:
+        enum = cls.enum_from_cell(cell)
+        return 1 if enum == cls.MODELO_1 else 2
+
+    @classmethod
+    def name_from_cell(cls, cell: Cell) -> str:
+        enum = cls.enum_from_cell(cell)
+        return 'Modelo 1' if enum == cls.MODELO_1 else 'Modelo 2'
 
 
 class CellValueType(StrEnum):

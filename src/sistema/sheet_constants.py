@@ -51,6 +51,8 @@ SHEET_FILEDIALOG_OPTIONS: Final[SheetFileSuffixOptions] = _make_file_dialog_opti
     SHEET_FILETYPE_ASSOCIATIONS
 )
 
+DEFAULT_MODEL_CELL = 'A1'
+
 
 @dataclass(frozen=True, init=False)
 class Fill:

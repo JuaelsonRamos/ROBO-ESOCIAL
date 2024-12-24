@@ -3,7 +3,8 @@ from __future__ import annotations
 import src.db.tables as table
 
 from src.exc import SheetParsing
-from src.types import EmptyValueType
+from src.sistema.sheet_constants import DEFAULT_MODEL_CELL
+from src.types import EmptyValueType, SheetModel
 
 import io
 import re
@@ -33,6 +34,9 @@ class Sheet:
     columns: int
     rows: int
     dimensions: tuple[str, str]
+    model: SheetModel
+    model_code: int
+    model_name: str
     path: Path
     st_size: int
     st_created: float
@@ -46,9 +50,13 @@ class Sheet:
 
     @sheet.setter
     def sheet(self, another: Worksheet):
+        self._sheet = another
         self.columns = another.max_column
         self.rows = another.max_row
-        self._sheet = another
+        cell = another[DEFAULT_MODEL_CELL]
+        self.model = SheetModel.enum_from_cell(cell)
+        self.model_code = SheetModel.code_from_cell(cell)
+        self.model_name = SheetModel.name_from_cell(cell)
 
     def get_sheet(self) -> Worksheet:
         if self._sheet is None:

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import src.sistema.validator as validator
-
 from src.db import ClientConfig
-from src.exc import Database, SheetCell, SheetParsing, ValidatorException
+from src.exc import Database
 from src.gui.tkinter_global import TkinterGlobal
-from src.sistema.sheet_constants import SHEET_FILETYPE_ASSOCIATIONS
+from src.sistema.sheet_constants import DEFAULT_MODEL_CELL, SHEET_FILETYPE_ASSOCIATIONS
+from src.types import SheetModel
 
 import re
 import string
@@ -32,6 +31,7 @@ from openpyxl import (
     Workbook as _Workbook,
     load_workbook,
 )
+from openpyxl.cell.cell import Cell as _Cell
 from openpyxl.worksheet.worksheet import Worksheet as _Worksheet
 from sqlalchemy import (
     BLOB,
@@ -54,7 +54,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedColumn, mapped_column
-from unidecode import unidecode_expect_nonascii as unidecode
 
 
 # region CUSTOM TYPES
@@ -730,34 +729,7 @@ class Worksheet(Base):
 
     @classmethod
     def from_sheet_obj(cls, book: _Workbook, sheet: _Worksheet) -> WorksheetDict:
-        model_cell = sheet.cell(row=1, column=1)
-        model: int = 0
-        model_name: str = ''
-        cell_value: str = ''
-        try:
-            cell_value = validator.String.cell_value_to_string(model_cell.value)
-        except ValidatorException.RuntimeError as err:
-            raise SheetParsing.TypeError(err) from err
-        cell_value = unidecode(cell_value).strip(string.whitespace).lower()
-        if cell_value == '':
-            empty_base_err = SheetCell.ValueError(
-                'cell containing sheet model description is empty'
-            )
-            raise SheetParsing.EmptyString(empty_base_err) from empty_base_err
-        model_spec: tuple[str, ...] = tuple(cell_value.split(' '))
-        if len(model_spec) != 2:
-            raise SheetParsing.ValueError(f'cannot infer model code by {cell_value=}')
-        match model_spec:
-            case ('modelo', '1'):
-                model = 1
-                model_name = 'Modelo 1'
-            case ('modelo', '2'):
-                model = 2
-                model_name = 'Modelo 2'
-            case _:
-                raise SheetParsing.ValueError(
-                    f'unknown cell value prevents inference of model code {cell_value=}'
-                )
+        model_cell: _Cell = sheet[DEFAULT_MODEL_CELL]
         return WorksheetDict(
             title=sheet.title,
             workbook_index=book.index(sheet),
@@ -770,8 +742,8 @@ class Worksheet(Base):
             min_col=sheet.min_column,
             max_col=sheet.max_column,
             model_cell=model_cell.coordinate,
-            model_code=model,
-            model_name=model_name,
+            model_code=SheetModel.code_from_cell(model_cell),
+            model_name=SheetModel.name_from_cell(model_cell),
         )
 
 
