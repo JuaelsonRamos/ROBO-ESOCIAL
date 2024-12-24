@@ -3,6 +3,7 @@ from __future__ import annotations
 from src import bootstrap
 from src.crawl.steps.step import execute_in_order
 from src.db import init_sync_sqlite
+from src.exc import Task
 from src.gui.app import App
 from src.gui.tkinter_global import TkinterGlobal
 
@@ -98,9 +99,7 @@ class BrowserRuntime:
             if not raise_if_cant:
                 # consumer doesn't want it to raise on error
                 return
-            raise self.CannotCreateTaskError(
-                'either queue is empty or semaphore is closed'
-            )
+            raise Task.CannotCreateError('either queue is empty or semaphore is closed')
         await self.semaphore.acquire()
         index_string = str(self.task_i).ljust(3, '0')
         name = f'crawler({index_string})'

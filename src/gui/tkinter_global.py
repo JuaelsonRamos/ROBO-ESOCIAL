@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from src.exc import Tkinter
+
 from tkinter import ttk
 from typing import Any, Final, Generator
 
@@ -23,9 +25,9 @@ class TkinterGlobalMeta(type):
 
     def __getattr__(self, name: str, /) -> Any:
         if name not in self.__slots__:
-            raise TkinterGlobalUnknown(name)
+            raise Tkinter.GlobalUnknown(name)
         if getattr(super(), name, None) is None:
-            raise TkinterGlobalUndefined(name)
+            raise Tkinter.GlobalUndefined(name)
         return getattr(super(), name)
 
     def __getitem__(self, key: str, /) -> Any:
@@ -34,10 +36,10 @@ class TkinterGlobalMeta(type):
     def __setattr__(self, name: str, value: Any, /) -> None:
         try:
             if getattr(super(), name, None) is not None:
-                raise TkinterGlobalAssigned(name)
-        except TkinterGlobalUndefined:
+                raise Tkinter.GlobalAssigned(name)
+        except Tkinter.GlobalUndefined:
             pass  # exist but not yet assigned
-        except TkinterGlobalUnknown as err:
+        except Tkinter.GlobalUnknown as err:
             # forced expressiveness, announce that it may raise!!
             raise err
         setattr(super(), name, value)
@@ -57,9 +59,9 @@ class TkinterGlobalMeta(type):
         try:
             if getattr(super(), name) is None:
                 return False
-        except (AttributeError, TkinterGlobalUnknown, TkinterGlobalUndefined):
+        except (AttributeError, Tkinter.GlobalUnknown, Tkinter.GlobalUndefined):
             return False
-        except TkinterGlobalAssigned:
+        except Tkinter.GlobalAssigned:
             return True
         else:
             return True

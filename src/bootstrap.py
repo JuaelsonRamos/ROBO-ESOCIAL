@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src.exc import App
 from src.utils import Singleton
 
 import os
@@ -45,7 +46,7 @@ class Directory(metaclass=Singleton):
         """Ensure directories exist or are created."""
         global _state
         if _state.dirs:
-            raise AppBootstrapError('procedure (method) already executed once')
+            raise App.BootstrapError('procedure (method) already executed once')
         for field in astuple(self):
             if not isinstance(field, Path):
                 continue
