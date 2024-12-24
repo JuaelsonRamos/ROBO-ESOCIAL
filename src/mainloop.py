@@ -137,13 +137,6 @@ class GraphicalRuntime:
 
         TkinterGlobal.style = ttk.Style(self.app)
 
-        import src.gui.asyncio as gui_asyncio
-
-        self.gui_asyncio_helpers = gui_asyncio
-
-    def stop_all_threads(self):
-        self.gui_asyncio_helpers.Thread.stop_all()
-
     @classmethod
     def should_avoid(cls) -> bool:
         global CLI_ARGS
@@ -156,15 +149,12 @@ class GraphicalRuntime:
 
 
 async def production_runtime_loop(browser: BrowserRuntime, gui: GraphicalRuntime):
-    try:
-        while await asyncio.sleep(gui.app.frametime, True):
-            gui.app.tick()
-            if gui.app.has_quit():
-                break
-            while browser.can_create_task():
-                await browser.create_task(raise_if_cant=True)
-    finally:
-        gui.stop_all_threads()
+    while await asyncio.sleep(gui.app.frametime, True):
+        gui.app.tick()
+        if gui.app.has_quit():
+            break
+        while browser.can_create_task():
+            await browser.create_task(raise_if_cant=True)
 
 
 async def mainloop():
