@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import src.sistema.validator as validator
+import src.db.tables as table
 
-from src.exc import SheetCell, SheetParsing, ValidatorException
-from src.sistema.sheet_constants import SHEET_FILETYPE_ASSOCIATIONS
+from src.exc import SheetParsing
 from src.types import EmptyValueType
 
 import io
@@ -12,7 +11,7 @@ import string
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Generator, Never
+from typing import Any, Generator, Never, Sequence
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.cell.cell import Cell
@@ -21,10 +20,16 @@ from typing_extensions import TypeIs
 from unidecode import unidecode_expect_nonascii as unidecode
 
 
+# TODO: generate column model
+# TODO: validate cell
+
+
 class Sheet:
     workbook: Workbook
-    worksheet: Worksheet
-    sheet_title: str
+    db_workbook: table.WorkbookDict
+    worksheets: Sequence[Worksheet]
+    db_worksheets: Sequence[table.WorksheetDict]
+    _sheet: Worksheet | None
     columns: int
     rows: int
     dimensions: tuple[str, str]
@@ -32,13 +37,28 @@ class Sheet:
     st_size: int
     st_created: float
     st_modified: float
-    model_cell: Cell
-    model_code: int
-    model_name: str
-    file_type_suffix: str
-    file_type_description: str
 
     EmptyString: EmptyValueType = EmptyValueType()
+
+    @property
+    def sheet(self):
+        return self._sheet
+
+    @sheet.setter
+    def sheet(self, another: Worksheet):
+        self.columns = another.max_column
+        self.rows = another.max_row
+        self._sheet = another
+
+    def get_sheet(self) -> Worksheet:
+        if self._sheet is None:
+            raise SheetParsing.ValueError(
+                'sheet property is not set to valid worksheet'
+            )
+        return self._sheet
+
+    def set_sheet(self, another: Worksheet):
+        self.sheet = another
 
     def __init__(self, path: str | Path) -> None:
         # Load spreadsheet
@@ -47,71 +67,22 @@ class Sheet:
             path = Path(path)
         else:
             self.workbook = load_workbook(str(path))
-        sheet = self.workbook.active
-        if sheet is None:
-            raise ValueError(
-                'path successfully parsed as workbook but it contains no worksheet'
+        self.db_workbook = table.Workbook.from_file(path)
+        self.worksheets = tuple(self.workbook.worksheets)
+        if len(self.worksheets) == 0:
+            self.db_worksheets = ()
+            self._sheet = None
+        else:
+            self.db_worksheets = tuple(
+                table.Worksheet.from_sheet_obj(self.workbook, sheet)
+                for sheet in self.worksheets
             )
-        self.worksheet = sheet
-        self.sheet_title = self.worksheet.title
-
-        # Spreadsheet file's useful filesystem metadata
+            self._sheet = self.worksheets[0]
         self.path = path
         stat = self.path.stat()
         self.st_size = stat.st_size
         self.st_created = stat.st_ctime
         self.st_modified = stat.st_mtime
-
-        # Get model code (number)
-        self.model_cell = self.worksheet['A1']
-        cell_value: str = ''
-        try:
-            cell_value = validator.String.cell_value_to_string(self.model_cell.value)
-        except ValidatorException.RuntimeError as err:
-            raise SheetParsing.TypeError(err) from err
-        cell_value = unidecode(cell_value).strip(string.whitespace).lower()
-        if cell_value == '':
-            empty_base_err = SheetCell.ValueError(
-                'cell containing sheet model description is empty'
-            )
-            raise SheetParsing.EmptyString(empty_base_err) from empty_base_err
-        model_spec: list[str] = cell_value.split(' ')
-        if len(model_spec) != 2:
-            raise SheetParsing.ValueError(f'cannot infer model code by {cell_value=}')
-        match model_spec:
-            case ('modelo', '1'):
-                self.model = 1
-                self.model_name = 'Modelo 1'
-            case ('modelo', '2'):
-                self.model = 2
-                self.model_name = 'Modelo 2'
-            case _:
-                raise SheetParsing.ValueError(
-                    f'unknown cell value prevents inference of model code {cell_value=}'
-                )
-
-        # Spreadsheet useful metadata
-        self.columns = self.worksheet.max_column
-        self.rows = self.worksheet.max_row
-        dimensions = self.worksheet.calculate_dimension()
-        if dimensions == '' or ':' not in dimensions:
-            self.dimensions = ('', '')
-        else:
-            self.dimensions = tuple(dimensions.split(':'))  # type: ignore
-
-        # Spreadsheet's file type metadata
-        self.file_type_description = ''
-        self.file_type_suffix = ''
-        for desc, suffixes in SHEET_FILETYPE_ASSOCIATIONS:
-            normal_self_suffix = self.path.suffix.strip(string.punctuation).lower()
-            normalized_suffixes = [
-                s.strip(string.punctuation).lower() for s in suffixes
-            ]
-            if normal_self_suffix not in normalized_suffixes:
-                continue
-            self.file_type_description = desc.strip(string.whitespace)
-            self.file_type_suffix = normal_self_suffix
-            break
 
     def as_bytes(self) -> bytes:
         with NamedTemporaryFile() as tmp:
@@ -167,24 +138,24 @@ class Sheet:
     def cell(self, row: int, column: int) -> Cell | Never:
         if not self.cell_exists(row, column):
             raise SheetParsing.IndexError(f'cell does not exist {row=} {column=}')
-        return self.worksheet.cell(row, column)
+        return self.get_sheet().cell(row, column)
 
     def row(self, index: int) -> tuple[Cell, ...] | Never:
         if not self.row_exists(index):
             raise SheetParsing.ValueError(f'row {index=} does not exist')
-        row = next(self.worksheet.iter_rows(min_row=index, max_row=index))
+        row = next(self.get_sheet().iter_rows(min_row=index, max_row=index))
         return row
 
     def column(self, index: int) -> tuple[Cell, ...] | Never:
         if not self.column_exists(index):
             raise SheetParsing.ValueError(f'column {index=} does not exist')
-        col = next(self.worksheet.iter_cols(min_col=index, max_col=index))
+        col = next(self.get_sheet().iter_cols(min_col=index, max_col=index))
         return col
 
     def iter_rows(self) -> Generator[tuple[Cell, ...], None, None]:
         # TODO generator yields model
         headings_index: int = 2
-        return self.worksheet.iter_rows(
+        return self.get_sheet().iter_rows(
             min_row=headings_index + 1,
             max_row=self.rows,
             min_col=1,
@@ -194,7 +165,7 @@ class Sheet:
     def iter_columns(self) -> Generator[tuple[Cell, ...], None, None]:
         # TODO generator yields model
         headings_index: int = 2
-        return self.worksheet.iter_cols(
+        return self.get_sheet().iter_cols(
             min_row=headings_index + 1,
             max_row=self.rows,
             min_col=1,
