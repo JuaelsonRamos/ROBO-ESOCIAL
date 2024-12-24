@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src import bootstrap
+from src.bootstrap import Directory
 
 import hashlib
 import sqlite3
@@ -9,10 +9,8 @@ from pathlib import Path
 from typing import Final
 
 
-_dir = bootstrap.Directory()
-
-DB_FILE: Final[Path] = _dir.APPDATA / '_app_state.db'
-BACKUP_DIR: Final[Path] = _dir.DB_BACKUP
+DB_FILE: Final[Path] = Directory.APPDATA / '_app_state.db'
+BACKUP_DIR: Final[Path] = Directory.DB_BACKUP
 
 _backup_files: dict[int, Path] = {}
 _backup_files_populated: bool = False

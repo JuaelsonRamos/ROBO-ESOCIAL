@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from src.exc import App
-from src.utils import Singleton
 
 import os
-import sys
 
 from dataclasses import astuple, dataclass
 from pathlib import Path
@@ -16,18 +14,13 @@ from typing import Final
 _state = SimpleNamespace(dirs=False)
 
 
-@dataclass(frozen=True)
-class Directory(metaclass=Singleton):
-    # define platform dependent fields
-    APPDATA: Final[Path]
-
-    # assign platform dependent fields
-    if sys.platform == 'win32':
-        APPDATA = (
-            Path('__debug__', 'LocalAppData')
-            if __debug__
-            else Path(os.environ['LOCALAPPDATA'], 'RoboEsocial')
-        )
+@dataclass(init=True, frozen=True, slots=True)
+class DirectoryNamespace:
+    APPDATA = (
+        Path('__debug__', 'LocalAppData')
+        if __debug__
+        else Path(os.environ['LOCALAPPDATA'], 'RoboEsocial')
+    )
 
     # platform independent fields
     CERT_STORAGE: Final[Path] = APPDATA / '_CertStorage'
@@ -56,3 +49,6 @@ class Directory(metaclass=Singleton):
     def is_ensured(self) -> bool:
         global _state
         return _state.dirs
+
+
+Directory = DirectoryNamespace()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src import bootstrap
+from src.bootstrap import Directory
 from src.crawl.steps.step import execute_in_order
 from src.db import init_sync_sqlite
 from src.exc import Task
@@ -26,9 +26,6 @@ from playwright.async_api import (
 
 
 TASK_LIMIT = 5
-
-
-app_dir = bootstrap.Directory()
 
 
 def parse_cli_args():
@@ -86,7 +83,7 @@ class BrowserRuntime:
     def get_firefox_exe(self) -> Path | None:
         path: Path | None = None
         try:
-            gen = app_dir.PLAYWRIGHT.glob('firefox-*/firefox/firefox.exe')
+            gen = Directory.PLAYWRIGHT.glob('firefox-*/firefox/firefox.exe')
             path = next(gen)
             gen.close()
         except (GeneratorExit, StopIteration):
@@ -158,8 +155,8 @@ async def production_runtime_loop(browser: BrowserRuntime, gui: GraphicalRuntime
 
 
 async def mainloop():
-    if not app_dir.is_ensured():
-        app_dir.ensure_mkdir()
+    if not Directory.is_ensured():
+        Directory.ensure_mkdir()
 
     if BrowserRuntime.should_avoid():
         init_sync_sqlite()

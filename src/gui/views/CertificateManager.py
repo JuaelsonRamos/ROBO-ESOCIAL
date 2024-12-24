@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src import bootstrap
+from src.bootstrap import Directory
 from src.db import ClientCertificate, ClientConfig
 from src.db.tables import ClientCertificateDict
 from src.exc import Tkinter
@@ -27,8 +27,6 @@ from sqlalchemy import Row
 
 
 _common_padding: Final[int] = 5
-
-dirs = bootstrap.Directory()
 
 
 @dataclass(frozen=False, slots=True)
@@ -476,12 +474,12 @@ class FormEntry(ttk.Frame):
         )
         if self._hide_input_img_hidden is None:
             self._hide_input_img_hidden = tksvg.SvgImage(
-                file=dirs.ASSETS / 'eye-closed.svg',
+                file=Directory.ASSETS / 'eye-closed.svg',
                 **self._btn_svg_opts,
             )
         if self._hide_input_img_shown is None:
             self._hide_input_img_shown = tksvg.SvgImage(
-                file=dirs.ASSETS / 'eye.svg',
+                file=Directory.ASSETS / 'eye.svg',
                 **self._btn_svg_opts,
             )
         self.reset_hidden_state()
@@ -504,12 +502,12 @@ class FormEntry(ttk.Frame):
         )
         if self._block_input_img_locked is None:
             self._block_input_img_locked = tksvg.SvgImage(
-                file=dirs.ASSETS / 'lock.svg',
+                file=Directory.ASSETS / 'lock.svg',
                 **self._btn_svg_opts,
             )
         if self._block_input_img_unlocked is None:
             self._block_input_img_unlocked = tksvg.SvgImage(
-                file=dirs.ASSETS / 'lock-slash.svg',
+                file=Directory.ASSETS / 'lock-slash.svg',
                 **self._btn_svg_opts,
             )
         self.reset_blocked_state()
@@ -649,7 +647,7 @@ class FileEntry(TextEntry):
     def __init__(self, master, label_text, extensions: Sequence[tuple]):
         super().__init__(master, label_text)
         self._open_file_img = tksvg.SvgImage(
-            dirs.ASSETS / 'submit-document.svg', **self._btn_svg_opts
+            Directory.ASSETS / 'submit-document.svg', **self._btn_svg_opts
         )
         self._filedialog_options = extensions
 
