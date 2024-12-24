@@ -169,6 +169,18 @@ class Tag:
     Not having this tag implies the process is running and doing things normally.
     """
 
+    @staticmethod
+    def tag_list(tag: str | list[str] | tuple[str, ...]) -> list[str]:
+        if tag == '':
+            return []
+        if isinstance(tag, str):
+            return [tag]
+        if isinstance(tag, list):
+            return tag if len(tag) > 0 else []
+        if isinstance(tag, tuple):
+            return list(tag) if len(tag) > 0 else []
+        raise ValueError('unknown tag argument type')
+
 
 class ActionButton(ttk.Button):
     def __init__(self, master: ButtonFrame, text: str):
@@ -209,15 +221,44 @@ class ActionButton(ttk.Button):
 
 
 class StartButton(ActionButton):
-    pass
+    def on_click(self):
+        tree = _widgets.proc_tree
+        iid = tree.focus()
+        if iid == '' or tree.tag_has(Tag.RUNNING, iid):
+            return
+        tags = Tag.tag_list(tree.item(iid, 'tags'))
+        if len(tags) > 0 and Tag.HALTED in tags:
+            tags.remove(Tag.HALTED)
+        tags.append(Tag.RUNNING)
+        tree.item(iid, tags=tags)
 
 
 class PauseButton(ActionButton):
-    pass
+    def on_click(self):
+        tree = _widgets.proc_tree
+        iid = tree.focus()
+        if iid == '' or tree.tag_has(Tag.HALTED, iid):
+            return
+        tags = Tag.tag_list(tree.item(iid, 'tags'))
+        if len(tags) > 0 and Tag.RUNNING in tags:
+            tags.remove(Tag.RUNNING)
+        tags.append(Tag.HALTED)
+        tree.item(iid, tags=tags)
 
 
 class StopButton(ActionButton):
-    pass
+    def on_click(self):
+        tree = _widgets.proc_tree
+        iid = tree.focus()
+        if iid == '':
+            return
+        tags = Tag.tag_list(tree.item(iid, 'tags'))
+        if len(tags) > 0:
+            if Tag.RUNNING in tags:
+                tags.remove(Tag.RUNNING)
+            if Tag.HALTED in tags:
+                tags.remove(Tag.HALTED)
+        tree.item(iid, tags=tags)
 
 
 class AddButton(ActionButton):
@@ -470,16 +511,29 @@ class ProcessingTree(Tree):
         self.delete(*selected)
 
     def _set_button_state(self, event):
-        if self.focus() == '':
+        iid = self.focus()
+        if iid == '':
             _widgets.proc_btn_start.disable()
             _widgets.proc_btn_pause.disable()
             _widgets.proc_btn_stop.disable()
             _widgets.proc_btn_delete.disable()
             return
-        _widgets.proc_btn_start.enable()
-        _widgets.proc_btn_pause.enable()
-        _widgets.proc_btn_stop.enable()
-        _widgets.proc_btn_delete.enable()
+        if self.tag_has(Tag.RUNNING, iid):
+            _widgets.proc_btn_start.disable()
+            _widgets.proc_btn_pause.enable()
+            _widgets.proc_btn_stop.disable()
+            _widgets.proc_btn_delete.disable()
+        elif self.tag_has(Tag.HALTED, iid):
+            _widgets.proc_btn_start.enable()
+            _widgets.proc_btn_pause.disable()
+            _widgets.proc_btn_stop.enable()
+            _widgets.proc_btn_delete.disable()
+        else:
+            # isn't part of any process, action, procedure, etc
+            _widgets.proc_btn_start.enable()
+            _widgets.proc_btn_pause.disable()
+            _widgets.proc_btn_stop.disable()
+            _widgets.proc_btn_delete.enable()
 
 
 class HistoryTree(Tree):
