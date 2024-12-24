@@ -695,6 +695,7 @@ class WorksheetDict(BaseDict, total=False):
     last_modified: datetime | None
     title: str
     workbook_index: int
+    workbook_id: int
     dimensions: str
     columns: int
     rows: int
@@ -715,6 +716,9 @@ class Worksheet(Base):
     last_modified: Mapped[datetime] = CommonColumns.last_modified()
     title: Mapped[str] = mapped_column(unique=False, nullable=False)
     workbook_index: Mapped[int] = mapped_column(unique=False, nullable=False)
+    workbook_id: Mapped[int] = mapped_column(
+        ForeignKey('workbook._id'), unique=False, nullable=False
+    )
     dimensions: Mapped[str] = mapped_column(unique=False, nullable=False)
     columns: Mapped[int] = mapped_column(unique=False, nullable=False)
     rows: Mapped[int] = mapped_column(unique=False, nullable=False)
