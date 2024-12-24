@@ -1,5 +1,5 @@
 {
-  "files.autoSave": "off",
+  "files.autoSave": "onFocusChange",
   "emeraldwalk.runonsave": {
     "showElapsed": true,
     "commands": [
@@ -34,10 +34,10 @@
   "ruff.lint.select": ["I", "F401"],
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
-    "diffEditor.ignoreTrimWhitespace": true,
+    "diffEditor.ignoreTrimWhitespace": false,
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit",
-      "source.fixAll": "explicit",
+      "source.unusedImports": "explicit"
     }
   },
   "files.exclude": {
@@ -49,7 +49,7 @@
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
   "python.terminal.activateEnvironment": true,
   "python.languageServer": "Pylance",
-  "python.analysis.typeCheckingMode": "standard",
+  "python.analysis.typeCheckingMode": "basic",
   "python.analysis.languageServerMode": "light",
   "python.analysis.autoImportCompletions": true,
   "python.analysis.diagnosticMode": "workspace",
