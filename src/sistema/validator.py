@@ -216,27 +216,31 @@ class Validator(metaclass=ValidatorMeta):
         instance.allow_empty = allow_empty
         return instance
 
-    def with_data(self, /, column: Column, cell: Cell, cell_index: int) -> Self:
+    def with_data(self, /, column: Column, cell: Cell) -> Self:
         """
         Creates new Validator and initializes it with provided data.
 
         The Validator returned by this function is a completely new instance!
         """
         new_instance = self.__new__(type(self), self.known_titles, self.allow_empty)
-        new_instance.__init__(column, cell, cell_index)
+        new_instance.__init__(column, cell)
         return new_instance
 
-    def __init__(self, /, column: Column, cell: Cell, cell_index: int) -> None | Never:
+    def __init__(self, /, column: Column, cell: Cell) -> None | Never:
         if not self._can_initialize:
             raise ValidatorException.RuntimeError
         self._can_call = True
         self.column = column
         self.cell = cell
-        self.cell_index = cell_index
+        self.cell_index = column.index
 
     def __call__(self) -> None | Never:
         if not self._can_call:
             raise ValidatorException.RuntimeError
+
+    @abstractmethod
+    @classmethod
+    def matches(cls, column_cell: Cell) -> bool: ...
 
     @abstractmethod
     def parse_value(self) -> CellValue | EmptyValueType | Never:
@@ -390,6 +394,12 @@ class String(Validator):
             err = TypeError(f"type of {value} is unknown as a cell value's type")
             raise ValidatorException.RuntimeError(err) from err
         return valid_string
+
+    @classmethod
+    def matches(cls, column_cell: Cell) -> bool:
+        value: str = cls.cell_value_to_string(column_cell)
+        hashed = cls.hash_column_title(value)
+        return hashed in cls.hashed_known_titles
 
     def parse_value(self) -> str | EmptyValueType | Never:
         parsed_value: str = ''
