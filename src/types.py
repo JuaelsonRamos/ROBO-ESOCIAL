@@ -12,7 +12,7 @@ import datetime
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum, auto
-from typing import Any, Never, TypeAlias, TypeVar
+from typing import Any, Never, TypeAlias, TypeVar, assert_never
 
 import numpy
 
@@ -97,6 +97,18 @@ class SheetModel(StrEnum):
     def name_from_cell(cls, cell: Cell) -> str:
         enum = cls.enum_from_cell(cell)
         return 'Modelo 1' if enum == cls.MODELO_1 else 'Modelo 2'
+
+
+class BrowserType(StrEnum):
+    FIREFOX = auto()
+    CHROMIUM = auto()
+
+    def playwright_name(self) -> str:
+        if self == self.FIREFOX:
+            return 'firefox'
+        if self == self.CHROMIUM:
+            return 'chromium'
+        assert_never(self)
 
 
 class CellValueType(StrEnum):
