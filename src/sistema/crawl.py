@@ -8,6 +8,7 @@ from src.types import BrowserType
 
 import asyncio
 import hashlib
+import inspect
 import itertools
 
 from asyncio import Queue, Semaphore
@@ -62,15 +63,18 @@ class PageState:
 
 
 class BrowserContext:
-    def __init__(self) -> None:
-        self.p: playwright.Playwright
-        self.origin_id: int
-        self.cookie_ids: set[int]
-        self.local_storage_ids: set[int]
+    def __init__(self, p: playwright.Playwright, browser: playwright.Browser) -> None:
+        self.p = p
+        self.browser = browser
+        self.browser_exe = Path(browser.browser_type.executable_path)
+        self.browser_type = BrowserType.enum_from_name(browser.browser_type.name)
+
+    def create_new(self):
         self.browsercontext_id: int
-        self.browser: playwright.Browser
-        self.browser_exe: Path
-        self.browser_type: BrowserType
+        self.browser_context: playwright.BrowserContext
+
+    def create_from(self, *args):
+        self.browsercontext_id: int
         self.browser_context: playwright.BrowserContext
 
     @staticmethod
@@ -98,10 +102,20 @@ class CrawlerTask:
     tasks: dict[str, CrawlerTask] = {}
     _steps: tuple[StepFunc, ...]
 
-    def __init__(self) -> None:
-        self.p: playwright.Playwright
-        self.context: BrowserContext
-        self.runtime: BrowserRuntime
+    def __init__(
+        self, p: playwright.Playwright, context: BrowserContext, runtime: BrowserRuntime
+    ) -> None:
+        self.p = p
+        self.context = context
+        self.runtime = runtime
+
+    async def _crawler_run(self):
+        for step in self._steps:
+            if inspect.iscoroutinefunction(step):
+                await step(self)
+                continue
+            if inspect.isfunction(step):
+                step(self)
 
     async def start(self, *, return_if_cant: bool = False) -> None:
         if return_if_cant and not self.runtime.can_create_task():
@@ -111,7 +125,7 @@ class CrawlerTask:
         self.task_index_formated: str = str(self.task_index).ljust(3, '0')
         self.task_name: str = f'crawler({self.task_index_formated})'
         self.page: PageState = await self.context.new_page()
-        self.asyncio_coro: Coroutine  # TODO
+        self.asyncio_coro: Coroutine = self._crawler_run()
         self.asyncio_task: asyncio.Task = asyncio.create_task(
             self.asyncio_coro, name=self.task_name
         )
@@ -155,10 +169,13 @@ class CrawlerTask:
 
 class BrowserRuntime:
     cli_args = CommandLineArguments().parse_argv()
+    SEMAPHORE_LIMIT: Final[int] = 5
+    sheet_queue: Queue[Path] = Queue()
+    browser: playwright.Browser
 
-    def __init__(self) -> None:
-        self.semaphore: Semaphore
-        self.queue: Queue
+    def __init__(self, p: playwright.Playwright) -> None:
+        self.p = p
+        self.semaphore: Semaphore = Semaphore(self.SEMAPHORE_LIMIT)
         self.lifetime_task_count: int = 0
 
     @classmethod
@@ -166,7 +183,7 @@ class BrowserRuntime:
         return not cls.cli_args.no_playwright
 
     def can_create_task(self) -> bool:
-        return not (self.queue.empty() or self.semaphore.locked())
+        return not (self.sheet_queue.empty() or self.semaphore.locked())
 
 
 CrawlerTask.define_steps_in_order  # TODO
