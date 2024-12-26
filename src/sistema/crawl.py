@@ -20,7 +20,7 @@ from src.db.tables import (
 )
 from src.exc import Task
 from src.runtime import CommandLineArguments
-from src.types import BrowserType
+from src.types import BrowserType, TaskInitState
 
 import gc
 import asyncio
@@ -89,11 +89,6 @@ class PageState:
         return (
             hash(self.origin_id) + hash(self.cookie_ids) + hash(self.local_storage_ids)
         )
-
-
-class TaskInitState(TypedDict):
-    sheet_path: Path
-    certificate_db_id: int
 
 
 class BrowserContext:

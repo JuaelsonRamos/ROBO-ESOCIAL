@@ -8,6 +8,8 @@ import sqlite3
 from pathlib import Path
 from typing import Final
 
+from sqlalchemy import Engine
+
 
 DB_FILE: Final[Path] = Directory.APPDATA / '_app_state.db'
 BACKUP_DIR: Final[Path] = Directory.DB_BACKUP
@@ -109,7 +111,7 @@ def define_connection(filepath: Path | None = None) -> sqlite3.Connection:
     return conn
 
 
-def init_sync_sqlite():
+def init_sync_sqlite() -> Engine:
     from .tables import Base
 
     from src.gui.tkinter_global import TkinterGlobal
@@ -124,4 +126,5 @@ def init_sync_sqlite():
         echo_pool=__debug__,
     )
     Base.metadata.create_all(sqlite_engine)
-    TkinterGlobal.sqlite = sqlite_engine
+
+    return sqlite_engine

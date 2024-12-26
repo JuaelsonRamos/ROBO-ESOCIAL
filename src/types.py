@@ -12,7 +12,8 @@ import datetime
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum, auto
-from typing import Any, Never, TypeAlias, TypeVar
+from pathlib import Path
+from typing import Any, Never, TypeAlias, TypeVar, TypedDict
 
 import numpy
 
@@ -250,3 +251,8 @@ class OpenpyxlCell:
     Boolean: TypeAlias = bool
     NoneType: TypeAlias = types.NoneType
     KnownTypes = NumpyNumeric | Numeric | Time | String | Boolean | NoneType
+
+
+class TaskInitState(TypedDict):
+    sheet_path: Path
+    certificate_db_id: int

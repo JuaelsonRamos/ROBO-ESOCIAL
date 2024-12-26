@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from src.exc import Tkinter
+from src.types import TaskInitState
 
+from asyncio import Queue
 from tkinter import ttk
 from typing import Any, Final, Generator
 
@@ -72,6 +74,7 @@ class TkinterGlobalType(metaclass=TkinterGlobalMeta):
 
     style: ttk.Style
     sqlite: sqlalchemy.Engine
+    sheet_queue: Queue[TaskInitState]
 
 
 TkinterGlobal: Final[TkinterGlobalType] = TkinterGlobalType()

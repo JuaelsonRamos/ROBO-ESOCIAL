@@ -22,8 +22,6 @@ class GraphicalRuntime:
         super().__init__()
         self.app = App()
 
-        TkinterGlobal.style = ttk.Style(self.app)
-
     @classmethod
     def should_avoid(cls) -> bool:
         return cls.cli_args.no_tkinter
@@ -37,10 +35,13 @@ class GraphicalRuntime:
 async def mainloop():
     if not Directory.is_ensured():
         Directory.ensure_mkdir()
-    init_sync_sqlite()
+    sqlite_engine = init_sync_sqlite()
+    TkinterGlobal.sqlite = sqlite_engine
     async with async_playwright() as p:
         browser = BrowserRuntime(p)
+        TkinterGlobal.sheet_queue = browser.sheet_queue
         gui = GraphicalRuntime()
+        TkinterGlobal.style = ttk.Style(gui.app)
         while await asyncio.sleep(gui.app.frametime, True):
             gui.app.tick()
             if gui.app.has_quit():
