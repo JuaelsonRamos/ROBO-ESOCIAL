@@ -3,7 +3,18 @@ from __future__ import annotations
 from .browser_config import FirefoxConfig
 
 from src.bootstrap import Directory
-from src.db.tables import BrowserContextDict, CookieDict, LocalStorageDict, OriginDict
+from src.db.tables import (
+    BrowserContext as _BrowserContext,
+    BrowserContextDict,
+    ColorSchemeType,
+    CookieDict,
+    ForcedColorsType,
+    LocalStorageDict,
+    LocaleType,
+    OriginDict,
+    ReducedMotionType,
+    TimezoneIdType,
+)
 from src.exc import Task
 from src.runtime import CommandLineArguments
 from src.types import BrowserType
@@ -16,7 +27,7 @@ import itertools
 from asyncio import Lock, Queue, Semaphore
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Coroutine, Final
+from typing import Any, Callable, Coroutine, Final
 from urllib.parse import (
     ParseResult as URLParseResult,
     urlparse,
@@ -27,12 +38,6 @@ import playwright.async_api as playwright
 
 ESOCIAL_URL: Final[URLParseResult]  # TODO
 GOVBR_URL: Final[URLParseResult]  # TODO
-
-
-def default_browsercontext_dict() -> BrowserContextDict: ...
-
-
-def make_db_browsercontext_dict() -> BrowserContextDict: ...
 
 
 def make_db_origin_dict() -> OriginDict: ...
@@ -65,15 +70,58 @@ class PageState:
 
 
 class BrowserContext:
+    # db properties
+    accept_downloads: bool
+    offline: bool
+    javascript_enabled: bool
+    is_mobile: bool
+    has_touch: bool
+    colorscheme: ColorSchemeType
+    reduced_motion: ReducedMotionType
+    forced_colors: ForcedColorsType
+    locale: LocaleType
+    timezone_id: TimezoneIdType
+
     def __init__(self, p: playwright.Playwright, browser: playwright.Browser) -> None:
         self.p = p
         self.browser = browser
         self.browser_exe = Path(browser.browser_type.executable_path)
         self.browser_type = BrowserType.enum_from_name(browser.browser_type.name)
+        self._db_data_cache: dict[str, Any] = {}
+        self._db_data_changes: dict[str, Any] = {}
+
+    @staticmethod
+    def default_db_dict() -> BrowserContextDict: ...
 
     async def start_from(self, sheet: Path):
         self.browsercontext_id: int
         self.browser_context: playwright.BrowserContext
+
+    def __getattr__(self, name: str, /) -> Any:
+        if name in self._db_data_cache:
+            return self._db_data_cache[name]
+        return getattr(super(), name)
+
+    def __setattr__(self, name: str, value: Any, /) -> None:
+        if name in self._db_data_cache:
+            self._db_data_changes[name] = value
+            return
+        setattr(super(), name, value)
+
+    def can_update_db_data(self) -> bool:
+        return len(self._db_data_changes) > 0
+
+    def update_db_data(self):
+        if (
+            len(self._db_data_changes) == 0
+            or len(self._db_data_cache) == 0
+            or '_id' not in self._db_data_cache
+        ):
+            return
+        _BrowserContext.sync_update_one_from_id(
+            self._db_data_changes, self._db_data_cache['_id']
+        )
+        self._db_data_changes.clear()
 
     @staticmethod
     def firefox_exe() -> Path | None:
@@ -112,6 +160,8 @@ class CrawlerTask:
         self.page: PageState = await self.context.new_page()
         await self.runtime.task_count_increase()
         for step in self._steps:
+            if self.context.can_update_db_data():
+                self.context.update_db_data()
             if not getattr(step, '__crawler_step__', False):
                 continue
             if inspect.iscoroutinefunction(step):
