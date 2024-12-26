@@ -6,6 +6,7 @@ from src.exc import Task
 from src.runtime import CommandLineArguments
 from src.types import BrowserType
 
+import json
 import asyncio
 import hashlib
 import inspect
@@ -195,4 +196,18 @@ class BrowserRuntime:
         return not (self.sheet_queue.empty() and self.semaphore.locked())
 
 
-CrawlerTask.define_steps_in_order  # TODO
+    async def new_firefox(self) -> playwright.Browser:
+        exe = BrowserContext.firefox_exe()
+        if exe is None:
+            raise RuntimeError('cannot find firefox executable')
+        user_prefs = Directory.CONFIG / 'firefox' / 'user_prefs.json'
+        if not user_prefs.is_file():
+            raise RuntimeError('cannot find firefox user prefs config')
+        prefs = json.loads(user_prefs.read_bytes())
+        return await self.p.firefox.launch(
+            executable_path=exe,
+            headless=False,
+            chromium_sandbox=False,
+            downloads_path=Directory.BROWSER_DOWNLOADS,
+            firefox_user_prefs=prefs,
+        )
