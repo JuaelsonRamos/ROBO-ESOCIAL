@@ -33,6 +33,7 @@ class DirectoryNamespace:
     ASSETS: Final[Path] = Path('./assets/') if __debug__ else Path('./_Assets/')
     CONFIG: Final[Path] = ASSETS / 'Config'
     BROWSER_DOWNLOADS: Final[Path] = APPDATA / '_Downloads'
+    BROWSER_TRACES: Final[Path] = APPDATA / '_Traces'
 
     # owner=read,write,open ; group=read,open ; others=none
     mode: Final[int] = 0o750

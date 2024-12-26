@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from .browser_config import FirefoxConfig
+
 from src.bootstrap import Directory
 from src.db.tables import BrowserContextDict, CookieDict, LocalStorageDict, OriginDict
 from src.exc import Task
 from src.runtime import CommandLineArguments
 from src.types import BrowserType
 
-import json
 import asyncio
 import hashlib
 import inspect
@@ -15,7 +16,6 @@ import itertools
 from asyncio import Lock, Queue, Semaphore
 from dataclasses import dataclass
 from pathlib import Path
-from queue import Empty
 from typing import Callable, Coroutine, Final
 from urllib.parse import (
     ParseResult as URLParseResult,
@@ -199,16 +199,51 @@ class BrowserRuntime:
         exe = BrowserContext.firefox_exe()
         if exe is None:
             raise RuntimeError('cannot find firefox executable')
-        user_prefs = Directory.CONFIG / 'firefox' / 'user_prefs.json'
-        if not user_prefs.is_file():
-            raise RuntimeError('cannot find firefox user prefs config')
-        prefs = json.loads(user_prefs.read_bytes())
+
+        readwrite = 0o666
+        readonly = 0o444
+
+        # firefox distribution config dir
+        dist_dir = exe.parent / 'distribution'
+        if not dist_dir.exists():
+            dist_dir.mkdir(parents=True, exist_ok=True)
+
+        # check/write override.ini
+        override_path = dist_dir / 'override.ini'
+        if not override_path.exists():
+            override_path.touch(readwrite, exist_ok=True)
+        file_hash = FirefoxConfig.hash_override_ini(ini_file=override_path)
+        dict_hash = FirefoxConfig.hash_override_ini()
+        if file_hash != dict_hash:
+            if override_path.stat().st_mode != readwrite:
+                override_path.chmod(readwrite)
+            override_path.write_bytes(FirefoxConfig.parse_override_ini())
+        if override_path.stat().st_mode != readonly:
+            override_path.chmod(readonly)
+
+        # check/write policies.json
+        policies_path = dist_dir / 'policies.json'
+        if policies_path.exists():
+            policies_path.touch(readwrite, exist_ok=True)
+        file_hash = FirefoxConfig.hash_policies_json(policies_file=policies_path)
+        dict_hash = FirefoxConfig.hash_policies_json()
+        if file_hash != dict_hash:
+            if policies_path.stat().st_mode != readwrite:
+                policies_path.chmod(readwrite)
+            policies_path.write_bytes(FirefoxConfig.parse_policies_json())
+        if policies_path.stat().st_mode != readonly:
+            policies_path.chmod(readonly)
+
         return await self.p.firefox.launch(
             executable_path=exe,
-            headless=False,
+            args=['-override', f'"{str(override_path)}"'],
+            headless=not __debug__,
+            # devtools disabled in policies.json
             chromium_sandbox=False,
+            # downloads_path and traces_dir are currently not, but can be set in policies.json
             downloads_path=Directory.BROWSER_DOWNLOADS,
-            firefox_user_prefs=prefs,
+            traces_dir=Directory.BROWSER_TRACES,
+            firefox_user_prefs=FirefoxConfig.user_js,
         )
 
     async def schedule_task(self):
@@ -217,11 +252,8 @@ class BrowserRuntime:
         if not hasattr(self, 'browser'):
             self.browser = await self.new_firefox()
         context = BrowserContext(self.p, self.browser)
-        try:
-            sheet = self.sheet_queue.get_nowait()
-            await context.start_from(sheet)
-        except Empty as err:
-            raise RuntimeError(err) from err
+        sheet = await self.sheet_queue.get()
+        await context.start_from(sheet)
         task = CrawlerTask(self.p, context, self)
         task.register_self()
         task.schedule_self()
