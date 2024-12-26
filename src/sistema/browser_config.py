@@ -4,6 +4,7 @@ import io
 import json
 import hashlib
 
+from pathlib import Path
 from typing import Any, Literal
 
 
@@ -162,8 +163,11 @@ class FirefoxConfig:
             return buffer.getvalue()
 
     @classmethod
-    def hash_override_ini(cls) -> hashlib._Hash:
-        return hashlib.md5(cls.parse_override_ini(), usedforsecurity=False)
+    def hash_override_ini(cls, *, ini_file: Path | None = None) -> hashlib._Hash:
+        _bytes = (
+            ini_file.read_bytes() if ini_file is not None else cls.parse_override_ini()
+        )
+        return hashlib.md5(_bytes, usedforsecurity=False)
 
     @classmethod
     def parse_policies_json(cls) -> bytes:
@@ -181,8 +185,13 @@ class FirefoxConfig:
         return json_str.encode(cls.encoding)
 
     @classmethod
-    def hash_policies_json(cls) -> hashlib._Hash:
-        return hashlib.md5(cls.parse_policies_json(), usedforsecurity=False)
+    def hash_policies_json(cls, *, policies_file: Path | None = None) -> hashlib._Hash:
+        _bytes = (
+            policies_file.read_bytes()
+            if policies_file is not None
+            else cls.parse_policies_json()
+        )
+        return hashlib.md5(_bytes, usedforsecurity=False)
 
     @classmethod
     def parse_user_js(
@@ -216,5 +225,10 @@ class FirefoxConfig:
             return buffer.getvalue()
 
     @classmethod
-    def hash_user_js(cls) -> hashlib._Hash:
-        return hashlib.md5(cls.parse_user_js(), usedforsecurity=False)
+    def hash_user_js(cls, *, user_js_file: Path | None = None) -> hashlib._Hash:
+        _bytes = (
+            user_js_file.read_bytes()
+            if user_js_file is not None
+            else cls.parse_user_js()
+        )
+        return hashlib.md5(_bytes, usedforsecurity=False)
