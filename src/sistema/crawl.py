@@ -11,7 +11,7 @@ import hashlib
 import inspect
 import itertools
 
-from asyncio import Queue, Semaphore
+from asyncio import Lock, Queue, Semaphore
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Coroutine, Final
@@ -110,6 +110,9 @@ class CrawlerTask:
         self.runtime = runtime
 
     async def _crawler_run(self):
+        await self.runtime.semaphore.acquire()
+        self.page: PageState = await self.context.new_page()
+        await self.runtime.task_count_increase()
         for step in self._steps:
             if inspect.iscoroutinefunction(step):
                 await step(self)
@@ -117,20 +120,17 @@ class CrawlerTask:
             if inspect.isfunction(step):
                 step(self)
 
-    async def start(self, *, return_if_cant: bool = False) -> None:
-        if return_if_cant and not self.runtime.can_create_task():
+    def schedule_self(self, *, return_if_cant: bool = False) -> None:
+        if return_if_cant and not self.runtime.can_task_run_immediately():
             return
-        await self.runtime.semaphore.acquire()
         self.task_index: int = self._get_task_i()
         self.task_index_formated: str = str(self.task_index).ljust(3, '0')
         self.task_name: str = f'crawler({self.task_index_formated})'
-        self.page: PageState = await self.context.new_page()
         self.asyncio_coro: Coroutine = self._crawler_run()
         self.asyncio_task: asyncio.Task = asyncio.create_task(
             self.asyncio_coro, name=self.task_name
         )
         self.asyncio_task.add_done_callback(self._asyncio_task_done_hook)
-        self.runtime.lifetime_task_count += 1
 
     def _asyncio_task_done_hook(self, task: asyncio.Task[None]) -> None:
         self.runtime.semaphore.release()
@@ -176,14 +176,23 @@ class BrowserRuntime:
     def __init__(self, p: playwright.Playwright) -> None:
         self.p = p
         self.semaphore: Semaphore = Semaphore(self.SEMAPHORE_LIMIT)
-        self.lifetime_task_count: int = 0
+        self._lifetime_task_count: int = 0
+        self._task_count_lock = Lock()
+
+    @property
+    def lifetime_task_count(self) -> int:
+        return self._lifetime_task_count
+
+    async def task_count_increase(self):
+        async with self._task_count_lock:
+            self._lifetime_task_count += 1
 
     @classmethod
     def should_run(cls) -> bool:
         return not cls.cli_args.no_playwright
 
-    def can_create_task(self) -> bool:
-        return not (self.sheet_queue.empty() or self.semaphore.locked())
+    def can_task_run_immediately(self) -> bool:
+        return not (self.sheet_queue.empty() and self.semaphore.locked())
 
 
 CrawlerTask.define_steps_in_order  # TODO
