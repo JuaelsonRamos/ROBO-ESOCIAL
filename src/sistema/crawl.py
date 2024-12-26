@@ -15,6 +15,7 @@ import itertools
 from asyncio import Lock, Queue, Semaphore
 from dataclasses import dataclass
 from pathlib import Path
+from queue import Empty
 from typing import Callable, Coroutine, Final
 from urllib.parse import (
     ParseResult as URLParseResult,
@@ -70,11 +71,7 @@ class BrowserContext:
         self.browser_exe = Path(browser.browser_type.executable_path)
         self.browser_type = BrowserType.enum_from_name(browser.browser_type.name)
 
-    def create_new(self):
-        self.browsercontext_id: int
-        self.browser_context: playwright.BrowserContext
-
-    def create_from(self, *args):
+    async def start_from(self, sheet: Path):
         self.browsercontext_id: int
         self.browser_context: playwright.BrowserContext
 
@@ -153,7 +150,7 @@ class CrawlerTask:
         return non_unique + unique
 
     @classmethod
-    def define_steps_in_order(cls, *steps: StepFunc) -> None:
+    def define_steps_in_strict_order(cls, *steps: StepFunc) -> None:
         if hasattr(cls, '_steps'):
             return
         if any(not hasattr(func, '__crawler_step__') for func in steps):
@@ -171,12 +168,12 @@ class CrawlerTask:
 class BrowserRuntime:
     cli_args = CommandLineArguments().parse_argv()
     SEMAPHORE_LIMIT: Final[int] = 5
-    sheet_queue: Queue[Path] = Queue()
     browser: playwright.Browser
 
     def __init__(self, p: playwright.Playwright) -> None:
         self.p = p
         self.semaphore: Semaphore = Semaphore(self.SEMAPHORE_LIMIT)
+        self.sheet_queue: Queue[Path] = Queue()
         self._lifetime_task_count: int = 0
         self._task_count_lock = Lock()
 
@@ -195,6 +192,8 @@ class BrowserRuntime:
     def can_task_run_immediately(self) -> bool:
         return not (self.sheet_queue.empty() and self.semaphore.locked())
 
+    def can_schedule_task(self) -> bool:
+        return not self.sheet_queue.empty()
 
     async def new_firefox(self) -> playwright.Browser:
         exe = BrowserContext.firefox_exe()
@@ -211,3 +210,21 @@ class BrowserRuntime:
             downloads_path=Directory.BROWSER_DOWNLOADS,
             firefox_user_prefs=prefs,
         )
+
+    async def schedule_task(self):
+        if self.sheet_queue.empty():
+            return
+        if not hasattr(self, 'browser'):
+            self.browser = await self.new_firefox()
+        context = BrowserContext(self.p, self.browser)
+        try:
+            sheet = self.sheet_queue.get_nowait()
+            await context.start_from(sheet)
+        except Empty as err:
+            raise RuntimeError(err) from err
+        task = CrawlerTask(self.p, context, self)
+        task.register_self()
+        task.schedule_self()
+
+
+CrawlerTask.define_steps_in_strict_order  # TODO
