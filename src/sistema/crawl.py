@@ -14,11 +14,14 @@ from src.db.tables import (
     OriginDict,
     ReducedMotionType,
     TimezoneIdType,
+    Workbook as _Workbook,
+    Worksheet as _Worksheet,
 )
 from src.exc import Task
 from src.runtime import CommandLineArguments
 from src.types import BrowserType
 
+import gc
 import asyncio
 import hashlib
 import inspect
@@ -27,13 +30,15 @@ import itertools
 from asyncio import Lock, Queue, Semaphore
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Coroutine, Final
+from typing import Any, Callable, Coroutine, Final, TypedDict
 from urllib.parse import (
     ParseResult as URLParseResult,
     urlparse,
 )
 
 import playwright.async_api as playwright
+
+from openpyxl import load_workbook
 
 
 ESOCIAL_URL: Final[URLParseResult]  # TODO
@@ -69,6 +74,11 @@ class PageState:
         )
 
 
+class TaskInitState(TypedDict):
+    sheet_path: Path
+    certificate_db_id: int
+
+
 class BrowserContext:
     # db properties
     accept_downloads: bool
@@ -93,9 +103,50 @@ class BrowserContext:
     @staticmethod
     def default_db_dict() -> BrowserContextDict: ...
 
-    async def start_from(self, sheet: Path):
-        self.browsercontext_id: int
-        self.browser_context: playwright.BrowserContext
+    def _create_db_data_populate_self(self, init_state: TaskInitState):
+        # caching init data
+        self.sheet_path = init_state['sheet_path']
+        self.certificate_db_id = init_state['certificate_db_id']
+
+        # insert browser context data into db
+        db_data = self.default_db_dict()
+        self.browsercontext_id: int = _BrowserContext.sync_insert_one(db_data)
+
+        # save data as in db
+        inserted_db_data = _BrowserContext.sync_select_one_from_id(
+            self.browsercontext_id
+        )
+        if inserted_db_data is None:
+            raise RuntimeError('data not inserted')
+        self._db_data_cache = inserted_db_data._asdict()
+
+        # insert workbook data into db
+        workbook_data = _Workbook.from_file(self.sheet_path)
+        self.workbook_id: int = _Workbook.sync_insert_one(workbook_data)
+
+        # insert worksheets data into db
+        book = load_workbook(self.sheet_path, read_only=True)
+        sheet_ids = []
+        for _sheet in book.worksheets:
+            data = _Worksheet.from_sheet_obj(book, _sheet)
+            data['workbook_id'] = self.workbook_id
+            _id = _Worksheet.sync_insert_one(data)
+            sheet_ids.append(_id)
+        self.worksheet_ids = tuple(sheet_ids)
+
+        # explicity signal those should be collected when possible
+        del db_data, inserted_db_data, workbook_data, book, sheet_ids, data, _id
+
+    def _make_playwright_context_args(self) -> dict[str, Any]: ...
+
+    async def start_from(self, init_state: TaskInitState):
+        self._create_db_data_populate_self(init_state)
+        args = self._make_playwright_context_args()
+        self.browser_context: playwright.BrowserContext = (
+            await self.browser.new_context(**args)
+        )
+        # sync free memory
+        gc.collect()
 
     def __getattr__(self, name: str, /) -> Any:
         if name in self._db_data_cache:
@@ -225,7 +276,7 @@ class BrowserRuntime:
     def __init__(self, p: playwright.Playwright) -> None:
         self.p = p
         self.semaphore: Semaphore = Semaphore(self.SEMAPHORE_LIMIT)
-        self.sheet_queue: Queue[Path] = Queue()
+        self.sheet_queue: Queue[TaskInitState] = Queue()
         self._lifetime_task_count: int = 0
         self._task_count_lock = Lock()
 
@@ -304,8 +355,8 @@ class BrowserRuntime:
         if not hasattr(self, 'browser'):
             self.browser = await self.new_firefox()
         context = BrowserContext(self.p, self.browser)
-        sheet = await self.sheet_queue.get()
-        await context.start_from(sheet)
+        init_state = await self.sheet_queue.get()
+        await context.start_from(init_state)
         task = CrawlerTask(self.p, context, self)
         task.register_self()
         task.schedule_self()
