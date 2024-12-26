@@ -8,13 +8,6 @@
  */
 
 /**
- * Cookie change event detail argument.
- * @typedef {Object} CookieChangeDetail
- * @property {string} oldCookie
- * @property {string} newCookie
- */
-
-/**
  *  Patch document's cookie property to report with an event upon change.
  */
 (function () {
@@ -73,5 +66,9 @@
         _lastCookie = cookie;
       }
     },
+  });
+  // addEventListener
+  window.addEventListener(_cookieEventEnum.CookieChange, _cookieChangeHandler, {
+    capture: true,
   });
 })();

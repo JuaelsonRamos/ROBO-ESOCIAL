@@ -15,28 +15,6 @@
  */
 
 /**
- * Local storage data state object
- * @typedef {Object} LocalStorageState
- * @property {number} length
- * @property {string[]} keys
- * @property {object} storageContent
- */
-
-/**
- * Local storage event detail object
- * @typedef {Object} LocalStorageEventDetail
- * @property {string} oldLocalStorage stringfied LocalStorageStage
- * @property {string} newLocalStorage stringfied LocalStorageStage
- */
-
-/**
- * Local storage property overwritten event detail object
- * @typedef {Object} LocalStorageOvewrittenEventDetail
- * @property {number} timeWhen unix millis (float)
- * @property {string} localStorageBefore stringfied LocalStorageStage
- */
-
-/**
  *  Watch changes in localStorage object and report with an event
  */
 (function () {
@@ -174,4 +152,10 @@
       console.error("ROBO-ESOCIAL: Local storage object has been overwritten");
     },
   });
+  // addEventListener
+  window.addEventListener(
+    _localStorageEventEnum.LocalStorageChange,
+    _localStorageChangeHandler,
+    { capture: true },
+  );
 })();
