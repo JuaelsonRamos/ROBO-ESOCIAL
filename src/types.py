@@ -12,7 +12,7 @@ import datetime
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum, auto
-from typing import Any, Never, TypeAlias, TypeVar, assert_never
+from typing import Any, Never, TypeAlias, TypeVar
 
 import numpy
 
@@ -108,7 +108,15 @@ class BrowserType(StrEnum):
             return 'firefox'
         if self == self.CHROMIUM:
             return 'chromium'
-        assert_never(self)
+        raise RuntimeError('should be unreachable')
+
+    @classmethod
+    def enum_from_name(cls, name: str) -> BrowserType:
+        if name == 'firefox':
+            return cls.FIREFOX
+        if name == 'chromium':
+            return cls.CHROMIUM
+        raise RuntimeError('should be unreachable')
 
 
 class CellValueType(StrEnum):
