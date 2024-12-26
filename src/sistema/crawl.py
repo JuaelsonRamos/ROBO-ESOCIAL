@@ -112,6 +112,8 @@ class CrawlerTask:
         self.page: PageState = await self.context.new_page()
         await self.runtime.task_count_increase()
         for step in self._steps:
+            if not getattr(step, '__crawler_step__', False):
+                continue
             if inspect.iscoroutinefunction(step):
                 await step(self)
                 continue
