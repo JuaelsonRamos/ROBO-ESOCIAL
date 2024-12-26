@@ -9,7 +9,10 @@ from typing import Literal
 
 class FirefoxConfig:
     encoding = 'utf-8'
-    override_ini: dict[str, dict[str, str | float | bool | int]] = {}
+    override_ini: dict[str, dict[str, str | float | bool | int]] = {
+        'App': {'Vendor': 'Mozilla', 'Name': 'Firefox'},
+        'XRE': {'EnableProfileMigrator': False},
+    }
     policies_json: dict = {}
     user_js: dict[str, str | float | bool] = {}
 
