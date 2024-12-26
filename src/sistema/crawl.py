@@ -55,10 +55,26 @@ def make_db_cookie_dict() -> CookieDict: ...
 def make_db_local_storage_dict() -> LocalStorageDict: ...
 
 
-def browserhook_on_cookie_change() -> None: ...
+class CookieChangeDetail(TypedDict):
+    oldCookie: str
+    newCookie: str
 
 
-def browserhook_on_local_storage_change() -> None: ...
+def browserhook_on_cookie_change(detail: CookieChangeDetail) -> None: ...
+
+
+class LocalStorageState(TypedDict):
+    length: int
+    keys: list[str]
+    storageContent: dict[str, Any]
+
+
+class LocalStorageDetail(TypedDict):
+    oldLocalStorage: str  # strigfied LocalStorageState
+    newLocalStorage: str  # strigfied LocalStorageState
+
+
+def browserhook_on_local_storage_change(detail: LocalStorageDetail) -> None: ...
 
 
 @dataclass(init=True, slots=True)
@@ -184,6 +200,23 @@ class BrowserContext:
         self.browser_context: playwright.BrowserContext = (
             await self.browser.new_context(**args)
         )
+
+        # expose functions first
+        await self.browser_context.expose_function(
+            '_localStorageChangeHandler', browserhook_on_local_storage_change
+        )
+        await self.browser_context.expose_function(
+            '_cookieChangeHandler', browserhook_on_cookie_change
+        )
+
+        # add scripts after exposing functions
+        await self.browser_context.add_init_script(
+            path=Path('./js/meta/cookieChange.js')
+        )
+        await self.browser_context.add_init_script(
+            path=Path('./js/meta/localStorageChange.js')
+        )
+
         # sync free memory
         gc.collect()
 
