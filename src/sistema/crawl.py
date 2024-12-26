@@ -6,6 +6,7 @@ from src.bootstrap import Directory
 from src.db.tables import (
     BrowserContext as _BrowserContext,
     BrowserContextDict,
+    ClientCertificate as _ClientCertificate,
     ColorSchemeType,
     CookieDict,
     ForcedColorsType,
@@ -101,7 +102,19 @@ class BrowserContext:
         self._db_data_changes: dict[str, Any] = {}
 
     @staticmethod
-    def default_db_dict() -> BrowserContextDict: ...
+    def default_db_dict() -> BrowserContextDict:
+        return {
+            'accept_downloads': False,
+            'offline': False,
+            'javascript_enabled': True,
+            'is_mobile': False,
+            'has_touch': False,
+            'colorscheme': 'light',
+            'reduced_motion': 'reduce',
+            'forced_colors': 'none',
+            'locale': 'pt-BR',
+            'timezone_id': 'America/Sao_Paulo',
+        }
 
     def _create_db_data_populate_self(self, init_state: TaskInitState):
         # caching init data
@@ -137,7 +150,33 @@ class BrowserContext:
         # explicity signal those should be collected when possible
         del db_data, inserted_db_data, workbook_data, book, sheet_ids, data, _id
 
-    def _make_playwright_context_args(self) -> dict[str, Any]: ...
+    def _make_playwright_context_args(self) -> dict[str, Any]:
+        indb = self._db_data_cache
+        cert = _ClientCertificate.sync_select_one_from_id(self.certificate_db_id)
+        cert_dict = None
+        if cert is not None:
+            cert_dict = {'origin': cert.origin}
+            if cert.using_type == 'PFX':
+                cert_dict['pfx'] = cert.pfx if cert.pfx is not None else b''
+            elif cert.usign_type == 'KEY':
+                cert_dict['key'] = cert.key if cert.key is not None else b''
+            else:
+                cert_dict['cert'] = cert.cert if cert.cert is not None else b''
+            if cert.passphrase is not None:
+                cert_dict['passphrase'] = cert.passphrase
+        return dict(
+            java_script_enabled=indb['javascript_enabled'],
+            locale=indb['locale'],
+            timezone_id=indb['timezone_id'],
+            offline=indb['offline'],
+            is_mobile=indb['is_mobile'],
+            has_touch=indb['has_touch'],
+            color_scheme=indb['colorscheme'],
+            reduced_motion=indb['reduced_motion'],
+            forced_colors=indb['forced_colors'],
+            accept_downloads=indb['accept_downloads'],
+            client_certificates=[cert_dict] if cert_dict is not None else None,
+        )
 
     async def start_from(self, init_state: TaskInitState):
         self._create_db_data_populate_self(init_state)
