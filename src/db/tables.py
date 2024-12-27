@@ -6,6 +6,7 @@ from src.global_state import GlobalState
 from src.sistema.sheet_constants import DEFAULT_MODEL_CELL, SHEET_FILETYPE_ASSOCIATIONS
 from src.types import SheetModel
 
+import io
 import re
 import string
 import hashlib
@@ -810,6 +811,26 @@ class Worksheet(Base):
             model_name=SheetModel.name_from_cell(model_cell),
         )
 
+    @classmethod
+    def insert_all_sheets_from_book_db_id(cls, book_id: int) -> tuple[int, ...] | None:
+        with GlobalState.sqlite.begin() as conn:
+            book_db_result = conn.execute(
+                select(Workbook.blob).where(Workbook._id == book_id)
+            ).one_or_none()
+            if book_db_result is None:
+                return None
+            workbook = load_workbook(io.BytesIO(book_db_result.blob), read_only=True)
+            if len(workbook.sheetnames) == 0:
+                return None
+            all_db_data: list[WorksheetDict] = []
+            for sheet_name in workbook.sheetnames:
+                worksheet = workbook[sheet_name]
+                db_data = cls.from_sheet_obj(workbook, worksheet)
+                db_data['workbook_id'] = book_id
+                all_db_data.append(db_data)
+            insert_result = conn.execute(insert(cls).values(*all_db_data))
+            return tuple(row._id for row in insert_result.inserted_primary_key_rows)
+
 
 class WorkbookDict(BaseDict, total=False):
     created: datetime
@@ -877,3 +898,18 @@ class Workbook(Base):
             blob_size=len(blob),
             original_path=str(path),
         )
+
+    @classmethod
+    def get_id_from_file(cls, path: Path) -> int | None:
+        if path.stat().st_size > ClientConfig.SQLITE_LIMIT_LENGTH:
+            # if it can't be inserted, it certainly doesn't exist
+            return None
+        local_sha512 = hashlib.sha512(path.read_bytes()).hexdigest().upper()
+        with GlobalState.sqlite.begin() as conn:
+            query = select(cls._id).where(cls.sha512 == local_sha512)
+            result = conn.execute(query).one_or_none()
+            return None if result is None else result._id
+
+    @classmethod
+    def insert_from_file(cls, path: Path) -> int:
+        return cls.sync_insert_one(cls.from_file(path))

@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from src.db.tables import Workbook, WorkbookDict, Worksheet
-from src.exc import SheetParsing
 from src.global_state import GlobalState
 from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
 from src.gui.views.View import View
-from src.sistema.sheet import Sheet
 from src.sistema.sheet_constants import SHEET_FILEDIALOG_OPTIONS
 from src.windows import open_file_dialog
 
@@ -20,7 +18,7 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Any, Never, TypedDict, cast, get_type_hints
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, select
 from unidecode import unidecode_expect_nonascii as unidecode
 
 
@@ -271,31 +269,14 @@ class AddButton(ActionButton):
             value = cast(Exception, value)
             raise value
         value = cast(tuple[Path, ...], value)
-        for p in value:
-            sheetobj = Sheet(p)
-            with GlobalState.sqlite.begin() as conn:
-                sha = sheetobj.db_workbook.get('sha512', None)
-                if sha is None:
-                    raise SheetParsing.ValueError('sha512 does not exist')
-                query = (
-                    select(func.count())
-                    .select_from(Workbook)
-                    .where(Workbook.sha512 == sha)
-                )
-                count = conn.execute(query).one_or_none() or 0
-                if count > 0:
-                    # spreadsheet already exists in db
-                    continue
-            if len(sheetobj.worksheets) == 0:
-                raise SheetParsing.ValueError('no worksheets exist in spreadsheet')
-            inserted_id: int = Workbook.sync_insert_one(sheetobj.db_workbook)
-            db_sheets = []
-            for sheet_dict in sheetobj.db_worksheets:
-                _dict = sheet_dict.copy()
-                _dict['workbook_id'] = inserted_id
-                db_sheets.append(_dict)
-            Worksheet.sync_insert_many(*db_sheets)
-        _widgets.proc_tree.event_generate('<<ReloadTree>>')
+        for path in value:
+            book_id = Workbook.get_id_from_file(path)
+            if book_id is None:
+                book_id = Workbook.insert_from_file(path)
+                book_id = cast(int, book_id)
+                Worksheet.insert_all_sheets_from_book_db_id(book_id)
+            _widgets.proc_tree.event_generate('<<AddItem>>', state=book_id)
+        self.update()
 
     def on_click(self):
         lock = TkinterLock
@@ -462,9 +443,17 @@ class Tree(ttk.Treeview):
 
 class ProcessingTree(Tree):
     headings_spec = INPUT_QUEUE
+    heading_db_columns = (
+        '_id',
+        'original_path',
+        'file_type_description',
+        'file_size',
+        'created',
+    )
 
     def __init__(self, master: ttk.Widget):
         super().__init__(master)
+        self.bind('<<AddItem>>', self._add_single_workbook)
         self.bind('<<ReloadTree>>', self.force_reload_tree)
         self.bind('<<DeleteSelected>>', self._delete_selected)
 
@@ -491,12 +480,21 @@ class ProcessingTree(Tree):
             created = ''
         return ('-', name, description, sizeof, created)
 
+    def _add_single_workbook(self, event: tk.Event):
+        book_id = cast(int, event.state)
+        db_book = Workbook.sync_select_one_from_id(book_id)
+        if db_book is None:
+            return
+        values = self._make_file_data(WorkbookDict(**db_book._asdict()))
+        if self.exists(book_id):
+            self.item(book_id, values=values)
+            return
+        self.insert('', book_id, book_id, values=values)
+
     def force_reload_tree(self, event: tk.Event | None = None):
         if Workbook.sync_count() == 0:
             return
-        db_books = Workbook.sync_select_all_columns(
-            '_id', 'original_path', 'file_type_description', 'file_size', 'created'
-        )
+        db_books = Workbook.sync_select_all_columns(*self.heading_db_columns)
         for book in db_books:
             iid = book._id
             values = self._make_file_data(WorkbookDict(**book._asdict()))
