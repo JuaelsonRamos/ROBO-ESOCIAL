@@ -3,7 +3,6 @@ from __future__ import annotations
 from .client import ClientConfig
 
 from src.exc import Database
-from src.global_state import GlobalState
 from src.sistema.sheet_constants import DEFAULT_MODEL_CELL, SHEET_FILETYPE_ASSOCIATIONS
 from src.types import SheetModel
 
@@ -42,6 +41,7 @@ from sqlalchemy import (
     TEXT,
     Boolean,
     DateTime,
+    Engine,
     Enum,
     ForeignKey,
     MetaData,
@@ -137,8 +137,14 @@ class Base(DeclarativeBase, Generic[TD]):
     )
 
     @classmethod
+    def get_engine(cls) -> Engine:
+        from src.global_state import GlobalState
+
+        return cls.get_engine()
+
+    @classmethod
     def sync_count(cls) -> int:
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = func.count().select().select_from(cls)
             result = conn.execute(query).scalar_one_or_none()
             if result is None:
@@ -147,28 +153,28 @@ class Base(DeclarativeBase, Generic[TD]):
 
     @classmethod
     def sync_select_all_ids(cls):
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = select(cls._id)
             result = conn.scalars(query).all()
             return tuple(result)
 
     @classmethod
     def sync_delete_one_from_id(cls, _id: int):
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = delete(cls).where(cls._id == _id)
             conn.execute(query)
             return _id
 
     @classmethod
     def sync_delete_many_from_id(cls, *row_ids: int):
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = delete(cls).where(cls._id.in_(row_ids))
             conn.execute(query)
             return row_ids if isinstance(row_ids, tuple) else tuple(row_ids)
 
     @classmethod
     def sync_insert_one(cls, data: TD):
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = insert(cls).values(**data)
             result = conn.execute(query)
             if result.inserted_primary_key is None:
@@ -177,7 +183,7 @@ class Base(DeclarativeBase, Generic[TD]):
 
     @classmethod
     def sync_insert_many(cls, *row_data: TD):
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = insert(cls).values(*row_data)
             result = conn.execute(query)
             if len(result.inserted_primary_key_rows) == 0:
@@ -186,7 +192,7 @@ class Base(DeclarativeBase, Generic[TD]):
 
     @classmethod
     def sync_select_one_from_id(cls, _id: int):
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = select(cls).where(cls._id == _id)
             return conn.execute(query).one_or_none()
 
@@ -197,7 +203,7 @@ class Base(DeclarativeBase, Generic[TD]):
             cols = [getattr(cls, name) for name in columns]
         except AttributeError as err:
             raise Database.SelectError(err) from err
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = select(*cols)
             result = conn.execute(query).all()
             tup: Annotated[tuple[Row[tuple[Self]], ...], len(columns)]
@@ -213,7 +219,7 @@ class Base(DeclarativeBase, Generic[TD]):
             cols = [getattr(cls, name) for name in columns]
         except AttributeError as err:
             raise Database.SelectError(err) from err
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = select(*cols).where(cls._id.in_(row_ids))
             result = conn.execute(query).all()
             tup: Annotated[tuple[Row[tuple[Self]], ...], len(columns)]
@@ -222,21 +228,21 @@ class Base(DeclarativeBase, Generic[TD]):
 
     @classmethod
     def sync_select_many_from_id(cls, *row_ids: int):
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = select(cls).where(cls._id.in_(row_ids))
             result = conn.execute(query).all()
             return result if isinstance(result, tuple) else tuple(result)
 
     @classmethod
     def sync_update_one_from_id(cls, data: TD, _id: int):
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = update(cls).where(cls._id == _id).values(**data)
             conn.execute(query)
             return _id
 
     @classmethod
     def sync_update_many_from_id(cls, data: TD, *row_ids: int):
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = update(cls).where(cls._id.in_(row_ids)).values(**data)
             conn.execute(query)
             return row_ids if isinstance(row_ids, tuple) else tuple(row_ids)
@@ -814,7 +820,7 @@ class Worksheet(Base):
 
     @classmethod
     def insert_all_sheets_from_book_db_id(cls, book_id: int) -> tuple[int, ...] | None:
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             book_db_result = conn.execute(
                 select(Workbook.blob).where(Workbook._id == book_id)
             ).one_or_none()
@@ -834,7 +840,7 @@ class Worksheet(Base):
 
     @classmethod
     def get_sheet_ids_from_book_id(cls, book_id: int) -> tuple[int, ...]:
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = select(cls._id).where(cls.workbook_id == book_id)
             result = conn.execute(query).all()
             if len(result) == 0:
@@ -915,7 +921,7 @@ class Workbook(Base):
             # if it can't be inserted, it certainly doesn't exist
             return None
         local_sha512 = hashlib.sha512(path.read_bytes()).hexdigest().upper()
-        with GlobalState.sqlite.begin() as conn:
+        with cls.get_engine().begin() as conn:
             query = select(cls._id).where(cls.sha512 == local_sha512)
             result = conn.execute(query).one_or_none()
             return None if result is None else result._id
