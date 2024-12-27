@@ -204,7 +204,7 @@ class Base(DeclarativeBase, Generic[TD]):
 
     @classmethod
     def sync_select_columns_from_id(
-        cls, columns: Sequence[str], row_ids: Sequence[str]
+        cls, columns: Sequence[str], row_ids: Sequence[int]
     ):
         cols: list[MappedColumn[RowDataType]]
         try:
