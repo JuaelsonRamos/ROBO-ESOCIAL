@@ -55,3 +55,8 @@ class DirectoryNamespace:
 
 
 Directory = DirectoryNamespace()
+
+
+def bootstrap_application():
+    if not Directory.is_ensured():
+        Directory.ensure_mkdir()

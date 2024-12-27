@@ -5,6 +5,7 @@ from src.gui.views.CertificateManager import CertificateManager
 from src.gui.views.SheetProcess import SheetProcess
 from src.gui.widgets import ViewNavigator
 from src.gui.widgets.StatusBar import ProgressCounter, StatusBar
+from src.runtime import CommandLineArguments
 from src.windows import get_monitor_settings
 
 import math
@@ -73,3 +74,13 @@ class App(tk.Tk):
         app_tick: float = 1 / app_fps  # miliseconds
         app_tick = float(f'{app_tick:.4f}')
         return (app_fps, app_tick)
+
+
+class GraphicalRuntime:
+    cli_args = CommandLineArguments().parse_argv()
+
+    def __init__(self) -> None:
+        self.app = App()
+
+    def should_run(self) -> bool:
+        return not self.cli_args.no_tkinter
