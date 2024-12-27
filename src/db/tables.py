@@ -616,13 +616,73 @@ class BrowserContext(Base):
 
 
 class ProcessingEntryDict(BaseDict, total=False):
-    created: datetime
+    has_started: bool
+    is_paused: bool
+    has_finished: bool
+    when_started: datetime | None
+    when_last_started: datetime | None
+    when_finished: datetime | None
+    when_last_paused: datetime | None
+    browsercontext_id: int
+    workbook_id: int
+    clientcertificate_id: int
 
 
 class ProcessingEntry(Base):
     __tablename__ = 'processingentry'
     typed_dict = ProcessingEntryDict
     created: Mapped[datetime] = CommonColumns.created()
+    last_modified: Mapped[datetime] = CommonColumns.last_modified()
+    has_started: Mapped[bool] = mapped_column(
+        nullable=False, unique=False, default=False
+    )
+    is_paused: Mapped[bool] = mapped_column(nullable=False, unique=False, default=False)
+    has_finished: Mapped[bool] = mapped_column(
+        nullable=False, unique=False, default=False
+    )
+    when_started: Mapped[datetime] = mapped_column(
+        nullable=True, unique=False, server_default=sql.null()
+    )
+    when_last_started: Mapped[datetime] = mapped_column(
+        nullable=True, unique=False, server_default=sql.null()
+    )
+    when_finished: Mapped[datetime] = mapped_column(
+        nullable=True, unique=False, server_default=sql.null()
+    )
+    when_last_paused: Mapped[datetime] = mapped_column(
+        nullable=True, unique=False, server_default=sql.null()
+    )
+    browsercontext_id: Mapped[int] = mapped_column(
+        ForeignKey('browsercontext._id'), nullable=False, unique=False
+    )
+    workbook_id: Mapped[int] = mapped_column(
+        ForeignKey('workbook._id'), nullable=False, unique=False
+    )
+    clientcertificate_id: Mapped[int] = mapped_column(
+        ForeignKey('clientcertificate._id'), nullable=False, unique=False
+    )
+
+
+class EntryWorksheetDict(BaseDict, total=False):
+    processingentry_id: int
+    worksheet_id: int
+    last_column: int
+    last_row: int
+
+
+class EntryWorksheet(Base):
+    __tablename__ = 'entryworksheet'
+    typed_dict = EntryWorksheetDict
+    created: Mapped[datetime] = CommonColumns.created()
+    last_modified: Mapped[datetime] = CommonColumns.last_modified()
+    processingentry_id: Mapped[int] = mapped_column(
+        ForeignKey('processingentry._id'), nullable=False, unique=False
+    )
+    worksheet_id: Mapped[int] = mapped_column(
+        ForeignKey('worksheet._id'), nullable=False, unique=False
+    )
+    last_column: Mapped[int] = mapped_column(nullable=False, unique=False, default=0)
+    last_row: Mapped[int] = mapped_column(nullable=False, unique=False, default=0)
 
 
 ActionOfOriginType = Literal['processing', 'preview', 'recording']
