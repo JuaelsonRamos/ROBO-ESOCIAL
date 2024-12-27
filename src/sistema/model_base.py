@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from src.sistema.protocol_types import ValidatorProtocol
-from src.types import CellValue, EmptyValueType, IsRequired, OpenpyxlCell
 
 import itertools
 
@@ -76,21 +74,3 @@ class Model(metaclass=ModelMeta):
             return getattr(self, name)
         except AttributeError as err:
             raise IndexError(err)
-
-
-class Column(Model):
-    index: int
-    original_text: str
-    required: IsRequired
-    validator: ValidatorProtocol
-
-
-class Cell(Model):
-    index: int
-    required: IsRequired
-    is_empty: bool
-    is_valid: bool
-    validator: ValidatorProtocol
-    original_value: OpenpyxlCell.KnownTypes
-    parsed_value: CellValue | EmptyValueType
-    column_metadata: Column

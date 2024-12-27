@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from src.exc import ValidatorException
-from src.sistema.models import (
-    Cell as CellModel,
-    Column,
+from src.sistema.model_base import Model
+from src.types import (
+    CellRichText,
+    CellValue,
+    CellValueType,
+    EmptyValueType,
+    IsRequired,
+    OpenpyxlCell,
 )
-from src.types import CellRichText, CellValue, CellValueType, EmptyValueType, IsRequired
 
 import re
 import math
@@ -24,6 +28,31 @@ from openpyxl.cell.cell import TIME_FORMATS, Cell
 from typing_extensions import TypeIs
 from unidecode import unidecode_expect_nonascii as unidecode
 
+
+# region DATA MODELS
+
+
+class ColumnModel(Model):
+    index: int
+    original_text: str
+    required: IsRequired
+    validator: Validator
+
+
+class CellModel(Model):
+    index: int
+    required: IsRequired
+    is_empty: bool
+    is_valid: bool
+    validator: Validator
+    original_value: OpenpyxlCell.KnownTypes
+    parsed_value: CellValue | EmptyValueType
+    column_metadata: ColumnModel
+
+
+# endregion
+
+# region VALIDATOR METACLASS
 
 C = TypeVar('C', bound='ValidatorMeta')
 
@@ -110,6 +139,11 @@ class ValidatorMeta(type):
         raise ValidatorException.RuntimeError
 
 
+# endregion
+
+# region VALIDATOR BASE CLASS
+
+
 class Validator(metaclass=ValidatorMeta):
     # fmt: off
     """
@@ -171,7 +205,7 @@ class Validator(metaclass=ValidatorMeta):
     allow_empty: bool
 
     # set by __init__
-    column: Column
+    column: ColumnModel
     cell: Cell
     cell_index: int
 
@@ -216,7 +250,7 @@ class Validator(metaclass=ValidatorMeta):
         instance.allow_empty = allow_empty
         return instance
 
-    def with_data(self, /, column: Column, cell: Cell) -> Self:
+    def with_data(self, /, column: ColumnModel, cell: Cell) -> Self:
         """
         Creates new Validator and initializes it with provided data.
 
@@ -226,7 +260,7 @@ class Validator(metaclass=ValidatorMeta):
         new_instance.__init__(column, cell)
         return new_instance
 
-    def __init__(self, /, column: Column, cell: Cell) -> None | Never:
+    def __init__(self, /, column: ColumnModel, cell: Cell) -> None | Never:
         if not self._can_initialize:
             raise ValidatorException.RuntimeError
         self._can_call = True
@@ -342,6 +376,54 @@ class Validator(metaclass=ValidatorMeta):
         return cls._hash
 
 
+# endregion
+
+# region BASE STRING VALIDATOR AND PARSER
+
+
+def cell_value_to_string(value: Any, *, bytes_encoding: str = 'utf-8') -> str:
+    """
+    Spreadsheet cell's value to valid string.
+
+    Raises `ValidatorException.RuntimeError` if the spreadsheet's `Cell` object's
+    value type is unknown, which should not be possible because those are provided
+    by third-party libraries.
+
+    :raises: ValidatorException.RuntimeError
+    """
+    valid_string: str = ''
+    # NoneType
+    if value is None:
+        return ''
+    # String
+    elif isinstance(value, str):
+        return value
+    elif isinstance(value, bytes):
+        valid_string = value.decode(encoding=bytes_encoding)
+    elif isinstance(value, CellRichText):
+        # TODO
+        pass
+    # Numeric
+    elif isinstance(value, (int, float)):
+        valid_string = str(value)
+    elif isinstance(value, decimal.Decimal):
+        valid_string = decimal.getcontext().to_sci_string(value)
+    # Time
+    elif isinstance(value, (datetime, date, time)):
+        format = TIME_FORMATS[type(value)]
+        valid_string = value.strftime(format)
+    elif isinstance(value, timedelta):
+        valid_string = str(value)
+    # Boolean
+    elif isinstance(value, bool):
+        valid_string = str(value)
+    # Other
+    else:
+        err = TypeError(f"type of {value} is unknown as a cell value's type")
+        raise ValidatorException.RuntimeError(err) from err
+    return valid_string
+
+
 class String(Validator):
     is_arbitraty_string = True
     cell_value_type = CellValueType.STRING
@@ -353,58 +435,16 @@ class String(Validator):
     allow_letters: bool
 
     @classmethod
-    def cell_value_to_string(cls, value: Any, *, bytes_encoding: str = 'utf-8') -> str:
-        """
-        Spreadsheet cell's value to valid string.
-
-        Raises `ValidatorException.RuntimeError` if the spreadsheet's `Cell` object's
-        value type is unknown, which should not be possible because those are provided
-        by third-party libraries.
-
-        :raises: ValidatorException.RuntimeError
-        """
-        valid_string: str = ''
-        # NoneType
-        if value is None:
-            return ''
-        # String
-        elif isinstance(value, str):
-            return value
-        elif isinstance(value, bytes):
-            valid_string = value.decode(encoding=bytes_encoding)
-        elif isinstance(value, CellRichText):
-            # TODO
-            pass
-        # Numeric
-        elif isinstance(value, (int, float)):
-            valid_string = str(value)
-        elif isinstance(value, decimal.Decimal):
-            valid_string = decimal.getcontext().to_sci_string(value)
-        # Time
-        elif isinstance(value, (datetime, date, time)):
-            format = TIME_FORMATS[type(value)]
-            valid_string = value.strftime(format)
-        elif isinstance(value, timedelta):
-            valid_string = str(value)
-        # Boolean
-        elif isinstance(value, bool):
-            valid_string = str(value)
-        # Other
-        else:
-            err = TypeError(f"type of {value} is unknown as a cell value's type")
-            raise ValidatorException.RuntimeError(err) from err
-        return valid_string
-
     @classmethod
     def matches(cls, column_cell: Cell) -> bool:
-        value: str = cls.cell_value_to_string(column_cell)
+        value: str = cell_value_to_string(column_cell)
         hashed = cls.hash_column_title(value)
         return hashed in cls.hashed_known_titles
 
     def parse_value(self) -> str | EmptyValueType | Never:
         parsed_value: str = ''
         try:
-            parsed_value = self.cell_value_to_string(self.cell.value)
+            parsed_value = cell_value_to_string(self.cell.value)
         except TypeError as err:
             raise ValidatorException.InvalidValueError(err) from err
         except Exception as err:
@@ -475,6 +515,11 @@ class String(Validator):
         instance.allow_whitespace = allow_whitespace
         instance.allow_letters = allow_letters
         return instance
+
+
+# endregion
+
+# region ALTERNATIVE STRING VALIDATORS
 
 
 class LetterString(String):
@@ -601,6 +646,11 @@ class FloatString(NumericString):
             raise ValidatorException.InvalidValueError(err) from err
 
 
+# endregion
+
+# region NUMERIC VALIDATORS AND PARSERS
+
+
 class Float(FloatString):
     is_arbitraty_string = False
     cell_value_type = CellValueType.FLOAT
@@ -624,6 +674,10 @@ class Integer(IntegerString):
             return parsed_value
         return int(parsed_value)
 
+
+# endregion
+
+# region DATE AND/OR TIME VALIDATORS AND PARSERS
 
 _zero_datetime = datetime.fromtimestamp(0)
 
@@ -741,6 +795,11 @@ class UTCTimeDelta(UTCDateTime):
         return delta
 
 
+# endregion
+
+# region OPTIONAL VALUE-BASED VALIDATORS AND PARSERS
+
+
 class Option(String):
     is_arbitraty_string = False
     cell_value_type = CellValueType.STRING
@@ -808,3 +867,6 @@ class Boolean(Option):
         # self.falsy and self.truthy are contained in self.options, so if it isn't empty
         # it will always be either True of False
         return hashed in self.hashed_truthy
+
+
+# endregion
