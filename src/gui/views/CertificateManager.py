@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from src.bootstrap import Directory
-from src.db import ClientCertificate, ClientConfig
-from src.db.tables import ClientCertificateDict
+from src.db.tables import ClientCertificate, ClientCertificateDict, ClientConfig
 from src.exc import Tkinter
 from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding

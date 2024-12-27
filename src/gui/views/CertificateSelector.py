@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.db import ClientCertificate
+from src.db.tables import ClientCertificate
 from src.gui.utils.units import padding
 
 import tkinter as tk

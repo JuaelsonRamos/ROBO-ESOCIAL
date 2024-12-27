@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from src.db import ClientConfig
+from .client import ClientConfig
+
 from src.exc import Database
 from src.global_state import GlobalState
 from src.sistema.sheet_constants import DEFAULT_MODEL_CELL, SHEET_FILETYPE_ASSOCIATIONS
