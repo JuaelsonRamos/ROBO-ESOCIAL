@@ -9,10 +9,14 @@ from src.db.tables import (
     ClientCertificate as _ClientCertificate,
     ColorSchemeType,
     CookieDict,
+    EntryWorksheet as _EntryWorksheet,
+    EntryWorksheetDict,
     ForcedColorsType,
     LocalStorageDict,
     LocaleType,
     OriginDict,
+    ProcessingEntry as _ProcessingEntry,
+    ProcessingEntryDict,
     ReducedMotionType,
     TimezoneIdType,
     Workbook as _Workbook,
@@ -30,6 +34,7 @@ import itertools
 
 from asyncio import Lock, Queue, Semaphore
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Coroutine, Final, TypedDict
 from urllib.parse import (
@@ -259,6 +264,112 @@ class BrowserContext:
 
 
 StepFunc = Callable[['CrawlerTask'], None]
+
+
+class ProcessingEntryManager:
+    def __init__(
+        self, browser_context_id: int, workbook_id: int, client_certificate_id: int
+    ) -> None:
+        self.browser_context_id: int = browser_context_id
+        self.workbook_id: int = workbook_id
+        self.client_certificate_id: int = client_certificate_id
+
+    def init_db_data(self) -> None:
+        initial_data = self._initial_db_data()
+        self.db_id = _ProcessingEntry.sync_insert_one(initial_data)
+        self._update_current_db_data()
+
+    def _update_current_db_data(self) -> None:
+        db_data = _EntryWorksheet.sync_select_one_from_id(self.db_id)
+        self.current_db_data: dict[str, int | datetime | bool]
+        data = db_data._asdict()  # type: ignore
+        self.current_db_data = data
+        self.created: datetime = data['created']
+        self.last_modified: datetime | None = data['last_modified']
+        self.has_started: bool = data['has_started']
+        self.is_paused: bool = data['is_paused']
+        self.has_finished: bool = data['has_finished']
+        self.when_started: datetime | None = data['when_started']
+        self.when_last_started: datetime | None = data['when_last_started']
+        self.when_finished: datetime | None = data['when_finished']
+        self.when_last_paused: datetime | None = data['when_last_paused']
+
+    def _initial_db_data(self) -> ProcessingEntryDict:
+        return {
+            'has_started': False,
+            'is_paused': False,
+            'has_finished': False,
+            'when_started': None,
+            'when_last_started': None,
+            'when_finished': None,
+            'when_last_paused': None,
+            'browsercontext_id': self.browser_context_id,
+            'workbook_id': self.workbook_id,
+            'clientcertificate_id': self.client_certificate_id,
+        }
+
+    def set_started(self) -> None:
+        data = {
+            'has_started': True,
+            'when_started': func.now(),
+            'when_last_started': func.now(),
+        }
+        _ProcessingEntry.sync_update_one_from_id(data, self.db_id)
+        self._update_current_db_data()
+
+    def set_finished(self) -> None:
+        data = {'has_finished': True, 'when_finished': func.now()}
+        _ProcessingEntry.sync_update_one_from_id(data, self.db_id)
+        self._update_current_db_data()
+
+    def set_paused(self) -> None:
+        data = {'is_paused': True, 'when_last_paused': func.now()}
+        _ProcessingEntry.sync_update_one_from_id(data, self.db_id)
+        self._update_current_db_data()
+
+    def unset_paused(self) -> None:
+        data = {'is_paused': False, 'when_last_started': func.now()}
+        _ProcessingEntry.sync_update_one_from_id(data, self.db_id)
+        self._update_current_db_data()
+
+
+class EntryWorksheetManager:
+    def __init__(self, processing_entry_id: int, worksheet_id: int):
+        self.processing_entry_id: int = processing_entry_id
+        self.worksheet_id: int = worksheet_id
+
+    def init_db_data(self) -> None:
+        initial_data = self._initial_db_data()
+        self.db_id: int = _EntryWorksheet.sync_insert_one(initial_data)
+        self._update_current_db_data()
+
+    def _update_current_db_data(self):
+        db_data = _EntryWorksheet.sync_select_one_from_id(self.db_id)
+        self.current_db_data: dict[str, int]
+        data = db_data._asdict()  # type: ignore
+        self.current_db_data = data
+        self.created: datetime = data['created']
+        self.last_modified: datetime | None = data['last_modified']
+        self.processingentry_id: int = data['processingentry_id']
+        self.worksheet_id: int = data['worksheet_id']
+        self.last_column: int = data['last_column']
+        self.last_row: int = data['last_row']
+
+    def _initial_db_data(self) -> EntryWorksheetDict:
+        return {
+            'processingentry_id': self.processing_entry_id,
+            'worksheet_id': self.worksheet_id,
+            'last_column': 0,
+            'last_row': 0,
+        }
+
+    def bump_last_column(self) -> None:
+        data = {'last_column': self.last_column + 1}
+        _EntryWorksheet.sync_update_one_from_id(data, self.db_id)
+
+    def bump_last_row(self) -> None:
+        data = {'last_row': self.last_row + 1}
+        _EntryWorksheet.sync_update_one_from_id(data, self.db_id)
 
 
 class CrawlerTask:
