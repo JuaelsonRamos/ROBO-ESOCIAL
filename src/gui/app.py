@@ -3,8 +3,9 @@ from __future__ import annotations
 from src.gui.lock import TkinterLock
 from src.gui.views.CertificateManager import CertificateManager
 from src.gui.views.SheetProcess import SheetProcess
-from src.gui.widgets import ViewNavigator
-from src.gui.widgets.StatusBar import ProgressCounter, StatusBar
+from src.gui.widgets.StatusBar.ProgressCounter import ProgressCounter
+from src.gui.widgets.StatusBar.StatusBar import StatusBar
+from src.gui.widgets.ViewNavigator import ViewNavigator
 from src.runtime import CommandLineArguments
 from src.windows import get_monitor_settings
 
