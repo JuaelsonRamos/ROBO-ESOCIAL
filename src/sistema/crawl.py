@@ -24,6 +24,7 @@ from src.db.tables import (
 )
 from src.exc import Task
 from src.runtime import CommandLineArguments
+from src.sistema.sheet import SheetValidator
 from src.types import BrowserType, TaskInitState
 
 import gc
@@ -45,6 +46,7 @@ from urllib.parse import (
 import playwright.async_api as playwright
 
 from openpyxl import load_workbook
+from sqlalchemy import func
 
 
 ESOCIAL_URL: Final[URLParseResult]  # TODO
@@ -65,7 +67,8 @@ class CookieChangeDetail(TypedDict):
     newCookie: str
 
 
-def browserhook_on_cookie_change(detail: CookieChangeDetail) -> None: ...
+def browserhook_on_cookie_change(detail: CookieChangeDetail) -> None:
+    pass
 
 
 class LocalStorageState(TypedDict):
@@ -79,7 +82,8 @@ class LocalStorageDetail(TypedDict):
     newLocalStorage: str  # strigfied LocalStorageState
 
 
-def browserhook_on_local_storage_change(detail: LocalStorageDetail) -> None: ...
+def browserhook_on_local_storage_change(detail: LocalStorageDetail) -> None:
+    pass
 
 
 @dataclass(init=True, slots=True)
@@ -147,7 +151,20 @@ class BrowserContext:
         )
         if inserted_db_data is None:
             raise RuntimeError('data not inserted')
-        self._db_data_cache = inserted_db_data._asdict()
+        data = inserted_db_data._asdict()
+        self._db_data_cache = data
+        self.created: datetime = data['created']
+        self.last_modified: datetime | None = data['last_modified']
+        self.accept_downloads: bool = data['accept_downloads']
+        self.offline: bool = data['offline']
+        self.javascript_enabled: bool = data['javascript_enabled']
+        self.is_mobile: bool = data['is_mobile']
+        self.has_touch: bool = data['has_touch']
+        self.colorscheme: ColorSchemeType = data['colorscheme']
+        self.reduced_motion: ReducedMotionType = data['reduced_motion']
+        self.forced_colors: ForcedColorsType = data['forced_colors']
+        self.locale: LocaleType = data['locale']
+        self.timezone_id: TimezoneIdType = data['timezone_id']
 
         # insert workbook data into db
         workbook_data = _Workbook.from_file(self.sheet_path)
@@ -219,11 +236,6 @@ class BrowserContext:
 
         # sync free memory
         gc.collect()
-
-    def __getattr__(self, name: str, /) -> Any:
-        if name in self._db_data_cache:
-            return self._db_data_cache[name]
-        return getattr(super(), name)
 
     def __setattr__(self, name: str, value: Any, /) -> None:
         if name in self._db_data_cache:
@@ -376,6 +388,7 @@ class CrawlerTask:
     _get_task_i = itertools.count(0).__next__
     tasks: dict[str, CrawlerTask] = {}
     _steps: tuple[StepFunc, ...]
+    sheet_validator: SheetValidator
 
     def __init__(
         self, p: playwright.Playwright, context: BrowserContext, runtime: BrowserRuntime
@@ -386,18 +399,31 @@ class CrawlerTask:
 
     async def _crawler_run(self):
         await self.runtime.semaphore.acquire()
-        self.page: PageState = await self.context.new_page()
         await self.runtime.task_count_increase()
-        for step in self._steps:
-            if self.context.can_update_db_data():
-                self.context.update_db_data()
-            if not getattr(step, '__crawler_step__', False):
-                continue
-            if inspect.iscoroutinefunction(step):
-                await step(self)
-                continue
-            if inspect.isfunction(step):
-                step(self)
+        self.processing_entry_manager = ProcessingEntryManager(
+            self.context.browsercontext_id,
+            self.context.workbook_id,
+            self.context.certificate_db_id,
+        )
+        self.worksheet_managers: list[EntryWorksheetManager] = []
+        self.page: PageState = await self.context.new_page()
+        self.processing_entry_manager.init_db_data()
+        for worksheet_id in self.context.worksheet_ids:
+            self.current_entry_worksheet_manager = EntryWorksheetManager(
+                self.processing_entry_manager.db_id, worksheet_id
+            )
+            self.worksheet_managers.append(self.current_entry_worksheet_manager)
+            self.current_entry_worksheet_manager.init_db_data()
+            for step in self._steps:
+                if self.context.can_update_db_data():
+                    self.context.update_db_data()
+                if not getattr(step, '__crawler_step__', False):
+                    continue
+                if inspect.iscoroutinefunction(step):
+                    await step(self)
+                    continue
+                if inspect.isfunction(step):
+                    step(self)
 
     def schedule_self(self, *, return_if_cant: bool = False) -> None:
         if return_if_cant and not self.runtime.can_task_run_immediately():
