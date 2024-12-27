@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.exc import ValidatorException
-from src.sistema.model_base import Model
+from src.sistema.model_base import Model, model_dataclass
 from src.types import (
     CellRichText,
     CellValue,
@@ -32,6 +32,7 @@ from unidecode import unidecode_expect_nonascii as unidecode
 # region DATA MODELS
 
 
+@model_dataclass
 class ColumnModel(Model):
     index: int
     original_text: str
@@ -39,6 +40,7 @@ class ColumnModel(Model):
     validator: Validator
 
 
+@model_dataclass
 class CellModel(Model):
     index: int
     required: IsRequired

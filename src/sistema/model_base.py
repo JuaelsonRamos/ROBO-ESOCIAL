@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-
-import itertools
-
 from dataclasses import asdict, astuple, dataclass, fields, replace
 from typing import Any, cast, dataclass_transform
 
@@ -12,32 +9,30 @@ from pydantic_core.core_schema import DataclassSchema, SimpleSerSchema
 
 
 @dataclass_transform(frozen_default=True)
+def model_dataclass(func):
+    return dataclass(init=True, frozen=True, slots=True, unsafe_hash=True)(func)
+
+
 class ModelMeta(type):
-    _adapters: list[TypeAdapter] = []
-    _get_class_index = itertools.count(-1, 1).__next__
-    _dataclass_factory = dataclass(init=True, frozen=True, slots=True, unsafe_hash=True)
-    _current_class_index: int
+    _adapters: dict[type, TypeAdapter] = {}
 
     def __new__(
         cls, name: str, bases: tuple[type, ...], namespace: dict[str, Any]
     ) -> ModelMeta:
-        i = cls._get_class_index()
-        namespace['_current_class_index'] = i
         _class = super(ModelMeta, cls).__new__(cls, name, bases, namespace)
-        _class = cls._dataclass_factory(_class)
-        if i < 0:
-            # Exclude first inheritance (Model class)
-            adapter = TypeAdapter(_class, config=ConfigDict(strict=False))
-            cls._adapters.append(adapter)
-        return cast('ModelMeta', _class)
+        return _class
+
+    def _get_type_adapter(cls):
+        if cls not in cls._adapters:
+            cls._adapters[cls] = TypeAdapter(cls, config=ConfigDict(strict=False))
+        return cls._adapters[cls]
 
 
+@model_dataclass
 class Model(metaclass=ModelMeta):
     @classmethod
     def type_adapter(cls) -> TypeAdapter:
-        if cls._current_class_index < 0:
-            raise RuntimeError('no TypeAdapter for base Model class')
-        return cls._adapters[cls._current_class_index]
+        return cls._get_type_adapter()
 
     @classmethod
     def __get_pydantic_core_schema__(
