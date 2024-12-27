@@ -19,7 +19,6 @@ from src.db.tables import (
     ProcessingEntryDict,
     ReducedMotionType,
     TimezoneIdType,
-    Workbook as _Workbook,
     Worksheet as _Worksheet,
 )
 from src.exc import Task
@@ -27,7 +26,6 @@ from src.runtime import CommandLineArguments
 from src.sistema.sheet import SheetValidator
 from src.types import BrowserType, TaskInitState
 
-import gc
 import asyncio
 import hashlib
 import inspect
@@ -45,7 +43,6 @@ from urllib.parse import (
 
 import playwright.async_api as playwright
 
-from openpyxl import load_workbook
 from sqlalchemy import func
 
 
@@ -138,8 +135,9 @@ class BrowserContext:
 
     def _create_db_data_populate_self(self, init_state: TaskInitState):
         # caching init data
-        self.sheet_path = init_state['sheet_path']
+        self.workbook_id = init_state['workbook_db_id']
         self.certificate_db_id = init_state['certificate_db_id']
+        self.worksheet_ids = _Worksheet.get_sheet_ids_from_book_id(self.workbook_id)
 
         # insert browser context data into db
         db_data = self.default_db_dict()
@@ -165,23 +163,6 @@ class BrowserContext:
         self.forced_colors: ForcedColorsType = data['forced_colors']
         self.locale: LocaleType = data['locale']
         self.timezone_id: TimezoneIdType = data['timezone_id']
-
-        # insert workbook data into db
-        workbook_data = _Workbook.from_file(self.sheet_path)
-        self.workbook_id: int = _Workbook.sync_insert_one(workbook_data)
-
-        # insert worksheets data into db
-        book = load_workbook(self.sheet_path, read_only=True)
-        sheet_ids = []
-        for _sheet in book.worksheets:
-            data = _Worksheet.from_sheet_obj(book, _sheet)
-            data['workbook_id'] = self.workbook_id
-            _id = _Worksheet.sync_insert_one(data)
-            sheet_ids.append(_id)
-        self.worksheet_ids = tuple(sheet_ids)
-
-        # explicity signal those should be collected when possible
-        del db_data, inserted_db_data, workbook_data, book, sheet_ids, data, _id
 
     def _make_playwright_context_args(self) -> dict[str, Any]:
         indb = self._db_data_cache
@@ -233,9 +214,6 @@ class BrowserContext:
         await self.browser_context.add_init_script(
             path=Path('./js/meta/localStorageChange.js')
         )
-
-        # sync free memory
-        gc.collect()
 
     def __setattr__(self, name: str, value: Any, /) -> None:
         if name in self._db_data_cache:
@@ -405,9 +383,13 @@ class CrawlerTask:
             self.context.workbook_id,
             self.context.certificate_db_id,
         )
+        self.processing_entry_manager.init_db_data()
+        if len(self.context.worksheet_ids) == 0:
+            # create overall processing entry, but exit it without doing anything if
+            # anything can be done
+            return
         self.worksheet_managers: list[EntryWorksheetManager] = []
         self.page: PageState = await self.context.new_page()
-        self.processing_entry_manager.init_db_data()
         for worksheet_id in self.context.worksheet_ids:
             self.current_entry_worksheet_manager = EntryWorksheetManager(
                 self.processing_entry_manager.db_id, worksheet_id

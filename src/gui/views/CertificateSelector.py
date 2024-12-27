@@ -8,7 +8,7 @@ import tkinter as tk
 from dataclasses import dataclass
 from itertools import zip_longest
 from tkinter import ttk
-from typing import Callable, cast
+from typing import cast
 
 
 @dataclass(frozen=False, slots=True)
@@ -142,17 +142,16 @@ class CertificateSelector(ttk.Frame):
 
 
 class CertificateSelectorWindow(tk.Toplevel):
-    def __init__(
-        self,
-        master: ttk.Widget,
-        parent_window: tk.Tk | tk.Toplevel,
-        run_on_submit: Callable[[int], None],
-    ):
+    _client_certificate_id: int | None = None
+
+    def __init__(self, master: ttk.Widget, parent_window: tk.Tk | tk.Toplevel):
         super().__init__(master)
-        self.run_on_submit = run_on_submit
         self.parent_window = parent_window
         self.create_widgets()
         self.config_window()
+
+    def get_selection(self):
+        return self._client_certificate_id
 
     def create_widgets(self):
         global _widgets
@@ -195,5 +194,5 @@ class CertificateSelectorWindow(tk.Toplevel):
         iid = self.frame.submit.selected
         if iid is None:
             return
-        self.run_on_submit(iid)
+        self._client_certificate_id = iid
         self.close()

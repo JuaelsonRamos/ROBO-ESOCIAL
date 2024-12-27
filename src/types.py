@@ -12,7 +12,6 @@ import datetime
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum, auto
-from pathlib import Path
 from typing import Any, Never, TypeAlias, TypeVar, TypedDict
 
 import numpy
@@ -254,5 +253,5 @@ class OpenpyxlCell:
 
 
 class TaskInitState(TypedDict):
-    sheet_path: Path
+    workbook_db_id: int
     certificate_db_id: int

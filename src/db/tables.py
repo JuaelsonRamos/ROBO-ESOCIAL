@@ -831,6 +831,15 @@ class Worksheet(Base):
             insert_result = conn.execute(insert(cls).values(*all_db_data))
             return tuple(row._id for row in insert_result.inserted_primary_key_rows)
 
+    @classmethod
+    def get_sheet_ids_from_book_id(cls, book_id: int) -> tuple[int, ...]:
+        with GlobalState.sqlite.begin() as conn:
+            query = select(cls._id).where(cls.workbook_id == book_id)
+            result = conn.execute(query).all()
+            if len(result) == 0:
+                return ()
+            return tuple(row._id for row in result)
+
 
 class WorkbookDict(BaseDict, total=False):
     created: datetime
