@@ -67,7 +67,7 @@ class SheetModel(StrEnum):
     @classmethod
     def enum_from_cell(cls, cell: Cell) -> SheetModel | Never:
         try:
-            cell_value = validator.String.cell_value_to_string(cell.value)
+            cell_value = validator.cell_value_to_string(cell.value)
         except ValidatorException.RuntimeError as err:
             raise SheetParsing.TypeError(err) from err
         cell_value = unidecode(cell_value).strip(string.whitespace).lower()
