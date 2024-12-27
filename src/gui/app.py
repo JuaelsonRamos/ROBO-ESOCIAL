@@ -1,16 +1,44 @@
 from __future__ import annotations
 
 from src.gui.lock import TkinterLock
-from src.gui.views.CertificateManager import CertificateManager
-from src.gui.views.SheetProcess import SheetProcess
 from src.gui.widgets.StatusBar.ProgressCounter import ProgressCounter
 from src.gui.widgets.StatusBar.StatusBar import StatusBar
-from src.gui.widgets.ViewNavigator import ViewNavigator
+from src.gui.widgets.ViewNavigator import LazyButton, LazyViewNavigator
 from src.runtime import CommandLineArguments
 from src.windows import get_monitor_settings
 
 import math
 import tkinter as tk
+
+
+class CertificateButton(LazyButton):
+    text = 'Certificados'
+
+    def lazy_load_python_modules(self) -> None:
+        from src.gui.views.CertificateManager import CertificateManager
+
+        self._view_widget = CertificateManager
+
+
+class SheetProcessButton(LazyButton):
+    text = 'Processar'
+
+    def lazy_load_python_modules(self) -> None:
+        from src.gui.views.SheetProcess import SheetProcess
+
+        self._view_widget = SheetProcess
+
+
+class HistoryButton(LazyButton):
+    text = 'Histórico'
+
+
+class VisualizeButton(LazyButton):
+    text = 'Visualizar'
+
+
+class ToolsButton(LazyButton):
+    text = 'Ferramentas'
 
 
 class App(tk.Tk):
@@ -36,13 +64,13 @@ class App(tk.Tk):
             idle='Aguardando Processamento',
             template='Processando Planilhas ({current}/{total})',
         )
-        view_nav = ViewNavigator(self)
-        view_nav.add_button('Certificados', CertificateManager(self))
-        active = view_nav.add_button('Processar', SheetProcess(self))
+        view_nav = LazyViewNavigator(self)
+        view_nav.add_button(CertificateButton)
+        active = view_nav.add_button(SheetProcessButton)
         active.click()
-        view_nav.add_button('Histórico')
-        view_nav.add_button('Visualizar')
-        view_nav.add_button('Ferramentas')
+        view_nav.add_button(HistoryButton)
+        view_nav.add_button(VisualizeButton)
+        view_nav.add_button(ToolsButton)
 
     def schedule_quit(self) -> None:
         """Deletes and kills Tcl's interpreter on next tick."""
