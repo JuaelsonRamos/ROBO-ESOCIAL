@@ -114,8 +114,6 @@ def define_connection(filepath: Path | None = None) -> sqlite3.Connection:
 def init_sync_sqlite() -> Engine:
     from .tables import Base
 
-    from src.gui.tkinter_global import TkinterGlobal
-
     from sqlalchemy import create_engine
 
     populate_backup_files()

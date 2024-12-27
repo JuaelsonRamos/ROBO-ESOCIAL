@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from src.db.tables import TkinterGlobal, Workbook, WorkbookDict, Worksheet
+from src.db.tables import Workbook, WorkbookDict, Worksheet
 from src.exc import SheetParsing
+from src.global_state import GlobalState
 from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
 from src.gui.views.View import View
@@ -272,7 +273,7 @@ class AddButton(ActionButton):
         value = cast(tuple[Path, ...], value)
         for p in value:
             sheetobj = Sheet(p)
-            with TkinterGlobal.sqlite.begin() as conn:
+            with GlobalState.sqlite.begin() as conn:
                 sha = sheetobj.db_workbook.get('sha512', None)
                 if sha is None:
                     raise SheetParsing.ValueError('sha512 does not exist')
@@ -317,7 +318,7 @@ class DeleteButton(ActionButton):
         if iid == '':
             return
         _id = int(iid)
-        with TkinterGlobal.sqlite.begin() as conn:
+        with GlobalState.sqlite.begin() as conn:
             query = select(Worksheet._id).where(Worksheet.workbook_id == _id)
             ids = conn.execute(query).all()
             if len(ids) > 0:
