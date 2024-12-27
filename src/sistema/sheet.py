@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import src.db.tables as table
-import src.sistema.models as model
-import src.sistema.validator as validator
 
 from src.exc import SheetParsing
-from src.sistema.protocol_types import ValidatorProtocol
 from src.sistema.sheet_data_schema import Modelo1Schema, Modelo2Schema
+from src.sistema.validator import (
+    CellModel,
+    ColumnModel,
+    Validator,
+    cell_value_to_string,
+)
 from src.types import EmptyValueType, IsRequired
 
 import gc
@@ -18,7 +21,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Generator, Never, Sequence, cast, get_type_hints
+from typing import Any, Generator, Never, Sequence, get_type_hints
 
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell
@@ -115,7 +118,7 @@ class SheetValidator:
         gc.collect()
 
     def load_validation_schema(self) -> None:
-        self.schema: Sequence[type[validator.Validator]]
+        self.schema: Sequence[Validator]
         code = self.worksheet_metadata.model_code
         if code == 1:
             if not Modelo1Schema.is_loaded():
@@ -201,18 +204,18 @@ class SheetValidator:
         return self.row(2)
 
     def validate_and_load_columns(self) -> None:
-        sequence: list[model.Column] = []
+        sequence: list[ColumnModel] = []
         for i, cell in enumerate(self.headings()):
             cell_validator = next(val for val in self.schema if val.matches(cell))
-            text = validator.String.cell_value_to_string(cell.value)
-            obj = model.Column(
+            text = cell_value_to_string(cell.value)
+            obj = ColumnModel(
                 index=i,
                 original_text=text,
                 required=IsRequired.from_cell(cell),
-                validator=cast(ValidatorProtocol, cell_validator),
+                validator=cell_validator,
             )
             sequence.append(obj)
-        self.column_models: tuple[model.Column, ...] = tuple(sequence)
+        self.column_models: tuple[ColumnModel, ...] = tuple(sequence)
 
     def iter_row_cells(self) -> Generator[tuple[Cell, ...], None, None]:
         headings_index: int = 2
@@ -234,30 +237,30 @@ class SheetValidator:
 
     def iter_and_validate_row_cell_models(
         self,
-    ) -> Generator[tuple[model.Cell], None, None | Never]:
+    ) -> Generator[tuple[CellModel], None, None | Never]:
         for row in self.iter_row_cells():
             if len(row) > len(self.column_models):
                 raise SheetParsing.ValueError('more row cells than columns in sheet')
             model_sequence = []
             for i, cell in enumerate(row):
                 column_model = self.column_models[i]
-                validator_instance = cast(
-                    validator.Validator, column_model.validator
-                ).with_data(column_model, cell)
+                validator_instance = column_model.validator.with_data(
+                    column_model, cell
+                )
                 valid_cell_model = validator_instance.to_model()
                 model_sequence.append(valid_cell_model)
             yield tuple(model_sequence)
 
     def iter_and_validate_column_cell_models(
         self,
-    ) -> Generator[tuple[model.Cell], None, None | Never]:
+    ) -> Generator[tuple[CellModel], None, None | Never]:
         for i, col in enumerate(self.iter_column_cells()):
             model_sequence = []
             for cell in col:
                 column_model = self.column_models[i]
-                validator_instance = cast(
-                    validator.Validator, column_model.validator
-                ).with_data(column_model, cell)
+                validator_instance = column_model.validator.with_data(
+                    column_model, cell
+                )
                 valid_cell_model = validator_instance.to_model()
                 model_sequence.append(valid_cell_model)
             yield tuple(model_sequence)

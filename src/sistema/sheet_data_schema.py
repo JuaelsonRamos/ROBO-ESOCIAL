@@ -11,11 +11,11 @@ from src.sistema.validator import (
 
 
 class _ModeloSchemaBase:
-    _schema: tuple[type[Validator], ...] | None = None
+    _schema: tuple[Validator, ...] | None = None
     _unique_titles: frozenset[str] | None = None
 
     @classmethod
-    def get_schema(cls) -> tuple[type[Validator], ...]:
+    def get_schema(cls) -> tuple[Validator, ...]:
         if cls._schema is None:
             raise RuntimeError('sheet model not yet loaded')
         return cls._schema
