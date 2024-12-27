@@ -3,24 +3,25 @@ from __future__ import annotations
 import src.db.tables as table
 import src.sistema.models as model
 import src.sistema.validator as validator
-import src.sistema.sheet_data_schema as sheet_schema
 
 from src.exc import SheetParsing
 from src.sistema.protocol_types import ValidatorProtocol
-from src.sistema.sheet_constants import DEFAULT_MODEL_CELL
-from src.types import EmptyValueType, IsRequired, SheetModel
+from src.sistema.sheet_data_schema import Modelo1Schema, Modelo2Schema
+from src.types import EmptyValueType, IsRequired
 
+import gc
 import io
 import re
 import string
 
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Generator, Never, Sequence, cast
+from typing import Any, Generator, Never, Sequence, cast, get_type_hints
 
-from openpyxl import Workbook, load_workbook
+from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell
-from openpyxl.worksheet.worksheet import Worksheet
 from typing_extensions import TypeIs
 from unidecode import unidecode_expect_nonascii as unidecode
 
@@ -29,88 +30,109 @@ from unidecode import unidecode_expect_nonascii as unidecode
 # TODO: validate cell
 
 
-class Sheet:
-    workbook: Workbook
-    db_workbook: table.WorkbookDict
-    worksheets: Sequence[Worksheet]
-    db_worksheets: Sequence[table.WorksheetDict]
-    _sheet: Worksheet | None
-    columns: int
-    _column_models: tuple[model.Column, ...] = ()
-    rows: int
-    dimensions: tuple[str, str]
-    model: SheetModel
-    model_code: int
-    model_name: str
-    schema: Sequence[validator.Validator]
-    path: Path
-    st_size: int
-    st_created: float
-    st_modified: float
+@dataclass(frozen=True, slots=True)
+class WorkbookMetadata:
+    _id: int
+    created: datetime
+    last_modified: datetime | None
+    sha512: str
+    md5: str
+    epoch: datetime
+    mime_type: str
+    path: str
+    template: bool
+    excel_base_date: datetime | None
+    file_type_suffix: str
+    file_type_description: str
+    file_size: int
+    blob_size: int
+    original_path: Path
 
+    @classmethod
+    def fetch_current(cls, db_id: int) -> WorkbookMetadata:
+        fields = list(get_type_hints(table.WorkbookDict).keys())
+        fields.append('_id')
+        fields.remove('blob')
+        rows = table.Workbook.sync_select_columns_from_id(fields, (db_id,))
+        if len(rows) == 0:
+            raise RuntimeError(f'workbook row {db_id=} does not exist in the database')
+        data = rows[0]._asdict()
+        data['original_path'] = Path(data['original_path'])
+        return cls(**data)
+
+    def fetch_file_blob(self) -> io.BytesIO:
+        rows = table.Workbook.sync_select_columns_from_id(('blob',), (self._id,))
+        if len(rows) == 0:
+            raise RuntimeError(
+                f'workbook row {self._id=} does not exist, although it should'
+            )
+        return io.BytesIO(rows[0].blob)
+
+
+class WorksheetMetadata:
+    _id: int
+    created: datetime
+    last_modified: datetime | None
+    title: str
+    workbook_index: int
+    workbook_id: int
+    dimensions: str
+    columns: int
+    rows: int
+    mime_type: str
+    min_row: int
+    max_row: int
+    min_col: int
+    max_col: int
+    model_cell: str
+    model_name: str
+    model_code: int
+
+    @classmethod
+    def fetch_current(cls, db_id: int) -> WorksheetMetadata:
+        data = table.Worksheet.sync_select_one_from_id(db_id)
+        if data is None:
+            raise RuntimeError(f'worksheet {db_id=} does not exist in the database')
+        return cls(**data._asdict())
+
+
+class SheetValidator:
     EmptyString: EmptyValueType = EmptyValueType()
 
-    @property
-    def column_models(self) -> tuple[model.Column, ...]:
-        return self._column_models
+    def __init__(self, workbook_id: int, worksheet_id: int) -> None:
+        self.workbook_id = workbook_id
+        self.workbook_metadata = WorkbookMetadata.fetch_current(workbook_id)
+        self.worksheet_id = worksheet_id
+        self.worksheet_metadata = WorksheetMetadata.fetch_current(worksheet_id)
+        book_blob = self.workbook_metadata.fetch_file_blob()
+        self.workbook = load_workbook(book_blob, read_only=True, rich_text=True)
+        self.worksheet = self.workbook[self.worksheet_metadata.title]
+        self.rows: int = self.worksheet_metadata.rows
+        self.columns: int = self.worksheet_metadata.columns
 
-    @property
-    def sheet(self):
-        return self._sheet
+        # force collect of workbook blob
+        del book_blob
+        gc.collect()
 
-    @sheet.setter
-    def sheet(self, another: Worksheet):
-        self._sheet = another
-        self.columns = another.max_column
-        self.rows = another.max_row
-        cell = another[DEFAULT_MODEL_CELL]
-        self.model = SheetModel.enum_from_cell(cell)  # raises
-        self.model_code = SheetModel.code_from_cell(cell)
-        self.model_name = SheetModel.name_from_cell(cell)
-        if self.model == SheetModel.MODELO_1:
-            self.schema = sheet_schema.MODELO_1
-        elif self.model == SheetModel.MODELO_2:
-            self.schema = sheet_schema.MODELO_2
-        self._column_models = self._make_column_models()
+    def load_validation_schema(self) -> None:
+        self.schema: Sequence[type[validator.Validator]]
+        code = self.worksheet_metadata.model_code
+        if code == 1:
+            if not Modelo1Schema.is_loaded():
+                Modelo1Schema.lazy_load_schema()
+            self.schema = Modelo1Schema.get_schema()
+            return
+        if code == 2:
+            if not Modelo2Schema.is_loaded():
+                Modelo2Schema.lazy_load_schema()
+            self.schema = Modelo2Schema.get_schema()
+            return
+        raise RuntimeError(f'unknown modelo code {code}')
 
-    def get_sheet(self) -> Worksheet:
-        if self._sheet is None:
-            raise SheetParsing.ValueError(
-                'sheet property is not set to valid worksheet'
-            )
-        return self._sheet
-
-    def set_sheet(self, another: Worksheet):
-        self.sheet = another
-
-    def __init__(self, path: str | Path) -> None:
-        # Load spreadsheet
-        if isinstance(path, str):
-            self.workbook = load_workbook(path)
-            path = Path(path)
-        else:
-            self.workbook = load_workbook(str(path))
-        self.db_workbook = table.Workbook.from_file(path)
-        self.worksheets = tuple(self.workbook.worksheets)
-        if len(self.worksheets) == 0:
-            self.db_worksheets = ()
-            self._sheet = None
-        else:
-            self.db_worksheets = tuple(
-                table.Worksheet.from_sheet_obj(self.workbook, sheet)
-                for sheet in self.worksheets
-            )
-            self._sheet = self.worksheets[0]
-        self.path = path
-        stat = self.path.stat()
-        self.st_size = stat.st_size
-        self.st_created = stat.st_ctime
-        self.st_modified = stat.st_mtime
-
-    def as_bytes(self) -> bytes:
-        with NamedTemporaryFile() as tmp:
+    def as_bytes(self) -> io.BytesIO:
+        with NamedTemporaryFile(delete=True) as tmp:
             self.workbook.save(tmp)
-            return tmp.read()
+            return io.BytesIO(tmp.read())
 
     @classmethod
     def normalize_column_title(cls, value: str) -> str | EmptyValueType:
@@ -161,24 +183,24 @@ class Sheet:
     def cell(self, row: int, column: int) -> Cell | Never:
         if not self.cell_exists(row, column):
             raise SheetParsing.IndexError(f'cell does not exist {row=} {column=}')
-        return self.get_sheet().cell(row, column)
+        return self.worksheet.cell(row, column)
 
     def row(self, index: int) -> tuple[Cell, ...] | Never:
         if not self.row_exists(index):
             raise SheetParsing.ValueError(f'row {index=} does not exist')
-        row = next(self.get_sheet().iter_rows(min_row=index, max_row=index))
+        row = next(self.worksheet.iter_rows(min_row=index, max_row=index))
         return row
 
     def column(self, index: int) -> tuple[Cell, ...] | Never:
         if not self.column_exists(index):
             raise SheetParsing.ValueError(f'column {index=} does not exist')
-        col = next(self.get_sheet().iter_cols(min_col=index, max_col=index))
+        col = next(self.worksheet.iter_cols(min_col=index, max_col=index))
         return col
 
     def headings(self):
         return self.row(2)
 
-    def _make_column_models(self) -> tuple[model.Column, ...]:
+    def validate_and_load_columns(self) -> None:
         sequence: list[model.Column] = []
         for i, cell in enumerate(self.headings()):
             cell_validator = next(val for val in self.schema if val.matches(cell))
@@ -190,11 +212,11 @@ class Sheet:
                 validator=cast(ValidatorProtocol, cell_validator),
             )
             sequence.append(obj)
-        return tuple(sequence)
+        self.column_models: tuple[model.Column, ...] = tuple(sequence)
 
     def iter_row_cells(self) -> Generator[tuple[Cell, ...], None, None]:
         headings_index: int = 2
-        return self.get_sheet().iter_rows(
+        return self.worksheet.iter_rows(
             min_row=headings_index + 1,
             max_row=self.rows,
             min_col=1,
@@ -203,7 +225,7 @@ class Sheet:
 
     def iter_column_cells(self) -> Generator[tuple[Cell, ...], None, None]:
         headings_index: int = 2
-        return self.get_sheet().iter_cols(
+        return self.worksheet.iter_cols(
             min_row=headings_index + 1,
             max_row=self.rows,
             min_col=1,
@@ -214,11 +236,11 @@ class Sheet:
         self,
     ) -> Generator[tuple[model.Cell], None, None | Never]:
         for row in self.iter_row_cells():
-            if len(row) > len(self._column_models):
+            if len(row) > len(self.column_models):
                 raise SheetParsing.ValueError('more row cells than columns in sheet')
             model_sequence = []
             for i, cell in enumerate(row):
-                column_model = self._column_models[i]
+                column_model = self.column_models[i]
                 validator_instance = cast(
                     validator.Validator, column_model.validator
                 ).with_data(column_model, cell)
@@ -232,7 +254,7 @@ class Sheet:
         for i, col in enumerate(self.iter_column_cells()):
             model_sequence = []
             for cell in col:
-                column_model = self._column_models[i]
+                column_model = self.column_models[i]
                 validator_instance = cast(
                     validator.Validator, column_model.validator
                 ).with_data(column_model, cell)
