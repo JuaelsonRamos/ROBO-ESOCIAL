@@ -475,12 +475,13 @@ class CrawlerTask:
 class BrowserRuntime:
     cli_args = CommandLineArguments().parse_argv()
     SEMAPHORE_LIMIT: Final[int] = 5
+    SPREADSHEET_QUEUE_LIMIT: Final[int] = 0  # 0 == 'unlimited'
     browser: playwright.Browser
 
     def __init__(self, p: playwright.Playwright) -> None:
         self.p = p
         self.semaphore: Semaphore = Semaphore(self.SEMAPHORE_LIMIT)
-        self.sheet_queue: Queue[TaskInitState] = Queue()
+        self.sheet_queue: Queue[TaskInitState] = Queue(self.SPREADSHEET_QUEUE_LIMIT)
         self._lifetime_task_count: int = 0
         self._task_count_lock = Lock()
 

@@ -24,10 +24,7 @@ GlobalState: GlobalStateType = None  # type: ignore
 
 
 def init_global_state(
-    graphical_runtime: GraphicalRuntime,
-    browser_runtime: BrowserRuntime,
-    *,
-    spreadsheet_queue_limit: int | None = None,
+    graphical_runtime: GraphicalRuntime, browser_runtime: BrowserRuntime
 ):
     global GlobalState
 
@@ -38,5 +35,5 @@ def init_global_state(
         browser_runtime=browser_runtime,
         style=ttk.Style(graphical_runtime.app),
         sqlite=init_sync_sqlite(),
-        sheet_queue=Queue(spreadsheet_queue_limit or 0),
+        sheet_queue=browser_runtime.sheet_queue,
     )
