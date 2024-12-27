@@ -230,7 +230,7 @@ class Validator(metaclass=ValidatorMeta):
     @classmethod
     def new(
         cls: type[Self], /, known_titles: Sequence[str], allow_empty: bool = True
-    ) -> type[Self]:
+    ) -> Validator:
         """Create new class that holds primitive values for parsing and validation."""
         new_class = cls._make_creatable_class()
         instance = new_class.__new__(new_class, known_titles, allow_empty)
@@ -487,7 +487,7 @@ class String(Validator):
         allow_whitespace: bool = True,
         allow_letters: bool = True,
         allow_empty: bool = True,
-    ) -> type[Self]:
+    ):
         new_class = cls._make_creatable_class()
         return new_class.__new__(
             new_class,
@@ -535,7 +535,7 @@ class LetterString(String):
         allow_punctuation: bool = True,
         allow_whitespace: bool = True,
         allow_empty: bool = True,
-    ) -> type[Self]:
+    ):
         return super().new(
             known_titles=known_titles,
             allow_punctuation=allow_punctuation,
@@ -581,7 +581,7 @@ class NumericString(String):
         /,
         known_titles: Sequence[str],
         allow_empty: bool = True,
-    ) -> type[Self]:
+    ):
         return super().new(
             known_titles=known_titles,
             allow_punctuation=True,
@@ -693,9 +693,7 @@ class UTCDateTime(String):
     zero_timedelta: timedelta = _zero_datetime - _zero_datetime
 
     @classmethod
-    def new(
-        cls: type[Self], /, known_titles: Sequence[str], allow_empty: bool = True
-    ) -> type[Self]:
+    def new(cls: type[Self], /, known_titles: Sequence[str], allow_empty: bool = True):
         return super().new(
             known_titles=known_titles,
             allow_punctuation=True,
@@ -818,9 +816,7 @@ class Option(String):
         return hashed in cls.hashed_options
 
     @classmethod
-    def new(
-        cls: type[Self], /, known_titles: Sequence[str], options: Sequence[str]
-    ) -> type[Self]:
+    def new(cls: type[Self], /, known_titles: Sequence[str], options: Sequence[str]):
         new_class = super().new(known_titles, True, True, True, True, True)
         opts = tuple(iter(options))
         new_class.options = opts
@@ -850,7 +846,7 @@ class Boolean(Option):
         known_titles: Sequence[str],
         falsy: Sequence[str],
         truthy: Sequence[str],
-    ) -> type[Self]:
+    ):
         opts = tuple(itertools.chain(truthy, falsy))
         new_class = super().new(known_titles, opts)
         new_class.falsy = tuple(iter(falsy))
