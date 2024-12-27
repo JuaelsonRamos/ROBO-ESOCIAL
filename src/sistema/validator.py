@@ -817,11 +817,43 @@ class Option(String):
 
     @classmethod
     def new(cls: type[Self], /, known_titles: Sequence[str], options: Sequence[str]):
-        new_class = super().new(known_titles, True, True, True, True, True)
+        new_class = cls._make_creatable_class()
+        instance = new_class.__new__(
+            new_class,
+            known_titles=known_titles,
+            allow_punctuation=True,
+            allow_digits=True,
+            allow_whitespace=True,
+            allow_letters=True,
+            allow_empty=True,
+            options=options,
+        )
+        return instance
+
+    def __new__(
+        cls: type[Self],
+        /,
+        known_titles: Sequence[str],
+        allow_punctuation: bool,
+        allow_digits: bool,
+        allow_whitespace: bool,
+        allow_letters: bool,
+        allow_empty: bool,
+        options: Sequence[str],
+    ) -> Self:
+        instance = super().__new__(
+            cls,
+            known_titles,
+            allow_punctuation,
+            allow_digits,
+            allow_whitespace,
+            allow_letters,
+            allow_empty,
+        )
         opts = tuple(iter(options))
-        new_class.options = opts
-        new_class.hashed_options = tuple(cls.hash_option_string(text) for text in opts)
-        return new_class
+        instance.options = opts
+        instance.hashed_options = tuple(cls.hash_option_string(text) for text in opts)
+        return instance
 
     def parse_value(self) -> str | EmptyValueType | Never:
         parsed_value = super().parse_value()
@@ -847,13 +879,50 @@ class Boolean(Option):
         falsy: Sequence[str],
         truthy: Sequence[str],
     ):
+        new_class = cls._make_creatable_class()
         opts = tuple(itertools.chain(truthy, falsy))
-        new_class = super().new(known_titles, opts)
-        new_class.falsy = tuple(iter(falsy))
-        new_class.hashed_falsy = tuple(cls.hash_option_string(text) for text in falsy)
-        new_class.truthy = tuple(iter(truthy))
-        new_class.hashed_truthy = tuple(cls.hash_option_string(text) for text in truthy)
-        return new_class
+        instance = new_class.__new__(
+            new_class,
+            known_titles=known_titles,
+            allow_punctuation=True,
+            allow_digits=True,
+            allow_whitespace=True,
+            allow_letters=True,
+            allow_empty=True,
+            options=opts,
+            falsy=falsy,
+            truthy=truthy,
+        )
+        return instance
+
+    def __new__(
+        cls: type[Self],
+        /,
+        known_titles: Sequence[str],
+        allow_punctuation: bool,
+        allow_digits: bool,
+        allow_whitespace: bool,
+        allow_letters: bool,
+        allow_empty: bool,
+        options: Sequence[str],
+        falsy: Sequence[str],
+        truthy: Sequence[str],
+    ) -> Self:
+        instance = super().__new__(
+            cls,
+            known_titles,
+            allow_punctuation,
+            allow_digits,
+            allow_whitespace,
+            allow_letters,
+            allow_empty,
+            options,
+        )
+        instance.falsy = tuple(iter(falsy))
+        instance.hashed_falsy = tuple(cls.hash_option_string(text) for text in falsy)
+        instance.truthy = tuple(iter(truthy))
+        instance.hashed_truthy = tuple(cls.hash_option_string(text) for text in truthy)
+        return instance
 
     def parse_value(self) -> bool | EmptyValueType | Never:
         parsed_value = super().parse_value()
