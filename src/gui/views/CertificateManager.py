@@ -407,6 +407,8 @@ class FormEntry(ttk.Frame):
         self._block_default = False
         self._is_blocked = False
 
+        self.create_widgets()
+
     @abstractmethod
     def create_widgets(self): ...
 
