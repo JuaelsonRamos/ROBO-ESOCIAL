@@ -674,7 +674,20 @@ class FileEntry(TextEntry):
             command=self.open_file,
             image=self._open_file_img,
         )
-        self.entry = ttk.Entry(self.sub_frame, justify=tk.LEFT, width=self.entry_width)
+        self.entry = ttk.Entry(
+            self.sub_frame,
+            justify=tk.LEFT,
+            width=self.entry_width,
+            takefocus=tk.TRUE,
+            textvariable=self._var_entry,
+        )
+
+    def set_value(self, text: str):
+        super().set_value(text)
+        # cursor to last character
+        self.entry.focus_set()
+        self.entry.icursor(len(text))
+        self.entry.xview('end')
 
     def _insert_path(self, value: tuple[Path, ...] | Exception, raised: bool) -> None:
         if raised and isinstance(value, Exception):
