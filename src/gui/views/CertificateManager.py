@@ -233,7 +233,7 @@ class CertificateList(ttk.Treeview):
         self.focus(focus_iid)
         self.selection_set(focus_iid)
 
-    def delete_focused(self, event: tk.Event):
+    def delete_focused(self, event: tk.Event | None = None):
         selection = self.selection()
         if len(selection) == 0:
             return
@@ -832,6 +832,7 @@ class CertificateForm(ttk.Frame):
         iid: int | str = event.state
         _id: int = iid if isinstance(iid, int) else int(iid)
         self.fill_form_by_db_id(_id)
+        self.block_all_form_interactions()
 
     def prepare_add_item(self, event: tk.Event | None = None):
         self.allow_form_interactions()
@@ -953,6 +954,7 @@ class CertificateForm(ttk.Frame):
             raise ValueError('empty iid')
         _id = int(iid)
         ClientCertificate.sync_delete_one_from_id(_id)
+        _widgets.tree.delete_focused()
 
     def update_from_form_fields(self):
         global _widgets
@@ -962,6 +964,7 @@ class CertificateForm(ttk.Frame):
             raise ValueError('empty iid')
         _id = int(iid)
         ClientCertificate.sync_update_one_from_id(data, _id)
+        _widgets.tree.event_generate('<<ReloadTree>>')
 
 
 class CertificateManager(View):
