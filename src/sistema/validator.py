@@ -2,14 +2,7 @@ from __future__ import annotations
 
 from src.exc import ValidatorException
 from src.sistema.model_base import Model, model_dataclass
-from src.types import (
-    CellRichText,
-    CellValue,
-    CellValueType,
-    EmptyValueType,
-    IsRequired,
-    OpenpyxlCell,
-)
+from src.types import CellValue, CellValueType, EmptyValueType, IsRequired, OpenpyxlCell
 
 import re
 import math
@@ -25,6 +18,7 @@ from re import Pattern
 from typing import Any, Never, NoReturn, Self, Sequence, TypeVar, cast
 
 from openpyxl.cell.cell import TIME_FORMATS, Cell
+from openpyxl.cell.rich_text import CellRichText
 from typing_extensions import TypeIs
 from unidecode import unidecode_expect_nonascii as unidecode
 
