@@ -140,7 +140,7 @@ class Base(DeclarativeBase, Generic[TD]):
     def get_engine(cls) -> Engine:
         from src.global_state import GlobalState
 
-        return cls.get_engine()
+        return GlobalState.sqlite
 
     @classmethod
     def sync_count(cls) -> int:
