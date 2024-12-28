@@ -676,10 +676,12 @@ class FileEntry(TextEntry):
         )
         self.entry = ttk.Entry(self.sub_frame, justify=tk.LEFT, width=self.entry_width)
 
-    def _insert_path(self, value: str | Exception, raised: bool) -> None:
-        if raised:
-            raise value  # type: ignore
-        self.set_value(value)  # type: ignore
+    def _insert_path(self, value: tuple[Path, ...] | Exception, raised: bool) -> None:
+        if raised and isinstance(value, Exception):
+            raise value
+        if isinstance(value, tuple):
+            path = str(value[0])
+        self.set_value(path)
 
     def open_file(self):
         _callback = functools.partial(
@@ -733,17 +735,19 @@ class CertificateForm(ttk.Frame):
         self.origin = TextEntry(self, 'Origem:')
         self.origin.add_block_input_button(default=True)
         self.cert_path = FileEntry(
-            self, 'Arquivo de Certificado:', [('Certificado PFX (*.pfx)', ('*.pfx',))]
+            self,
+            'Arquivo de Certificado:',
+            [('Certificado Digital (*.crt;*.pem)', ('*.crt', '*.pem'))],
         )
         self.cert_path.add_block_input_button(default=True)
         self.key_path = FileEntry(
-            self,
-            'Arquivo de Chave:',
-            [('Certificado Digital (*.crt;*.pem)', ('*.crt', '*.pem'))],
+            self, 'Arquivo de Chave:', [('Chave de Certificado (*)', ('*',))]
         )
         self.key_path.add_block_input_button(default=True)
         self.pfx_path = FileEntry(
-            self, 'Arquivo de Certificado PFX:', [('Chave de Certificado (*)', ('*',))]
+            self,
+            'Arquivo de Certificado PFX:',
+            [('Certificado PFX (*.pfx)', ('*.pfx',))],
         )
         self.pfx_path.add_block_input_button(default=True)
         self.passphrase = TextEntry(self, 'Senha:')
