@@ -77,5 +77,10 @@ class LazyViewNavigator(ViewNavigator):
         super().__init__(master)
         self.parent_widget = master
 
-    def add_button(self, button_class: type[LazyButton]) -> LazyButton:
-        return button_class(self, self.parent_widget)
+    def add_button(
+        self, button_class: type[LazyButton], *, invoke: bool = False
+    ) -> LazyButton:
+        btn = button_class(self, self.parent_widget)
+        if invoke:
+            btn.click()
+        return btn

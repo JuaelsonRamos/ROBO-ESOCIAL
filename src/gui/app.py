@@ -65,9 +65,9 @@ class App(tk.Tk):
             template='Processando Planilhas ({current}/{total})',
         )
         view_nav = LazyViewNavigator(self)
+        view_nav.pack()
         view_nav.add_button(CertificateButton)
-        active = view_nav.add_button(SheetProcessButton)
-        active.click()
+        view_nav.add_button(SheetProcessButton, invoke=True)
         view_nav.add_button(HistoryButton)
         view_nav.add_button(VisualizeButton)
         view_nav.add_button(ToolsButton)
