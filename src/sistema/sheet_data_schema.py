@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src.exc import SheetCell, SheetParsing, ValidatorException
 from src.sistema.validator import (
     IntegerString,
     LetterString,
@@ -7,7 +8,46 @@ from src.sistema.validator import (
     String,
     UTCDate,
     Validator,
+    cell_value_to_string,
 )
+
+import string
+
+from typing import Never
+
+from openpyxl.cell.cell import Cell
+from unidecode import unidecode_expect_nonascii as unidecode
+
+
+class SheetModel:
+    @classmethod
+    def model_code_from_cell(cls, cell: Cell) -> int | Never:
+        try:
+            cell_value = cell_value_to_string(cell.value)
+        except ValidatorException.RuntimeError as err:
+            raise SheetParsing.TypeError(err) from err
+        cell_value = unidecode(cell_value).strip(string.whitespace).lower()
+        if cell_value == '':
+            empty_base_err = SheetCell.ValueError(
+                'cell containing sheet model description is empty'
+            )
+            raise SheetParsing.EmptyString(empty_base_err) from empty_base_err
+        model_spec: tuple[str, ...] = tuple(cell_value.split(' '))
+        if len(model_spec) != 2:
+            raise SheetParsing.ValueError(f'cannot infer model code by {cell_value=}')
+        match model_spec:
+            case ('modelo', '1'):
+                return 1
+            case ('modelo', '2'):
+                return 2
+        raise SheetParsing.ValueError(
+            f"canont infer worksheet's model by cell {cell.coordinate=}"
+        )
+
+    @classmethod
+    def model_name_from_cell(cls, cell: Cell) -> str:
+        code = cls.model_code_from_cell(cell)
+        return 'Modelo 1' if code == 1 else 'Modelo 2'
 
 
 class _ModeloSchemaBase:

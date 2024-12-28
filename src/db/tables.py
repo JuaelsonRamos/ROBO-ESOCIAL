@@ -4,7 +4,7 @@ from .client import ClientConfig
 
 from src.exc import Database
 from src.sistema.sheet_constants import DEFAULT_MODEL_CELL, SHEET_FILETYPE_ASSOCIATIONS
-from src.types import SheetModel
+from src.sistema.sheet_data_schema import SheetModel
 
 import io
 import re
@@ -814,8 +814,8 @@ class Worksheet(Base):
             min_col=sheet.min_column,
             max_col=sheet.max_column,
             model_cell=model_cell.coordinate,
-            model_code=SheetModel.code_from_cell(model_cell),
-            model_name=SheetModel.name_from_cell(model_cell),
+            model_code=SheetModel.model_code_from_cell(model_cell),
+            model_name=SheetModel.model_name_from_cell(model_cell),
         )
 
     @classmethod

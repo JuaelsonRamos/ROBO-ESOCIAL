@@ -6,6 +6,7 @@ from src.bootstrap import Directory
 from src.db.tables import (
     BrowserContext as _BrowserContext,
     BrowserContextDict,
+    BrowserType,
     ClientCertificate as _ClientCertificate,
     ColorSchemeType,
     CookieDict,
@@ -24,7 +25,7 @@ from src.db.tables import (
 from src.exc import Task
 from src.runtime import CommandLineArguments
 from src.sistema.sheet import SheetValidator
-from src.types import BrowserType, TaskInitState
+from src.types import TaskInitState
 
 import asyncio
 import hashlib
@@ -35,7 +36,7 @@ from asyncio import Lock, Queue, Semaphore
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Coroutine, Final, TypedDict
+from typing import Any, Callable, Coroutine, Final, TypedDict, cast
 from urllib.parse import (
     ParseResult as URLParseResult,
     urlparse,
@@ -114,7 +115,7 @@ class BrowserContext:
         self.p = p
         self.browser = browser
         self.browser_exe = Path(browser.browser_type.executable_path)
-        self.browser_type = BrowserType.enum_from_name(browser.browser_type.name)
+        self.browser_type: BrowserType = cast(BrowserType, browser.browser_type.name)
         self._db_data_cache: dict[str, Any] = {}
         self._db_data_changes: dict[str, Any] = {}
 
