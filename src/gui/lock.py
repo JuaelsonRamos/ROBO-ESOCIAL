@@ -14,7 +14,6 @@ RetValue = TypeVar('RetValue', Any, Exception)
 class TkinterLockType(Generic[RetValue]):
     def __init__(self) -> None:
         self.executor = ProcessPoolExecutor(1)
-        self.loop = asyncio.get_event_loop()
         self._lock: bool = False
         self._state = {}
 
@@ -23,7 +22,7 @@ class TkinterLockType(Generic[RetValue]):
 
     def is_future_running(self) -> bool:
         fut: Future = self._state.get('future', None)
-        return fut is not None and (fut.done() or fut.cancelled())
+        return fut is not None and not (fut.done() or fut.cancelled())
 
     def get_running_future(self) -> Future | None:
         return self._state.get('future', None)
@@ -53,6 +52,8 @@ class TkinterLockType(Generic[RetValue]):
         block: bool = True,
     ) -> None:
         self._lock = block
+        if not hasattr(self, 'loop'):
+            self.loop = asyncio.get_event_loop()
         fut = self.loop.run_in_executor(self.executor, func)
         self._state.update(widget=widget, callback=func, future=fut)
         if on_done is not None:
