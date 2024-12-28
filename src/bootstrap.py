@@ -31,7 +31,6 @@ class DirectoryNamespace:
     BACKUP: Final[Path] = APPDATA / '_Backup'
     DB_BACKUP: Final[Path] = BACKUP / 'Db'
     ASSETS: Final[Path] = Path('./assets/') if __debug__ else Path('./_Assets/')
-    CONFIG: Final[Path] = ASSETS / 'Config'
     BROWSER_DOWNLOADS: Final[Path] = APPDATA / '_Downloads'
     BROWSER_TRACES: Final[Path] = APPDATA / '_Traces'
 
