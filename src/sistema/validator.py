@@ -274,8 +274,8 @@ class Validator(metaclass=ValidatorMeta):
         if not self._can_call:
             raise ValidatorException.RuntimeError
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def matches(cls, column_cell: Cell) -> bool: ...
 
     @abstractmethod
