@@ -646,11 +646,11 @@ class FileEntry(TextEntry):
     _open_file_img: tksvg.SvgImage
 
     def __init__(self, master, label_text, extensions: Sequence[tuple]):
-        super().__init__(master, label_text)
         self._open_file_img = tksvg.SvgImage(
-            Directory.ASSETS / 'submit-document.svg', **self._btn_svg_opts
+            file=Directory.ASSETS / 'submit-document.svg', **self._btn_svg_opts
         )
         self._filedialog_options = extensions
+        super().__init__(master, label_text)
 
     def create_widgets(self):
         self.open = ttk.Button(
