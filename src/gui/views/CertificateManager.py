@@ -12,7 +12,6 @@ import math
 import string
 import tkinter as tk
 import functools
-import itertools
 import tkinter.ttk as ttk
 
 from abc import abstractmethod
@@ -368,7 +367,6 @@ class TreeFrame(tk.Frame):
 
 
 class FormEntry(ttk.Frame):
-    _get_class_instance_number = itertools.count(0).__next__
     entries: list[FormEntry] = []
     label_width: int = 25
     entry_width: int = 35
@@ -381,6 +379,7 @@ class FormEntry(ttk.Frame):
     _block_input_img_unlocked: tksvg.SvgImage | None = None
     _hide_input_img_hidden: tksvg.SvgImage | None = None
     _hide_input_img_shown: tksvg.SvgImage | None = None
+    max_label_char_count: int = 0
 
     def __init__(
         self,
@@ -388,16 +387,17 @@ class FormEntry(ttk.Frame):
         label_text: str | None = None,
     ):
         super().__init__(master, takefocus=tk.FALSE)
-        self.index = self._get_class_instance_number()
+        self.index = len(self.entries)
         self.entries.append(self)
         self.entry: ttk.Entry
-        self._var_label = tk.StringVar(value=label_text or 'Static Data Field:')
+        self._var_label = tk.StringVar()
         self.label = ttk.Label(
-            master,
+            self,
             anchor=tk.E,
             justify=tk.RIGHT,
             textvariable=self._var_label,
         )
+        self.set_label(label_text or 'Static Data Field:')
         self._var_entry = tk.StringVar(value='')
         self._entry_text_buffer: str = ''
         self.hide_button: ttk.Button | None = None
@@ -412,15 +412,24 @@ class FormEntry(ttk.Frame):
     @abstractmethod
     def create_widgets(self): ...
 
-    def grid(self):
-        i = self.index
-        self.master.grid_rowconfigure(i, minsize=35, pad=self.pad)
-        super().grid(column=0, row=i, sticky=tk.EW)
+    @classmethod
+    def pack_all_entries(cls):
+        for entry in cls.entries:
+            entry.pack()
+            if entry.index > 0:
+                previous_entry = cls.entries[entry.index - 1]
+                entry.pack_configure(after=previous_entry)
+
+    def pack(self):
+        super().pack(side=tk.TOP, fill=tk.X, padx=self.pad, pady=self.pad)
         self.label.pack(side=tk.LEFT, padx=self.pad)
         if self.block_button:
             self.block_button.pack(side=tk.RIGHT)
         if self.hide_button:
             self.hide_button.pack(side=tk.RIGHT, padx=self.pad)
+        if self.hide_button and self.block_button:
+            # side=tk.RIGHT positions in reverse order; after == before and vice versa
+            self.hide_button.pack_configure(after=self.block_button)
 
     def is_hidded(self) -> bool:
         if self.hide_button is None:
@@ -434,6 +443,11 @@ class FormEntry(ttk.Frame):
 
     def set_label(self, text: str):
         self._var_label.set(text)
+        if (new_width := len(text)) > FormEntry.max_label_char_count:
+            FormEntry.max_label_char_count = new_width
+            for entry in self.entries:
+                entry.label.config(width=new_width)
+        self.label.config(width=FormEntry.max_label_char_count)
 
     def set_value(self, text: str):
         self._entry_text_buffer = text
@@ -469,7 +483,7 @@ class FormEntry(ttk.Frame):
         self._hide_default = default
         self._is_hidden = self._hide_default
         self.hide_button = ttk.Button(
-            self.master,
+            self,
             takefocus=tk.FALSE,
             padding=0,
         )
@@ -496,7 +510,7 @@ class FormEntry(ttk.Frame):
         self._is_blocked = self._block_default
         state = tk.DISABLED if self._block_default else tk.NORMAL
         self.block_button = ttk.Button(
-            self.master,
+            self,
             state=state,
             takefocus=False,
             padding=0,
@@ -582,9 +596,9 @@ class FormEntry(ttk.Frame):
 
 class TextEntry(FormEntry):
     def create_widgets(self):
-        tcl_callback = self.master.register(self._check_is_hidden)
+        tcl_callback = self.register(self._check_is_hidden)
         self.entry = ttk.Entry(
-            self.master,
+            self,
             justify=tk.LEFT,
             textvariable=self._var_entry,
             width=self.entry_width,
@@ -637,8 +651,8 @@ class TextEntry(FormEntry):
                 self.entry.icursor(i + len(text))
         return True
 
-    def grid(self):
-        super().grid()
+    def pack(self):
+        super().pack()
         self.entry.pack(side=tk.LEFT, padx=self.pad, fill=tk.X)
 
 
@@ -653,10 +667,14 @@ class FileEntry(TextEntry):
         super().__init__(master, label_text)
 
     def create_widgets(self):
+        self.sub_frame = ttk.Frame(self, takefocus=tk.FALSE)
         self.open = ttk.Button(
-            self, takefocus=tk.TRUE, command=self.open_file, image=self._open_file_img
+            self.sub_frame,
+            takefocus=tk.TRUE,
+            command=self.open_file,
+            image=self._open_file_img,
         )
-        self.entry = ttk.Entry(self, justify=tk.LEFT, width=self.entry_width)
+        self.entry = ttk.Entry(self.sub_frame, justify=tk.LEFT, width=self.entry_width)
 
     def _insert_path(self, value: str | Exception, raised: bool) -> None:
         if raised:
@@ -674,9 +692,10 @@ class FileEntry(TextEntry):
         lock = TkinterLock
         lock.schedule(self, _callback, self._insert_path, block=False)
 
-    def grid(self):
-        super().grid()
-        self.open.pack(side=tk.LEFT)
+    def pack(self):
+        super().pack()  # packs entry
+        self.sub_frame.pack(side=tk.LEFT, fill=tk.X, after=self.label)
+        self.open.pack(side=tk.LEFT, after=self.entry)
 
     def block_input(self, event: tk.Event | None = None):
         super().block_input(event)
@@ -697,10 +716,8 @@ class CertificateForm(ttk.Frame):
 
     def pack(self):
         super().pack(side=tk.LEFT, fill=tk.BOTH, padx=5, pady=5)
-        for entry in FormEntry.entries:
-            entry.grid()
-        cols, rows = self.grid_size()  # values are equivalent to 1-based indexes
-        self.btn_frame.grid(column=0, row=rows, columnspan=cols, pady=10, sticky=tk.EW)
+        FormEntry.pack_all_entries()
+        self.btn_frame.pack(side=tk.TOP, fill=tk.X, pady=10)
         self.btn_submit.pack(side=tk.RIGHT)
         self.btn_cancel.pack(side=tk.RIGHT, before=self.btn_submit)
 
