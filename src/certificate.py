@@ -8,6 +8,9 @@ from typing import Any, Sequence
 
 
 class CertificateHelper:
+    # Jun 11 10:46:39 2027 GMT
+    datetime_format = '%b %d %H:%M:%S %Y %Z'
+
     def __init__(self):
         self.context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         self.context.load_default_certs(ssl.Purpose.CLIENT_AUTH)
@@ -18,6 +21,7 @@ class CertificateHelper:
     def count_sys_certs(self):
         if self._sys_certs_count_cache is None:
             self._sys_certs_count_cache = len(self.get_sys_certs())
+        return self._sys_certs_count_cache
 
     def get_sys_certs(self):
         if self._sys_certs_cache is None:
@@ -61,19 +65,14 @@ class CertificateHelper:
     def get_md5_of_many_ca_cert_dicts(
         self, certs: Sequence[dict]
     ) -> Sequence[tuple[str, dict]]:
-        sys_cert_hashed = tuple(hash(cert) for cert in self.get_sys_certs())
-        arg_cert_hashed = tuple(hash(cert) for cert in certs)
+        sys_certs = self.get_sys_certs()
         result = []
-        for i, arg_cert_hash in enumerate(arg_cert_hashed):
+        for i, arg_cert_hash in enumerate(certs):
             try:
-                sys_cert_index = sys_cert_hashed.index(arg_cert_hash)
+                sys_cert_index = sys_certs.index(arg_cert_hash)
                 cert_data = self.get_sys_certs_as_bytes()[sys_cert_index]
-                result.append(
-                    (
-                        hashlib.md5(cert_data, usedforsecurity=False).hexdigest(),
-                        certs[i],
-                    )
-                )
+                md5 = hashlib.md5(cert_data, usedforsecurity=False).hexdigest().upper()
+                result.append((md5, certs[i]))
             except IndexError:
                 continue
         return result
@@ -99,28 +98,32 @@ class CertificateHelper:
             or get_country_str(c, 'subject').lower() == 'br'
         ]
 
-    def is_expired(self, cert_dict) -> bool:
-        valid_from = datetime.fromisoformat(cert_dict['notBefore'])
-        valid_up_to = datetime.fromisoformat(cert_dict['notAfter'])
-        return valid_from <= datetime.now() < valid_up_to
+    @classmethod
+    def is_expired(cls, cert_dict) -> bool:
+        valid_up_to = datetime.strptime(cert_dict['notAfter'], cls.datetime_format)
+        return datetime.now() >= valid_up_to
 
-    def parse_ca_issuer_subject_info(self, cert_dict: dict[str, Any]):
-        generic_unique_id = cert_dict['serialNumber']
-        info = {}
-        for key in ('issuer', 'subject'):
-            all_cert_info: Sequence[Sequence[Sequence[str]]] = cert_dict[key]
-            for info_layer in all_cert_info:
-                org_name = ''
-                all_org_info = []
-                for data_keyvalue_pairs in info_layer:
-                    info_unit = {}
-                    for data_kind_name, value in data_keyvalue_pairs:
-                        info_unit[data_kind_name] = value
-                    org_name = info_unit['organizationName']
-                    all_org_info.append(info_unit)
-                if org_name not in info:
-                    info[org_name] = {}
-                if generic_unique_id not in info[org_name]:
-                    info[org_name][generic_unique_id] = {}
-                info[org_name][generic_unique_id][key] = tuple(all_org_info)
+    @classmethod
+    def parse_ca_issuer_subject_info(
+        cls, cert_dict: dict[str, Any]
+    ) -> dict[str, dict[str, str | float]]:
+        info = {'issuer': {}, 'subject': {}}
+        for key in info.keys():
+            info_subject = {}
+            all_info_sets: Sequence[Sequence[Sequence[str]]] = cert_dict[key]
+            for info_set in all_info_sets:
+                info_unit = {}
+                if len(info_set) == 0:
+                    continue
+                elif len(info_set) == 1:
+                    pair = info_set[0]
+                    info_unit[pair[0]] = pair[1]
+                else:
+                    buffer = {}
+                    for info_pair in info_set:
+                        for name, value in info_pair:
+                            buffer[name] = value
+                    info_unit.update(buffer)
+                info_subject.update(info_unit)
+            info[key].update(info_subject)
         return info
