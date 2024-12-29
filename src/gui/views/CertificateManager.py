@@ -89,22 +89,26 @@ class CertificateList(ttk.Treeview):
     def _column_data_from_cert_dict(
         self, cert_dict: dict, info: dict, expired: bool, md5: str
     ) -> tuple[str, ...]:
-        time_from = datetime.fromisoformat(cert_dict['notBefore']).isoformat(
-            self.datetime_format
+        local_tzinfo = datetime.now().astimezone().tzinfo
+        time_from = (
+            datetime.strptime(cert_dict['notBefore'], CertificateHelper.datetime_format)
+            .replace(tzinfo=local_tzinfo)
+            .strftime(self.datetime_format)
         )
-        time_to = datetime.fromisoformat(cert_dict['notAfter']).isoformat(
-            self.datetime_format
+        time_to = (
+            datetime.strptime(cert_dict['notAfter'], CertificateHelper.datetime_format)
+            .replace(tzinfo=local_tzinfo)
+            .strftime(self.datetime_format)
         )
         issued_by = ''
         issued_to = ''
-        for first_org in info.values():
-            for first_info_dict in first_org.values():
-                first_issuer = first_info_dict['issuer'][0]
-                first_subject = first_info_dict['subject'][0]
-                issued_by = first_issuer['organizationName']
-                issued_to = first_subject['organizationName']
-                break
-            break
+        cert_info = CertificateHelper.parse_ca_issuer_subject_info(cert_dict)
+        issued_by = cert_info['issuer']['organizationName']
+        if not isinstance(issued_by, str):
+            issued_by = str(issued_by)
+        issued_to = cert_info['subject']['organizationName']
+        if not isinstance(issued_to, str):
+            issued_to = str(issued_to)
         is_expired = 'Sim' if expired else 'Não'
         return (issued_by, issued_to, time_from, time_to, is_expired, md5)
 
@@ -126,10 +130,12 @@ class CertificateList(ttk.Treeview):
                 self.item(md5, values=values)
                 continue
             self.insert('', 'end', md5, values=values)
-        iid_diff = set().difference(
-            self.get_children(), [pair[0] for pair in md5_cert_pair]
-        )
-        self.delete(*iid_diff)
+        all_iids = self.get_children()
+        md5_set = set(pair[0] for pair in md5_cert_pair)
+        excess = md5_set.difference(all_iids)
+        if len(excess) == 0:
+            return
+        self.delete(*excess)
 
 
 class CertificateManager(View):
