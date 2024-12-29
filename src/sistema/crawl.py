@@ -7,7 +7,6 @@ from src.db.tables import (
     BrowserContext as _BrowserContext,
     BrowserContextDict,
     BrowserType,
-    ClientCertificate as _ClientCertificate,
     ColorSchemeType,
     CookieDict,
     EntryWorksheet as _EntryWorksheet,
@@ -15,7 +14,6 @@ from src.db.tables import (
     ForcedColorsType,
     LocalStorageDict,
     LocaleType,
-    OriginDict,
     ProcessingEntry as _ProcessingEntry,
     ProcessingEntryDict,
     ReducedMotionType,
@@ -36,22 +34,19 @@ from asyncio import Lock, Queue, Semaphore
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Coroutine, Final, TypedDict, cast
-from urllib.parse import (
-    ParseResult as URLParseResult,
-    urlparse,
-)
+from typing import Any, Callable, Coroutine, Final, NamedTuple, TypedDict, cast
 
 import playwright.async_api as playwright
 
 from sqlalchemy import func
 
 
-ESOCIAL_URL: Final[URLParseResult]  # TODO
-GOVBR_URL: Final[URLParseResult]  # TODO
+class WebpageUrlNamespace(NamedTuple):
+    esocial: str
+    govbr: str
 
 
-def make_db_origin_dict() -> OriginDict: ...
+WebpageUrl = WebpageUrlNamespace('', '')  # TODO
 
 
 def make_db_cookie_dict() -> CookieDict: ...
@@ -86,16 +81,13 @@ def browserhook_on_local_storage_change(detail: LocalStorageDetail) -> None:
 
 @dataclass(init=True, slots=True)
 class PageState:
-    origin_id: int | None
     cookie_ids: set[int]
     local_storage_ids: set[int]
-    page_init_url: URLParseResult
+    page_init_url: str
     page: playwright.Page
 
     def state_hash(self) -> int:
-        return (
-            hash(self.origin_id) + hash(self.cookie_ids) + hash(self.local_storage_ids)
-        )
+        return hash(self.cookie_ids) + hash(self.local_storage_ids)
 
 
 class BrowserContext:
@@ -137,7 +129,8 @@ class BrowserContext:
     def _create_db_data_populate_self(self, init_state: TaskInitState):
         # caching init data
         self.workbook_id = init_state['workbook_db_id']
-        self.certificate_db_id = init_state['certificate_db_id']
+        self.certificate_blob = init_state['cert_blob']
+        self.certificate_md5 = init_state['cert_blob_md5']
         self.worksheet_ids = _Worksheet.get_sheet_ids_from_book_id(self.workbook_id)
 
         # insert browser context data into db
@@ -167,18 +160,7 @@ class BrowserContext:
 
     def _make_playwright_context_args(self) -> dict[str, Any]:
         indb = self._db_data_cache
-        cert = _ClientCertificate.sync_select_one_from_id(self.certificate_db_id)
-        cert_dict = None
-        if cert is not None:
-            cert_dict = {'origin': cert.origin}
-            if cert.using_type == 'PFX':
-                cert_dict['pfx'] = cert.pfx if cert.pfx is not None else b''
-            elif cert.usign_type == 'KEY':
-                cert_dict['key'] = cert.key if cert.key is not None else b''
-            else:
-                cert_dict['cert'] = cert.cert if cert.cert is not None else b''
-            if cert.passphrase is not None:
-                cert_dict['passphrase'] = cert.passphrase
+        certs = [{'origin': url, 'cert': self.certificate_blob} for url in WebpageUrl]
         return dict(
             java_script_enabled=indb['javascript_enabled'],
             locale=indb['locale'],
@@ -190,7 +172,7 @@ class BrowserContext:
             reduced_motion=indb['reduced_motion'],
             forced_colors=indb['forced_colors'],
             accept_downloads=indb['accept_downloads'],
-            client_certificates=[cert_dict] if cert_dict is not None else None,
+            client_certificates=certs,
         )
 
     async def start_from(self, init_state: TaskInitState):
@@ -249,9 +231,9 @@ class BrowserContext:
         return path
 
     async def new_page(self) -> PageState:
-        parsed_url = urlparse()  # TODO
+        parsed_url: str = ''
         page = await self.browser_context.new_page()
-        return PageState(0, set(), set(), parsed_url, page)
+        return PageState(set(), set(), parsed_url, page)
 
 
 StepFunc = Callable[['CrawlerTask'], None]
@@ -259,11 +241,12 @@ StepFunc = Callable[['CrawlerTask'], None]
 
 class ProcessingEntryManager:
     def __init__(
-        self, browser_context_id: int, workbook_id: int, client_certificate_id: int
+        self, browser_context_id: int, workbook_id: int, cert_blob: bytes
     ) -> None:
         self.browser_context_id: int = browser_context_id
         self.workbook_id: int = workbook_id
-        self.client_certificate_id: int = client_certificate_id
+        self.cert_blob: bytes = cert_blob
+        self.cert_blob_md5: str = hashlib.md5(cert_blob).hexdigest().upper()
 
     def init_db_data(self) -> None:
         initial_data = self._initial_db_data()
@@ -296,7 +279,8 @@ class ProcessingEntryManager:
             'when_last_paused': None,
             'browsercontext_id': self.browser_context_id,
             'workbook_id': self.workbook_id,
-            'clientcertificate_id': self.client_certificate_id,
+            'cert_blob': self.cert_blob,
+            'cert_blob_md5': self.cert_blob_md5,
         }
 
     def set_started(self) -> None:
@@ -382,7 +366,7 @@ class CrawlerTask:
         self.processing_entry_manager = ProcessingEntryManager(
             self.context.browsercontext_id,
             self.context.workbook_id,
-            self.context.certificate_db_id,
+            self.context.certificate_blob,
         )
         self.processing_entry_manager.init_db_data()
         if len(self.context.worksheet_ids) == 0:
@@ -433,9 +417,7 @@ class CrawlerTask:
             del self.tasks[self.task_id]
 
     def __hash__(self) -> int:
-        non_unique = hash(self.context.browser_exe) + hash(
-            self.context.browser_type.playwright_name()
-        )
+        non_unique = hash(self.context.browser_exe) + hash(self.context.browser_type)
         unique = hash(self.task_index)
         return non_unique + unique
 
