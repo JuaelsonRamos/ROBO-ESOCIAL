@@ -110,11 +110,10 @@ class CertificateList(ttk.Treeview):
 
     def reload_from_system_certificates(self, event: tk.Event | None = None):
         cert_helper = CertificateHelper()
-        if self.update_btn is not None:
-            if cert_helper.count_sys_certs() == 0:
+        if cert_helper.count_sys_certs() == 0:
+            if self.update_btn is not None:
                 self.update_btn.config(state=tk.DISABLED)
-            else:
-                self.update_btn.config(state=tk.NORMAL)
+            return
         br_certs = cert_helper.get_br_ca_cert_dicts()
         md5_cert_pair = cert_helper.get_md5_of_many_ca_cert_dicts(br_certs)
         for md5, cert in md5_cert_pair:
