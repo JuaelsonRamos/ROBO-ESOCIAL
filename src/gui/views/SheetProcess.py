@@ -395,6 +395,13 @@ class Tree(ttk.Treeview):
         self.bind('<<TreeviewSelect>>', self._set_button_state)
         self.bind('<Visibility>', self._set_button_state)
         self.bind('<Button-1>', self._check_click_position)
+        self.bind('<Button-1>', self._prevent_resizing, '+')
+        self.bind('<ButtonRelease-1>', self._prevent_resizing)
+        self.bind('<Motion>', self._prevent_resizing)
+
+    def _prevent_resizing(self, event: tk.Event):
+        if self.identify_region(event.x, event.y) == 'separator':
+            return 'break'
 
     def _check_click_position(self, event: tk.Event):
         if self.identify_region(event.x, event.y) not in ('heading', 'nothing'):
@@ -444,11 +451,6 @@ class ProcessingTree(Tree):
         self.bind('<<AddItem>>', self._add_single_workbook)
         self.bind('<<ReloadTree>>', self.force_reload_tree)
         self.bind('<<DeleteSelected>>', self._delete_selected)
-        self.bind('<Motion>', self._check_mouse_region)
-
-    def _check_mouse_region(self, event: tk.Event):
-        if self.identify_region(event.x, event.y) == 'separator':
-            return 'break'
 
     def _def_column(self, col_id: str, name: str, width: int, anchor: str = tk.CENTER):
         self.heading(col_id, text=name, anchor=anchor)  # type: ignore
