@@ -331,7 +331,6 @@ class Cookie(Base):
 class LocalStorageDict(BaseDict, total=False):
     created: datetime
     last_modified: datetime | None
-    origin_id: int
     name: str
     value: str
 
@@ -348,9 +347,7 @@ class LocalStorage(Base):
     typed_dict = LocalStorageDict
     created: Mapped[datetime] = CommonColumns.created()
     last_modified: Mapped[datetime] = CommonColumns.last_modified()
-    origin_id: Mapped[int] = mapped_column(
-        ForeignKey('origin._id'), nullable=False, unique=False
-    )
+    url: Mapped[Url] = mapped_column(nullable=False, unique=False)
     name: Mapped[str] = mapped_column(
         nullable=False,
         unique=False,
@@ -361,39 +358,6 @@ class LocalStorage(Base):
         nullable=False,
         unique=False,
         **doc(_local_storage_value_doc),
-    )
-
-
-class OriginDict(BaseDict, total=False):
-    created: datetime
-    origin: str
-
-
-class Origin(Base):
-    __tablename__ = 'origin'
-    typed_dict = OriginDict
-    created: Mapped[datetime] = CommonColumns.created()
-    origin: Mapped[Url] = mapped_column(nullable=False, unique=False)
-
-
-class Origin_LocalStorageDict(BaseDict, total=False):
-    origin_id: int
-    localstorage_id: int
-
-
-_origin_localstorage_doc = doc('Association table: many origin to many local_storage')
-
-
-class Origin_LocalStorage(Base):
-    __tablename__ = 'origin_localstorage'
-    typed_dict = Origin_LocalStorageDict
-    __table_args__ = {'comment': _origin_localstorage_doc['comment']}
-    __doc__ = _origin_localstorage_doc['doc']
-    origin_id: Mapped[int] = mapped_column(
-        ForeignKey('origin._id'), nullable=False, unique=False
-    )
-    localstorage_id: Mapped[int] = mapped_column(
-        ForeignKey('localstorage._id'), nullable=False, unique=False
     )
 
 
@@ -419,101 +383,6 @@ class Cookie_BrowserContext(Base):
     )
     cookie_id: Mapped[int] = mapped_column(
         ForeignKey('cookie._id'), nullable=False, unique=False
-    )
-
-
-class Origin_CookieDict(BaseDict, total=False):
-    cookie_id: int
-    origin_id: int
-
-
-_origin_browsercontext_doc = doc('Association table: many cookie to many origin')
-
-
-class Origin_Cookie(Base):
-    __tablename__ = 'origin_cookie'
-    typed_dict = Origin_CookieDict
-    __table_args__ = {'comment': _origin_browsercontext_doc['comment']}
-    __doc__ = _origin_browsercontext_doc['doc']
-    cookie_id: Mapped[int] = mapped_column(
-        ForeignKey('cookie._id'),
-        nullable=False,
-        unique=False,
-    )
-    origin_id: Mapped[int] = mapped_column(
-        ForeignKey('origin._id'), nullable=False, unique=False
-    )
-
-
-CertificateOptions: tuple[str, ...] = ('PFX', 'CRT', 'PEM')
-CertificateType = Literal[*CertificateOptions]
-CertificateEnum = Enum(
-    *get_args(CertificateType),
-    name='certificate',
-    create_constraint=True,
-    validate_strings=True,
-)
-
-
-class ClientCertificateDict(BaseDict, total=False):
-    created: datetime
-    last_modified: datetime | None
-    browsercontext_id: int | None
-    origin: str
-    cert_path: str | None
-    cert: bytes | None
-    key_path: bytes | None
-    key: bytes | None
-    pfx_path: str | None
-    pfx: bytes | None
-    passphrase: str | None
-    using_type: str | None
-    description: str
-
-
-class ClientCertificate(Base):
-    __tablename__ = 'clientcertificate'
-    typed_dict = ClientCertificateDict
-    created: Mapped[datetime] = CommonColumns.created()
-    last_modified: Mapped[datetime] = CommonColumns.last_modified()
-    browsercontext_id: Mapped[int] = mapped_column(
-        ForeignKey('browsercontext._id'),
-        nullable=True,
-        unique=False,
-        **doc('one client_certificate to many browsercontexts'),
-    )
-    origin: Mapped[str] = mapped_column(nullable=False, unique=False)
-    cert_path: Mapped[str] = mapped_column(
-        nullable=True, unique=True, server_default=sql.null()
-    )
-    cert: Mapped[bytes] = mapped_column(
-        nullable=True, unique=True, server_default=sql.null()
-    )
-    key_path: Mapped[bytes] = mapped_column(
-        nullable=True, unique=True, server_default=sql.null()
-    )
-    key: Mapped[bytes] = mapped_column(
-        nullable=True, unique=True, server_default=sql.null()
-    )
-    pfx_path: Mapped[str] = mapped_column(
-        nullable=True, unique=True, server_default=sql.null()
-    )
-    pfx: Mapped[bytes] = mapped_column(
-        nullable=True, unique=True, server_default=sql.null()
-    )
-    passphrase: Mapped[str] = mapped_column(
-        nullable=True, unique=False, server_default=sql.null()
-    )
-    using_type: Mapped[str] = mapped_column(
-        CertificateEnum,
-        nullable=True,
-        unique=False,
-        **doc('What kind of certificate is row refering to'),
-    )
-    description: Mapped[str] = mapped_column(
-        nullable=False,
-        unique=True,
-        **doc('Unique user-defined description for that certificate'),
     )
 
 
@@ -633,7 +502,8 @@ class ProcessingEntryDict(BaseDict, total=False):
     when_last_paused: datetime | None
     browsercontext_id: int
     workbook_id: int
-    clientcertificate_id: int
+    cert_blob: bytes
+    cert_blob_md5: str
 
 
 class ProcessingEntry(Base):
@@ -666,9 +536,8 @@ class ProcessingEntry(Base):
     workbook_id: Mapped[int] = mapped_column(
         ForeignKey('workbook._id'), nullable=False, unique=False
     )
-    clientcertificate_id: Mapped[int] = mapped_column(
-        ForeignKey('clientcertificate._id'), nullable=False, unique=False
-    )
+    cert_blob: Mapped[bytes] = mapped_column(nullable=False, unique=False)
+    cert_blob_md5: Mapped[str] = mapped_column(nullable=False, unique=False)
 
 
 class EntryWorksheetDict(BaseDict, total=False):
@@ -764,14 +633,14 @@ class WorksheetDict(BaseDict, total=False):
     title: str
     workbook_index: int
     workbook_id: int
-    dimensions: str
+    dimensions: str | None
     columns: int
     rows: int
-    mime_type: str
+    mime_type: str | None
     min_row: int
-    max_row: int
+    max_row: int | None
     min_col: int
-    max_col: int
+    max_col: int | None
     model_cell: str
     model_name: str
     model_code: int
@@ -787,14 +656,14 @@ class Worksheet(Base):
     workbook_id: Mapped[int] = mapped_column(
         ForeignKey('workbook._id'), unique=False, nullable=False
     )
-    dimensions: Mapped[str] = mapped_column(unique=False, nullable=False)
-    columns: Mapped[int] = mapped_column(unique=False, nullable=False)
-    rows: Mapped[int] = mapped_column(unique=False, nullable=False)
-    mime_type: Mapped[str] = mapped_column(unique=False, nullable=False)
+    dimensions: Mapped[str] = mapped_column(unique=False, nullable=True)
+    columns: Mapped[int] = mapped_column(unique=False, nullable=True)
+    rows: Mapped[int] = mapped_column(unique=False, nullable=True)
+    mime_type: Mapped[str] = mapped_column(unique=False, nullable=True)
     min_row: Mapped[int] = mapped_column(unique=False, nullable=False)
-    max_row: Mapped[int] = mapped_column(unique=False, nullable=False)
+    max_row: Mapped[int] = mapped_column(unique=False, nullable=True)
     min_col: Mapped[int] = mapped_column(unique=False, nullable=False)
-    max_col: Mapped[int] = mapped_column(unique=False, nullable=False)
+    max_col: Mapped[int] = mapped_column(unique=False, nullable=True)
     model_cell: Mapped[str] = mapped_column(unique=False, nullable=False)
     model_name: Mapped[str] = mapped_column(unique=False, nullable=False)
     model_code: Mapped[int] = mapped_column(unique=False, nullable=False)
@@ -802,13 +671,24 @@ class Worksheet(Base):
     @classmethod
     def from_sheet_obj(cls, book: _Workbook, sheet: _Worksheet) -> WorksheetDict:
         model_cell: _Cell = sheet[DEFAULT_MODEL_CELL]
+        dimensions = None
+        try:
+            dimensions = sheet.calculate_dimension()
+        except ValueError:
+            # unsized sheet
+            pass
+        mime_type = None
+        try:
+            mime_type = sheet.mime_type
+        except AttributeError:
+            pass
         return WorksheetDict(
             title=sheet.title,
             workbook_index=book.index(sheet),
-            dimensions=sheet.calculate_dimension(),
+            dimensions=dimensions,
             columns=sheet.max_column,
             rows=sheet.max_row,
-            mime_type=sheet.mime_type,
+            mime_type=mime_type,
             min_row=sheet.min_row,
             max_row=sheet.max_row,
             min_col=sheet.min_column,
