@@ -34,33 +34,24 @@ class CertificateHelper:
         return self._sys_certs_bytes_cache
 
     def get_ca_bytes_from_cert_dict(self, cert_dict: dict):
-        self.get_ca_bytes_from_cert_dict_hash(hash(cert_dict))
+        try:
+            i = self.get_sys_certs().index(cert_dict)
+            return self.get_sys_certs_as_bytes()[i]
+        except (ValueError, IndexError):
+            return None
 
     def sort_ca_cert_dict_sequence(
         self, certs: Sequence[dict], ascending: bool = True
     ) -> Sequence[dict]:
-        order: dict[int, dict] = {}
-        bigger_index = max(len(self.get_sys_certs()), len(certs))
-        for i in range(bigger_index):
-            sys_cert, arg_cert = None, None
+        indexes = []
+        sys_certs = self.get_sys_certs()
+        for cert in certs:
             try:
-                arg_cert = certs[i]
-            except IndexError:
-                break
-            try:
-                sys_cert = self.get_sys_certs()[i]
-            except IndexError:
-                order[max(order.keys()) + 1] = arg_cert
+                indexes.append(sys_certs.index(cert))
+            except (IndexError, ValueError):
                 continue
-            if hash(sys_cert) == hash(arg_cert):
-                order[i] = arg_cert
-        in_order = tuple(
-            pair[1]
-            for pair in sorted(
-                order.items(), key=lambda key_value: key_value[0], reverse=not ascending
-            )
-        )
-        return in_order
+        indexes.sort(reverse=not ascending)
+        return tuple(sys_certs[i] for i in indexes)
 
     def get_md5_of_many_ca_cert_dicts(
         self, certs: Sequence[dict]
@@ -76,16 +67,6 @@ class CertificateHelper:
             except IndexError:
                 continue
         return result
-
-    def get_ca_bytes_from_cert_dict_hash(self, cert_dict_hash: int) -> bytes | None:
-        index: int | None = None
-        for i, cert in enumerate(self.get_sys_certs()):
-            if hash(cert) == cert_dict_hash:
-                index = i
-                break
-        if index is None:
-            return None
-        return self.get_sys_certs_as_bytes()[index]
 
     def get_br_ca_cert_dicts(self):
         def get_country_str(cert_dict, key):
