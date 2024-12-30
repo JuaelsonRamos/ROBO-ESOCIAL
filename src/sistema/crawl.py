@@ -217,12 +217,21 @@ class ProcessingEntryManager:
         self.workbook_id: int = workbook_id
 
     def init_db_data(self) -> None:
-        initial_data = self._initial_db_data()
-        self.db_id = _ProcessingEntry.sync_insert_one(initial_data)
+        with get_global_state().sqlite.begin() as conn:
+            query = select(_ProcessingEntry._id).where(
+                _ProcessingEntry.workbook_id == self.workbook_id,
+                _ProcessingEntry.browsercontext_id == self.browser_context_id,
+            )
+            result = conn.execute(query).one_or_none()
+            if result is None:
+                initial_data = self._initial_db_data()
+                self.db_id = _ProcessingEntry.sync_insert_one(initial_data)
+            else:
+                self.db_id = result._id
         self._update_current_db_data()
 
     def _update_current_db_data(self) -> None:
-        db_data = _EntryWorksheet.sync_select_one_from_id(self.db_id)
+        db_data = _ProcessingEntry.sync_select_one_from_id(self.db_id)
         self.current_db_data: dict[str, int | datetime | bool]
         data = db_data._asdict()  # type: ignore
         self.current_db_data = data
@@ -280,8 +289,17 @@ class EntryWorksheetManager:
         self.worksheet_id: int = worksheet_id
 
     def init_db_data(self) -> None:
-        initial_data = self._initial_db_data()
-        self.db_id: int = _EntryWorksheet.sync_insert_one(initial_data)
+        with get_global_state().sqlite.begin() as conn:
+            query = select(_EntryWorksheet._id).where(
+                _EntryWorksheet.processingentry_id == self.processing_entry_id,
+                _EntryWorksheet.worksheet_id == self.worksheet_id,
+            )
+            result = conn.execute(query).one_or_none()
+            if result is None:
+                initial_data = self._initial_db_data()
+                self.db_id = _EntryWorksheet.sync_insert_one(initial_data)
+            else:
+                self.db_id = result._id
         self._update_current_db_data()
 
     def _update_current_db_data(self):
@@ -291,8 +309,6 @@ class EntryWorksheetManager:
         self.current_db_data = data
         self.created: datetime = data['created']
         self.last_modified: datetime | None = data['last_modified']
-        self.processingentry_id: int = data['processingentry_id']
-        self.worksheet_id: int = data['worksheet_id']
         self.last_column: int = data['last_column']
         self.last_row: int = data['last_row']
 
@@ -316,7 +332,8 @@ class EntryWorksheetManager:
 class CrawlerTask:
     _get_task_i = itertools.count(0).__next__
     tasks: dict[str, CrawlerTask] = {}
-    _steps: tuple[StepFunc, ...]
+    steps: tuple[StepFunc, ...] = ()
+    _all_steps: list[StepFunc] = []
     sheet_validator: SheetValidator
 
     def __init__(
@@ -345,7 +362,7 @@ class CrawlerTask:
             )
             self.worksheet_managers.append(self.current_entry_worksheet_manager)
             self.current_entry_worksheet_manager.init_db_data()
-            for step in self._steps:
+            for step in self.steps:
                 if not getattr(step, '__crawler_step__', False):
                     continue
                 if inspect.iscoroutinefunction(step):
@@ -392,11 +409,13 @@ class CrawlerTask:
             raise Task.CannotRegisterStep(
                 'function to register was not defined as a CrawlerTask.step'
             )
-        cls._steps = tuple(steps)
+        cls.steps = tuple(steps)
 
     @classmethod
     def step(cls, func: StepFunc) -> StepFunc:
-        func.__crawler_step__ = True
+        if func not in cls._all_steps:
+            func.__crawler_step__ = True
+            cls._all_steps.append(func)
         return func
 
 
