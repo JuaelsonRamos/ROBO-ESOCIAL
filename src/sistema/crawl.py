@@ -26,6 +26,7 @@ from src.runtime import CommandLineArguments
 from src.sistema.sheet import SheetValidator
 from src.types import TaskInitState
 
+import sys
 import asyncio
 import hashlib
 import inspect
@@ -370,7 +371,8 @@ class CrawlerTask:
         self.unregister_self()
 
     def register_self(self):
-        self.task_id: str = hashlib.md5(hash(self).to_bytes()).hexdigest().upper()
+        hash_bytes = hash(self).to_bytes(32, sys.byteorder, signed=True)
+        self.task_id: str = hashlib.md5(hash_bytes).hexdigest().upper()
         self.tasks[self.task_id] = self
 
     def unregister_self(self):
@@ -480,8 +482,8 @@ class BrowserRuntime:
         init_state = await self.sheet_queue.get()
         await context.start_from(init_state)
         task = CrawlerTask(self.p, context, self)
-        task.register_self()
         task.schedule_self()
+        task.register_self()
 
 
 CrawlerTask.define_steps_in_strict_order  # TODO
