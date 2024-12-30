@@ -21,6 +21,7 @@ from src.db.tables import (
     Worksheet as _Worksheet,
 )
 from src.exc import Task
+from src.global_state import get_global_state
 from src.runtime import CommandLineArguments
 from src.sistema.sheet import SheetValidator
 from src.types import TaskInitState
@@ -38,7 +39,7 @@ from typing import Any, Callable, Coroutine, Final, NamedTuple, TypedDict, cast
 
 import playwright.async_api as playwright
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 
 class WebpageUrlNamespace(NamedTuple):
@@ -122,7 +123,16 @@ class BrowserContext:
 
         # insert browser context data into db
         db_data = self.default_db_dict()
-        self.browsercontext_id: int = _BrowserContext.sync_insert_one(db_data)
+        with get_global_state().sqlite.begin() as conn:
+            clauses = [
+                getattr(_BrowserContext, col) == value for col, value in db_data.items()
+            ]
+            query = select(_BrowserContext._id).where(*clauses)
+            db_row = conn.execute(query).one_or_none()
+        if db_row is not None:
+            self.browsercontext_id = db_row._id
+        else:
+            self.browsercontext_id: int = _BrowserContext.sync_insert_one(db_data)
 
         # save data as in db
         inserted_db_data = _BrowserContext.sync_select_one_from_id(
@@ -154,7 +164,7 @@ class BrowserContext:
             offline=indb['offline'],
             is_mobile=indb['is_mobile'],
             has_touch=indb['has_touch'],
-            color_scheme=indb['colorscheme'],
+            color_scheme=indb['color_scheme'],
             reduced_motion=indb['reduced_motion'],
             forced_colors=indb['forced_colors'],
             accept_downloads=indb['accept_downloads'],
