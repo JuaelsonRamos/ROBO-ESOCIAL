@@ -117,8 +117,6 @@ class BrowserContext:
     def _create_db_data_populate_self(self, init_state: TaskInitState):
         # caching init data
         self.workbook_id = init_state['workbook_db_id']
-        self.certificate_blob = init_state['cert_blob']
-        self.certificate_md5 = init_state['cert_blob_md5']
         self.worksheet_ids = _Worksheet.get_sheet_ids_from_book_id(self.workbook_id)
 
         # insert browser context data into db
@@ -156,7 +154,6 @@ class BrowserContext:
         return data
 
     def _make_playwright_context_args(self, indb: dict) -> dict[str, Any]:
-        certs = [{'origin': url, 'cert': self.certificate_blob} for url in WebpageUrl]
         return dict(
             java_script_enabled=indb['javascript_enabled'],
             locale=indb['locale'],
@@ -168,7 +165,6 @@ class BrowserContext:
             reduced_motion=indb['reduced_motion'],
             forced_colors=indb['forced_colors'],
             accept_downloads=indb['accept_downloads'],
-            client_certificates=certs,
         )
 
     async def start_from(self, init_state: TaskInitState):
@@ -215,13 +211,9 @@ StepFunc = Callable[['CrawlerTask'], None]
 
 
 class ProcessingEntryManager:
-    def __init__(
-        self, browser_context_id: int, workbook_id: int, cert_blob: bytes
-    ) -> None:
+    def __init__(self, browser_context_id: int, workbook_id: int) -> None:
         self.browser_context_id: int = browser_context_id
         self.workbook_id: int = workbook_id
-        self.cert_blob: bytes = cert_blob
-        self.cert_blob_md5: str = hashlib.md5(cert_blob).hexdigest().upper()
 
     def init_db_data(self) -> None:
         initial_data = self._initial_db_data()
@@ -254,8 +246,6 @@ class ProcessingEntryManager:
             'when_last_paused': None,
             'browsercontext_id': self.browser_context_id,
             'workbook_id': self.workbook_id,
-            'cert_blob': self.cert_blob,
-            'cert_blob_md5': self.cert_blob_md5,
         }
 
     def set_started(self) -> None:
@@ -339,9 +329,7 @@ class CrawlerTask:
         await self.runtime.semaphore.acquire()
         await self.runtime.task_count_increase()
         self.processing_entry_manager = ProcessingEntryManager(
-            self.context.browsercontext_id,
-            self.context.workbook_id,
-            self.context.certificate_blob,
+            self.context.browsercontext_id, self.context.workbook_id
         )
         self.processing_entry_manager.init_db_data()
         if len(self.context.worksheet_ids) == 0:

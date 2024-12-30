@@ -190,5 +190,3 @@ class OpenpyxlCell:
 
 class TaskInitState(TypedDict):
     workbook_db_id: int
-    cert_blob: bytes
-    cert_blob_md5: str

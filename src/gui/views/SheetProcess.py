@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from .CertificateSelector import CertificateSelectorWindow
-
-from src.certificate import CertificateHelper
 from src.db.tables import ProcessingEntry, Workbook, WorkbookDict, Worksheet
 from src.global_state import get_global_state
 from src.gui.lock import TkinterLock
@@ -185,30 +182,6 @@ class ActionButton(ttk.Button):
 
 
 class StartButton(ActionButton):
-    def _start_processing(self, md5: str):
-        cert_helper = CertificateHelper()
-        all_certs = cert_helper.get_sys_certs()
-        md5_cert_pair = cert_helper.get_md5_of_many_ca_cert_dicts(all_certs)
-        for cert_md5, cert in md5_cert_pair:
-            if cert_md5 == md5:
-                blob = cert_helper.get_ca_bytes_from_cert_dict(cert)
-                if blob is None:
-                    return
-                task_init_state = TaskInitState(
-                    workbook_db_id=self.workbook_id, cert_blob=blob, cert_blob_md5=md5
-                )
-                get_global_state().sheet_queue.put_nowait(task_init_state)
-                self._patch_focused_item_tags()
-                return
-
-    def _patch_focused_item_tags(self):
-        tree = _widgets.proc_tree
-        tags = Tag.tag_list(tree.item(self.focused_iid, 'tags'))
-        if len(tags) > 0 and Tag.HALTED in tags:
-            tags.remove(Tag.HALTED)
-        tags.append(Tag.RUNNING)
-        tree.item(self.focused_iid, tags=tags)
-
     def on_click(self):
         tree = _widgets.proc_tree
         iid = tree.focus()
@@ -216,7 +189,13 @@ class StartButton(ActionButton):
             return
         self.workbook_id = int(iid)
         self.focused_iid = iid
-        CertificateSelectorWindow(self, self.winfo_toplevel(), self._start_processing)
+        task_init_state = TaskInitState(workbook_db_id=self.workbook_id)
+        get_global_state().sheet_queue.put_nowait(task_init_state)
+        tags = Tag.tag_list(tree.item(self.focused_iid, 'tags'))
+        if len(tags) > 0 and Tag.HALTED in tags:
+            tags.remove(Tag.HALTED)
+        tags.append(Tag.RUNNING)
+        tree.item(self.focused_iid, tags=tags)
 
 
 class PauseButton(ActionButton):
@@ -433,7 +412,6 @@ class ProcessingTree(Tree):
             'status',
             'when_started',
             'when_finished',
-            'cert_blob_md5',
         )
         super().__init__(master)
 
@@ -445,7 +423,6 @@ class ProcessingTree(Tree):
         self._def_column('status', 'Status', 100)
         self._def_column('when_started', 'Data Início', 100)
         self._def_column('when_finished', 'Data Término', 100)
-        self._def_column('cert_blob_md5', 'ID do Certificado', 100)
 
         self.bind('<Visibility>', self.force_reload_tree, '+')
         self.bind('<<AddItem>>', self._add_single_workbook)
@@ -471,7 +448,6 @@ class ProcessingTree(Tree):
                     t.has_finished,
                     t.when_started,
                     t.when_finished,
-                    t.cert_blob_md5,
                 ).where(t.workbook_id == book_id)
             ).one_or_none()
             return result
@@ -500,7 +476,6 @@ class ProcessingTree(Tree):
         status = 'Não Inicializado'
         when_started = '-'
         when_finished = '-'
-        cert_blob_md5 = '-'
         result = None
         if (book_id := db_book.get('_id', None)) is not None:
             result = self._get_processing_entry_row(book_id)
@@ -515,8 +490,6 @@ class ProcessingTree(Tree):
                 when_started = result.when_started.strftime(datetime_format)
             if result.when_finished is not None:
                 when_finished = result.when_finished.strftime(datetime_format)
-            if result.cert_blob_md5 is not None:
-                cert_blob_md5 = result.cert_blob_md5
         return (
             '-',  # list_order
             name,  # file_name
@@ -526,7 +499,6 @@ class ProcessingTree(Tree):
             status,  # status
             when_started,  # when_started
             when_finished,  # when_finished
-            cert_blob_md5,  # cert_blob_md5
         )
 
     def _add_single_workbook(self, event: tk.Event):

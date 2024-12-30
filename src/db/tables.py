@@ -502,8 +502,6 @@ class ProcessingEntryDict(BaseDict, total=False):
     when_last_paused: datetime | None
     browsercontext_id: int
     workbook_id: int
-    cert_blob: bytes
-    cert_blob_md5: str
 
 
 class ProcessingEntry(Base):
@@ -536,8 +534,6 @@ class ProcessingEntry(Base):
     workbook_id: Mapped[int] = mapped_column(
         ForeignKey('workbook._id'), nullable=False, unique=False
     )
-    cert_blob: Mapped[bytes] = mapped_column(nullable=False, unique=False)
-    cert_blob_md5: Mapped[str] = mapped_column(nullable=False, unique=False)
 
 
 class EntryWorksheetDict(BaseDict, total=False):
