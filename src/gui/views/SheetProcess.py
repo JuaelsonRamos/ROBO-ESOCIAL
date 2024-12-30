@@ -3,7 +3,7 @@ from __future__ import annotations
 from .CertificateSelector import CertificateSelectorWindow
 
 from src.certificate import CertificateHelper
-from src.db.tables import Workbook, WorkbookDict, Worksheet
+from src.db.tables import ProcessingEntry, Workbook, WorkbookDict, Worksheet
 from src.global_state import GlobalState
 from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
@@ -38,45 +38,6 @@ class Heading(TypedDict):
 
 
 HeadingSequence = tuple[Heading, ...]
-
-
-INPUT_QUEUE: HeadingSequence = (
-    {
-        'text': '#',
-        'iid': 'list_order',
-        'anchor': tk.CENTER,
-        'minwidth': 28,
-        'width': 28,
-    },
-    {
-        'text': 'Nome',
-        'iid': 'file_name',
-        'anchor': tk.W,
-        'minwidth': 250,
-        'width': 350,
-    },
-    {
-        'text': 'Tipo',
-        'iid': 'file_type',
-        'anchor': tk.CENTER,
-        'minwidth': 80,
-        'width': None,
-    },
-    {
-        'text': 'Tamanho',
-        'iid': 'storage_size',
-        'anchor': tk.CENTER,
-        'minwidth': 80,
-        'width': None,
-    },
-    {
-        'text': 'Adicionado',
-        'iid': 'date_added',
-        'anchor': tk.CENTER,
-        'minwidth': 150,
-        'width': 180,
-    },
-)
 
 
 HISTORY: HeadingSequence = (
@@ -417,11 +378,9 @@ class HistoryButtonFrame(ButtonFrame):
 
 
 class Tree(ttk.Treeview):
-    headings_spec: HeadingSequence
+    columns: tuple[str, ...] = ()
 
     def __init__(self, master: ttk.Widget):
-        self.columns = tuple(spec['iid'] for spec in self.headings_spec)
-
         super().__init__(
             master,
             height=10,
@@ -432,17 +391,6 @@ class Tree(ttk.Treeview):
         )
 
         _widgets.register(self)
-
-        for spec in self.headings_spec:
-            iid = spec['iid']
-            anchor: Any = spec['anchor']  # string but the typechecker will complain :/
-            self.heading(iid, text=spec['text'], anchor=anchor)
-            if anchor is not None:
-                self.column(iid, anchor=anchor)
-            if (minwidth := spec['minwidth']) is not None:
-                self.column(iid, minwidth=minwidth)
-            if (width := spec['width']) is not None:
-                self.column(iid, width=width)
 
         self.bind('<<TreeviewSelect>>', self._set_button_state)
         self.bind('<Visibility>', self._set_button_state)
@@ -468,22 +416,68 @@ class Tree(ttk.Treeview):
 
 
 class ProcessingTree(Tree):
-    headings_spec = INPUT_QUEUE
-    heading_db_columns = (
-        '_id',
-        'original_path',
-        'file_type_description',
-        'file_size',
-        'created',
-    )
-
     def __init__(self, master: ttk.Widget):
+        self.columns = (
+            'list_order',
+            'file_name',
+            'file_type',
+            'storage_size',
+            'date_added',
+            'status',
+            'when_started',
+            'when_finished',
+            'cert_blob_md5',
+        )
         super().__init__(master)
+
+        self._def_column('list_order', '#', 32)
+        self._def_column('file_name', 'Nome', 250, tk.W)
+        self._def_column('file_type', 'Tipo', 120)
+        self._def_column('storage_size', 'Tamanho', 80)
+        self._def_column('date_added', 'Adicionado', 150)
+        self._def_column('status', 'Status', 100)
+        self._def_column('when_started', 'Data Início', 100)
+        self._def_column('when_finished', 'Data Término', 100)
+        self._def_column('cert_blob_md5', 'ID do Certificado', 100)
+
+        self.bind('<Visibility>', self.force_reload_tree, '+')
         self.bind('<<AddItem>>', self._add_single_workbook)
         self.bind('<<ReloadTree>>', self.force_reload_tree)
         self.bind('<<DeleteSelected>>', self._delete_selected)
+        self.bind('<Motion>', self._check_mouse_region)
 
-    def _make_file_data(self, db_book: WorkbookDict) -> tuple[str, ...]:
+    def _check_mouse_region(self, event: tk.Event):
+        if self.identify_region(event.x, event.y) == 'separator':
+            return 'break'
+
+    def _def_column(self, col_id: str, name: str, width: int, anchor: str = tk.CENTER):
+        self.heading(col_id, text=name, anchor=anchor)  # type: ignore
+        self.column(
+            col_id,
+            anchor=anchor,  # type: ignore
+            minwidth=width,
+            width=width,
+        )
+
+    def _get_processing_entry_row(self, book_id: int):
+        if GlobalState is None or getattr(GlobalState, 'sqlite', None) is None:
+            return None
+        with GlobalState.sqlite.begin() as conn:
+            t = ProcessingEntry
+            result = conn.execute(
+                select(
+                    t.has_started,
+                    t.is_paused,
+                    t.has_finished,
+                    t.when_started,
+                    t.when_finished,
+                    t.cert_blob_md5,
+                ).where(t.workbook_id == db_book['_id'])  # type: ignore
+            ).one_or_none()
+            return result
+
+    def _column_data_from_workbook(self, db_book: WorkbookDict) -> tuple[str, ...]:
+        datetime_format = '%d/%m/%Y %H:%M'
         path = Path(db_book.get('original_path', ''))
         name = unidecode(path.stem)
         name = re_whitespace.sub(' ', name)
@@ -500,18 +494,47 @@ class ProcessingTree(Tree):
             # simple bytes ballpark
             sizeof = str(file_size) + 'B'
         if 'created' in db_book:
-            datetime_format = '%d/%m/%Y %H:%M'
             created = db_book['created'].strftime(datetime_format)
         else:
             created = ''
-        return ('-', name, description, sizeof, created)
+        status = 'Não Inicializado'
+        when_started = '-'
+        when_finished = '-'
+        cert_blob_md5 = '-'
+        result = None
+        if (book_id := db_book.get('_id', None)) is not None:
+            result = self._get_processing_entry_row(book_id)
+        if result is not None:
+            if result.has_finished:
+                status = 'Finalizado'
+            elif result.is_paused:
+                status = 'Pausado'
+            elif result.has_started:
+                status = 'Processando'
+            if result.when_started is not None:
+                when_started = result.when_started.strftime(datetime_format)
+            if result.when_finished is not None:
+                when_finished = result.when_finished.strftime(datetime_format)
+            if result.cert_blob_md5 is not None:
+                cert_blob_md5 = result.cert_blob_md5
+        return (
+            '-',  # list_order
+            name,  # file_name
+            description,  # file_type
+            sizeof,  # storage_size
+            created,  # date_added
+            status,  # status
+            when_started,  # when_started
+            when_finished,  # when_finished
+            cert_blob_md5,  # cert_blob_md5
+        )
 
     def _add_single_workbook(self, event: tk.Event):
         book_id = cast(int, event.state)
         db_book = Workbook.sync_select_one_from_id(book_id)
         if db_book is None:
             return
-        values = self._make_file_data(WorkbookDict(**db_book._asdict()))
+        values = self._column_data_from_workbook(WorkbookDict(**db_book._asdict()))
         if self.exists(book_id):
             self.item(book_id, values=values)
             return
@@ -520,10 +543,17 @@ class ProcessingTree(Tree):
     def force_reload_tree(self, event: tk.Event | None = None):
         if Workbook.sync_count() == 0:
             return
-        db_books = Workbook.sync_select_all_columns(*self.heading_db_columns)
-        for book in db_books:
+        book_related_columns = (
+            '_id',
+            'original_path',
+            'file_type_description',
+            'file_size',
+            'created',
+        )
+        book_rows = Workbook.sync_select_all_columns(*book_related_columns)
+        for book in book_rows:
             iid = book._id
-            values = self._make_file_data(WorkbookDict(**book._asdict()))
+            values = self._column_data_from_workbook(WorkbookDict(**book._asdict()))
             if self.exists(iid):
                 self.item(iid, values=values)
                 continue
