@@ -91,25 +91,12 @@ class PageState:
 
 
 class BrowserContext:
-    # db properties
-    accept_downloads: bool
-    offline: bool
-    javascript_enabled: bool
-    is_mobile: bool
-    has_touch: bool
-    colorscheme: ColorSchemeType
-    reduced_motion: ReducedMotionType
-    forced_colors: ForcedColorsType
-    locale: LocaleType
-    timezone_id: TimezoneIdType
-
     def __init__(self, p: playwright.Playwright, browser: playwright.Browser) -> None:
         self.p = p
         self.browser = browser
         self.browser_exe = Path(browser.browser_type.executable_path)
         self.browser_type: BrowserType = cast(BrowserType, browser.browser_type.name)
         self._db_data_cache: dict[str, Any] = {}
-        self._db_data_changes: dict[str, Any] = {}
 
     @staticmethod
     def default_db_dict() -> BrowserContextDict:
@@ -144,7 +131,6 @@ class BrowserContext:
         if inserted_db_data is None:
             raise RuntimeError('data not inserted')
         data = inserted_db_data._asdict()
-        self._db_data_cache = data
         self.created: datetime = data['created']
         self.last_modified: datetime | None = data['last_modified']
         self.accept_downloads: bool = data['accept_downloads']
@@ -157,9 +143,9 @@ class BrowserContext:
         self.forced_colors: ForcedColorsType = data['forced_colors']
         self.locale: LocaleType = data['locale']
         self.timezone_id: TimezoneIdType = data['timezone_id']
+        return data
 
-    def _make_playwright_context_args(self) -> dict[str, Any]:
-        indb = self._db_data_cache
+    def _make_playwright_context_args(self, indb: dict) -> dict[str, Any]:
         certs = [{'origin': url, 'cert': self.certificate_blob} for url in WebpageUrl]
         return dict(
             java_script_enabled=indb['javascript_enabled'],
@@ -176,8 +162,8 @@ class BrowserContext:
         )
 
     async def start_from(self, init_state: TaskInitState):
-        self._create_db_data_populate_self(init_state)
-        args = self._make_playwright_context_args()
+        db_data = self._create_db_data_populate_self(init_state)
+        args = self._make_playwright_context_args(db_data)
         self.browser_context: playwright.BrowserContext = (
             await self.browser.new_context(**args)
         )
@@ -197,27 +183,6 @@ class BrowserContext:
         await self.browser_context.add_init_script(
             path=Path('./js/meta/localStorageChange.js')
         )
-
-    def __setattr__(self, name: str, value: Any, /) -> None:
-        if name in self._db_data_cache:
-            self._db_data_changes[name] = value
-            return
-        setattr(super(), name, value)
-
-    def can_update_db_data(self) -> bool:
-        return len(self._db_data_changes) > 0
-
-    def update_db_data(self):
-        if (
-            len(self._db_data_changes) == 0
-            or len(self._db_data_cache) == 0
-            or '_id' not in self._db_data_cache
-        ):
-            return
-        _BrowserContext.sync_update_one_from_id(
-            self._db_data_changes, self._db_data_cache['_id']
-        )
-        self._db_data_changes.clear()
 
     @staticmethod
     def firefox_exe() -> Path | None:
@@ -382,8 +347,6 @@ class CrawlerTask:
             self.worksheet_managers.append(self.current_entry_worksheet_manager)
             self.current_entry_worksheet_manager.init_db_data()
             for step in self._steps:
-                if self.context.can_update_db_data():
-                    self.context.update_db_data()
                 if not getattr(step, '__crawler_step__', False):
                     continue
                 if inspect.iscoroutinefunction(step):
