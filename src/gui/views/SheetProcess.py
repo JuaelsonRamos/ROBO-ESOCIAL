@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .CertificateSelector import CertificateSelectorWindow
 
+from src.certificate import CertificateHelper
 from src.db.tables import Workbook, WorkbookDict, Worksheet
 from src.global_state import GlobalState
 from src.gui.lock import TkinterLock
@@ -223,26 +224,38 @@ class ActionButton(ttk.Button):
 
 
 class StartButton(ActionButton):
+    def _start_processing(self, md5: str):
+        cert_helper = CertificateHelper()
+        all_certs = cert_helper.get_sys_certs()
+        md5_cert = cert_helper.get_md5_of_many_ca_cert_dicts(all_certs)
+        for __md5, cert in md5_cert:
+            if __md5 == md5:
+                blob = cert_helper.get_ca_bytes_from_cert_dict(cert)
+                if blob is None:
+                    return
+                task_init_state = TaskInitState(
+                    workbook_db_id=self.workbook_id, cert_blob=blob, cert_blob_md5=md5
+                )
+                GlobalState.sheet_queue.put_nowait(task_init_state)
+                self._patch_focused_item_tags()
+                return
+
+    def _patch_focused_item_tags(self):
+        tree = _widgets.proc_tree
+        tags = Tag.tag_list(tree.item(self.focused_iid, 'tags'))
+        if len(tags) > 0 and Tag.HALTED in tags:
+            tags.remove(Tag.HALTED)
+        tags.append(Tag.RUNNING)
+        tree.item(self.focused_iid, tags=tags)
+
     def on_click(self):
         tree = _widgets.proc_tree
         iid = tree.focus()
         if iid == '' or tree.tag_has(Tag.RUNNING, iid):
             return
-        _id = int(iid)
-        # will create window immediatelly and block
-        selector_window = CertificateSelectorWindow(self, self.winfo_toplevel())
-        client_certificate_id = selector_window.get_selection()
-        if client_certificate_id is None:
-            return
-        task_init_state = TaskInitState(
-            workbook_db_id=_id, certificate_db_id=client_certificate_id
-        )
-        GlobalState.sheet_queue.put_nowait(task_init_state)
-        tags = Tag.tag_list(tree.item(iid, 'tags'))
-        if len(tags) > 0 and Tag.HALTED in tags:
-            tags.remove(Tag.HALTED)
-        tags.append(Tag.RUNNING)
-        tree.item(iid, tags=tags)
+        self.workbook_id = int(iid)
+        self.focused_iid = iid
+        CertificateSelectorWindow(self, self.winfo_toplevel(), self._start_processing)
 
 
 class PauseButton(ActionButton):
@@ -597,7 +610,7 @@ class HistorySection(TreeSection):
 
 class SheetProcess(View):
     def __init__(self, master):
-        super().__init__(master)
+        super().__init__(master, 'Processamento de Planilhas')
         self.processing = ProcessingSection(self)
         self.processing.pack()
         self.history = HistorySection(self)
