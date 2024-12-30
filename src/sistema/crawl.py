@@ -224,7 +224,7 @@ class BrowserContext:
         path: Path | None = None
         try:
             gen = Directory.PLAYWRIGHT.glob('firefox-*/firefox/firefox.exe')
-            path = next(gen)
+            path = next(gen).absolute()
             gen.close()
         except (GeneratorExit, StopIteration):
             pass
@@ -473,9 +473,6 @@ class BrowserRuntime:
         if exe is None:
             raise RuntimeError('cannot find firefox executable')
 
-        readwrite = 0o666
-        readonly = 0o444
-
         # firefox distribution config dir
         dist_dir = exe.parent / 'distribution'
         if not dist_dir.exists():
@@ -484,32 +481,26 @@ class BrowserRuntime:
         # check/write override.ini
         override_path = dist_dir / 'override.ini'
         if not override_path.exists():
-            override_path.touch(readwrite, exist_ok=True)
-        file_hash = FirefoxConfig.hash_override_ini(ini_file=override_path)
-        dict_hash = FirefoxConfig.hash_override_ini()
+            override_path.touch(exist_ok=True)
+        file_hash = FirefoxConfig.hash_override_ini(ini_file=override_path).hexdigest()
+        dict_hash = FirefoxConfig.hash_override_ini().hexdigest()
         if file_hash != dict_hash:
-            if override_path.stat().st_mode != readwrite:
-                override_path.chmod(readwrite)
             override_path.write_bytes(FirefoxConfig.parse_override_ini())
-        if override_path.stat().st_mode != readonly:
-            override_path.chmod(readonly)
 
         # check/write policies.json
         policies_path = dist_dir / 'policies.json'
-        if policies_path.exists():
-            policies_path.touch(readwrite, exist_ok=True)
-        file_hash = FirefoxConfig.hash_policies_json(policies_file=policies_path)
-        dict_hash = FirefoxConfig.hash_policies_json()
+        if not policies_path.exists():
+            policies_path.touch(exist_ok=True)
+        file_hash = FirefoxConfig.hash_policies_json(
+            policies_file=policies_path
+        ).hexdigest()
+        dict_hash = FirefoxConfig.hash_policies_json().hexdigest()
         if file_hash != dict_hash:
-            if policies_path.stat().st_mode != readwrite:
-                policies_path.chmod(readwrite)
             policies_path.write_bytes(FirefoxConfig.parse_policies_json())
-        if policies_path.stat().st_mode != readonly:
-            policies_path.chmod(readonly)
 
         return await self.p.firefox.launch(
             executable_path=exe,
-            args=['-override', f'"{str(override_path)}"'],
+            args=['-override', str(override_path)],
             headless=not __debug__,
             # devtools disabled in policies.json
             chromium_sandbox=False,

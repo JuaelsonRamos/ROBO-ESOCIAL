@@ -152,14 +152,13 @@ class FirefoxConfig:
                 for key, value in options.items():
                     if isinstance(value, str):
                         browser_value = value
-                    elif isinstance(value, (float, int)):
-                        browser_value = str(value)
                     elif isinstance(value, bool):
                         browser_value = str(int(value))
+                    elif isinstance(value, (float, int)):
+                        browser_value = str(value)
                     else:
                         raise RuntimeError('unknown application.ini data type')
                     buffer.write(f'{key}={browser_value}\n'.encode(cls.encoding))
-                buffer.write(b'\n')
             return buffer.getvalue()
 
     @classmethod
