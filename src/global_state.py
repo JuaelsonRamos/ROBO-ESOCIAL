@@ -1,20 +1,23 @@
 from __future__ import annotations
 
-from src.gui.app import GraphicalRuntime
-from src.sistema.crawl import BrowserRuntime
 from src.types import TaskInitState
 
 from asyncio import Queue
 from dataclasses import dataclass
 from tkinter import ttk
+from typing import Generic, TypeVar
 
 import sqlalchemy
 
 
+GR = TypeVar('GR')
+BR = TypeVar('BR')
+
+
 @dataclass(frozen=True, slots=True)
-class GlobalStateType:
-    graphical_runtime: GraphicalRuntime
-    browser_runtime: BrowserRuntime
+class GlobalStateType(Generic[GR, BR]):
+    graphical_runtime: GR
+    browser_runtime: BR
     style: ttk.Style
     sqlite: sqlalchemy.Engine
     sheet_queue: Queue[TaskInitState]
@@ -23,9 +26,7 @@ class GlobalStateType:
 _GlobalState: GlobalStateType = None  # type: ignore
 
 
-def init_global_state(
-    graphical_runtime: GraphicalRuntime, browser_runtime: BrowserRuntime
-):
+def init_global_state(graphical_runtime, browser_runtime):
     global _GlobalState
 
     from src.db.client import init_sync_sqlite
