@@ -106,7 +106,7 @@ class BrowserContext:
             'javascript_enabled': True,
             'is_mobile': False,
             'has_touch': False,
-            'colorscheme': 'light',
+            'color_scheme': 'light',
             'reduced_motion': 'reduce',
             'forced_colors': 'none',
             'locale': 'pt-BR',
@@ -138,7 +138,7 @@ class BrowserContext:
         self.javascript_enabled: bool = data['javascript_enabled']
         self.is_mobile: bool = data['is_mobile']
         self.has_touch: bool = data['has_touch']
-        self.colorscheme: ColorSchemeType = data['colorscheme']
+        self.colorscheme: ColorSchemeType = data['color_scheme']
         self.reduced_motion: ReducedMotionType = data['reduced_motion']
         self.forced_colors: ForcedColorsType = data['forced_colors']
         self.locale: LocaleType = data['locale']

@@ -460,7 +460,7 @@ class BrowserContextDict(BaseDict, total=False):
     javascript_enabled: bool
     is_mobile: bool
     has_touch: bool
-    colorscheme: ColorSchemeType
+    color_scheme: ColorSchemeType
     reduced_motion: ReducedMotionType
     forced_colors: ForcedColorsType
     locale: LocaleType
