@@ -100,7 +100,9 @@ class CancelButton(ActionButton):
 class CertificateSelector(ttk.Frame):
     _result: None | str = None
 
-    def __init__(self, master: tk.Toplevel, callback: Callable[[str], Any]):
+    def __init__(
+        self, master: CertificateSelectorWindow, callback: Callable[[str], Any]
+    ):
         super().__init__(master)
         self.toplevel = master
         self.submit_callback = callback
@@ -114,7 +116,9 @@ class CertificateSelector(ttk.Frame):
         self.button_frame = ttk.Frame(self)
         self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
         # inside button frame
-        self.cancel_btn = ttk.Button(self.button_frame, command=self.close_window)
+        self.cancel_btn = ttk.Button(
+            self.button_frame, command=self.toplevel.close_window
+        )
         self.cancel_btn.pack(side=tk.RIGHT, ipady=2, ipadx=5)
         self.submit_btn = ttk.Button(self.button_frame, command=self.set_md5)
         self.submit_btn.pack(side=tk.RIGHT, ipady=2, ipadx=5, after=self.cancel_btn)
@@ -129,11 +133,6 @@ class CertificateSelector(ttk.Frame):
             self.submit_btn.config(state=tk.DISABLED)
             return
         self.submit_btn.config(state=tk.ACTIVE)
-
-    def close_window(self):
-        self.update()
-        self.destroy()
-        self.update()
 
     def set_md5(self):
         md5 = self.focus()
@@ -164,7 +163,10 @@ class CertificateSelectorWindow(tk.Toplevel):
         self.config_window()
 
     def close_window(self):
-        self.frame.close_window()
+        self.update()
+        self.grab_release()
+        self.destroy()
+        self.update()
 
     def config_window(self):
         global _widgets
@@ -176,3 +178,4 @@ class CertificateSelectorWindow(tk.Toplevel):
         self.minsize(400, 450)
         self.maxsize(800, 600)
         self.transient(self.parent_window)
+        self.grab_set()
