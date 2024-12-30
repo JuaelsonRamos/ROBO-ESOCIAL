@@ -4,7 +4,7 @@ from .CertificateSelector import CertificateSelectorWindow
 
 from src.certificate import CertificateHelper
 from src.db.tables import ProcessingEntry, Workbook, WorkbookDict, Worksheet
-from src.global_state import GlobalState
+from src.global_state import get_global_state
 from src.gui.lock import TkinterLock
 from src.gui.utils.units import padding
 from src.gui.views.View import View
@@ -188,16 +188,16 @@ class StartButton(ActionButton):
     def _start_processing(self, md5: str):
         cert_helper = CertificateHelper()
         all_certs = cert_helper.get_sys_certs()
-        md5_cert = cert_helper.get_md5_of_many_ca_cert_dicts(all_certs)
-        for __md5, cert in md5_cert:
-            if __md5 == md5:
+        md5_cert_pair = cert_helper.get_md5_of_many_ca_cert_dicts(all_certs)
+        for cert_md5, cert in md5_cert_pair:
+            if cert_md5 == md5:
                 blob = cert_helper.get_ca_bytes_from_cert_dict(cert)
                 if blob is None:
                     return
                 task_init_state = TaskInitState(
                     workbook_db_id=self.workbook_id, cert_blob=blob, cert_blob_md5=md5
                 )
-                GlobalState.sheet_queue.put_nowait(task_init_state)
+                get_global_state().sheet_queue.put_nowait(task_init_state)
                 self._patch_focused_item_tags()
                 return
 
@@ -286,7 +286,7 @@ class DeleteButton(ActionButton):
         if iid == '':
             return
         _id = int(iid)
-        with GlobalState.sqlite.begin() as conn:
+        with get_global_state().sqlite.begin() as conn:
             query = select(Worksheet._id).where(Worksheet.workbook_id == _id)
             ids = conn.execute(query).all()
             if len(ids) > 0:
@@ -462,9 +462,7 @@ class ProcessingTree(Tree):
         )
 
     def _get_processing_entry_row(self, book_id: int):
-        if GlobalState is None or getattr(GlobalState, 'sqlite', None) is None:
-            return None
-        with GlobalState.sqlite.begin() as conn:
+        with get_global_state().sqlite.begin() as conn:
             t = ProcessingEntry
             result = conn.execute(
                 select(
@@ -474,7 +472,7 @@ class ProcessingTree(Tree):
                     t.when_started,
                     t.when_finished,
                     t.cert_blob_md5,
-                ).where(t.workbook_id == db_book['_id'])  # type: ignore
+                ).where(t.workbook_id == book_id)
             ).one_or_none()
             return result
 

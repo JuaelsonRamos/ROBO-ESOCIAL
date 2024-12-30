@@ -20,20 +20,25 @@ class GlobalStateType:
     sheet_queue: Queue[TaskInitState]
 
 
-GlobalState: GlobalStateType = None  # type: ignore
+_GlobalState: GlobalStateType = None  # type: ignore
 
 
 def init_global_state(
     graphical_runtime: GraphicalRuntime, browser_runtime: BrowserRuntime
 ):
-    global GlobalState
+    global _GlobalState
 
     from src.db.client import init_sync_sqlite
 
-    GlobalState = GlobalStateType(
+    _GlobalState = GlobalStateType(
         graphical_runtime=graphical_runtime,
         browser_runtime=browser_runtime,
         style=ttk.Style(graphical_runtime.app),
         sqlite=init_sync_sqlite(),
         sheet_queue=browser_runtime.sheet_queue,
     )
+
+
+def get_global_state() -> GlobalStateType:
+    global _GlobalState
+    return _GlobalState
