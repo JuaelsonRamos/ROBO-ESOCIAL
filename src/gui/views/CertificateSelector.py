@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from src.db.tables import ClientCertificate
+from src.certificate import CertificateHelper
 from src.gui.utils.units import padding
 
 import tkinter as tk
 
 from dataclasses import dataclass
-from itertools import zip_longest
 from tkinter import ttk
-from typing import cast
+from typing import Any, Callable, cast
 
 
 @dataclass(frozen=False, slots=True)
@@ -26,52 +25,39 @@ _widgets: WidgetNamespace = None  # type: ignore
 
 class CertificateList(ttk.Treeview):
     def __init__(self, master: CertificateSelector):
-        self.columns = ('index', 'description', 'type')
+        self.columns = ('issued_by', 'issued_to', 'is_expired')
         super().__init__(master, columns=self.columns, show='tree', height=10)
         self._selected: int | None = None
-        self.bind('<Motion>', 'break')
         self.bind('<Visibility>', self.fill_tree)
-        self.bind('<<TreeviewSelect>>', self._notify_selection)
-        self.bind('<<ClearSelection>>', self._clear_selection)
-        self.heading('index', text='#', anchor=tk.CENTER)
-        self.column('index', anchor=tk.CENTER, minwidth=32, width=32)
-        self.heading('description', text='Descrição', anchor=tk.W)
-        self.column('description', anchor=tk.W, minwidth=150, width=150)
-        self.heading('type', text='Tipo', anchor=tk.CENTER)
-        self.column('type', anchor=tk.CENTER, minwidth=50, width=50)
+        self.heading('issued_by', text='Emitido Por', anchor=tk.W)
+        self.column('issued_by', anchor=tk.W, minwidth=150, width=150)
+        self.heading('issued_to', text='Emitido Para', anchor=tk.W)
+        self.column('issued_to', anchor=tk.W, minwidth=150, width=150)
+        self.heading('is_expired', text='Já expirou?', anchor=tk.CENTER)
+        self.column('is_expired', anchor=tk.CENTER, minwidth=50, width=50)
 
-    def fill_tree(self, event: tk.Event):
-        if ClientCertificate.sync_count() == 0:
-            return
-        rows = ClientCertificate.sync_select_all_columns(
-            '_id', 'description', 'using_type'
-        )
-        rows = sorted(rows, key=lambda r: r[0])  # sort by _id
-        iids = sorted(int(iid) for iid in self.get_children())
-        for row, iid in zip_longest(rows, iids, fillvalue=None):
-            if row is None:
-                # too many iids for not as much rows, delete items
-                iid = cast(int, iid)  # if row is None, then iid isn't
-                self.delete(iid)
+    def fill_tree(self, event: tk.Event | None = None):
+        cert_helper = CertificateHelper()
+        br_certs = cert_helper.get_br_ca_cert_dicts()
+        sorted = cert_helper.sort_ca_cert_dict_sequence(br_certs)
+        md5_cert = cert_helper.get_md5_of_many_ca_cert_dicts(sorted)
+        for i, pair in enumerate(md5_cert):
+            md5, cert = pair
+            info = CertificateHelper.parse_ca_issuer_subject_info(cert)
+            values = (
+                info['issuer']['organizationName'],
+                info['subject']['organizationName'],
+                'Sim' if cert_helper.is_expired(cert) else 'Não',
+            )
+            if self.exists(md5):
+                self.item(md5, values=values)
                 continue
-            values = (str(row._id), row.description, row.using_type)
-            if iid is None:
-                # not enough items for too many db rows
-                self.insert('', 'end', row._id, values=values)
-                continue
-            # item with iid=_id already exist, so modify it
-            self.item(row._id, values=values)
-
-    def _notify_selection(self, event: tk.Event):
-        global _widgets
-        _widgets.submit.event_generate('<<SetSelection>>', state=self.focus())
-
-    def _clear_selection(self, event: tk.Event):
-        selection = self.selection()
-        if len(selection) == 0:
+            self.insert('', i, md5, values=values)
+        md5_set = set(pair[0] for pair in md5_cert)
+        excess = md5_set.difference(self.get_children())
+        if len(excess) == 0:
             return
-        self.focus('')
-        self.selection_remove(selection)
+        self.delete(*excess)
 
 
 class ActionButton(ttk.Button):
@@ -111,88 +97,82 @@ class CancelButton(ActionButton):
         _widgets.tree.event_generate('<<ClearSelection>>', state='')
 
 
-class GoToButton(ActionButton):
-    # TODO
-    pass
-
-
-class SearchBar(ttk.Entry):
-    # TODO
-    pass
-
-
 class CertificateSelector(ttk.Frame):
-    def __init__(self, master: tk.Toplevel):
+    _result: None | str = None
+
+    def __init__(self, master: tk.Toplevel, callback: Callable[[str], Any]):
         super().__init__(master)
+        self.toplevel = master
+        self.submit_callback = callback
         # main content of container
         self.tree = CertificateList(self)
+        self.tree.bind('<<TreeviewSelect>>', self._enable_buttons)
+        self.tree.bind('<Visibility>', self._enable_buttons, '+')
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.TRUE)
         self.scroll = ttk.Scrollbar(self)
         self.scroll.pack(side=tk.LEFT, fill=tk.Y)
         self.button_frame = ttk.Frame(self)
         self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
         # inside button frame
-        self.cancel = CancelButton(self.button_frame)
-        self.cancel.pack(side=tk.RIGHT)
-        self.submit = SubmitButton(self.button_frame)
-        self.submit.pack(side=tk.RIGHT, before=self.cancel)
+        self.cancel_btn = ttk.Button(self.button_frame, command=self.close_window)
+        self.cancel_btn.pack(side=tk.RIGHT, ipady=2, ipadx=5)
+        self.submit_btn = ttk.Button(self.button_frame, command=self.set_md5)
+        self.submit_btn.pack(side=tk.RIGHT, ipady=2, ipadx=5, after=self.cancel_btn)
+        self.update_btn = ttk.Button(self.button_frame, command=self.tree.fill_tree)
+        self.update_btn.pack(side=tk.RIGHT, ipady=2, ipadx=5, after=self.submit_btn)
         # relate tree to scrollbar
-        self.scroll.config(command=self.tree.xview)
+        self.scroll.config(command=self.tree.yview)
         self.tree.config(xscrollcommand=self.scroll.set)
 
+    def _enable_buttons(self, event: tk.Event):
+        if self.tree.focus() == '':
+            self.submit_btn.config(state=tk.DISABLED)
+            return
+        self.submit_btn.config(state=tk.ACTIVE)
 
-class CertificateSelectorWindow(tk.Toplevel):
-    _client_certificate_id: int | None = None
-
-    def __init__(self, master: ttk.Widget, parent_window: tk.Tk | tk.Toplevel):
-        super().__init__(master)
-        self.parent_window = parent_window
-        self.create_widgets()
-        self.config_window()
-
-    def get_selection(self):
-        return self._client_certificate_id
-
-    def create_widgets(self):
-        global _widgets
-
-        # main container of window
-        self.frame = CertificateSelector(self)
-        self.frame.pack(side=tk.LEFT, expand=tk.TRUE, fill=tk.BOTH)
-
-        # assign actions
-        self.frame.cancel.config(command=self.close)
-        self.frame.submit.config(command=self.submit)
-
-        # init widget references
-        _widgets = WidgetNamespace(
-            self.frame.tree,
-            self.frame.scroll,
-            self.frame.submit,
-            self.frame.cancel,
-            self.frame,
-        )
-
-    def config_window(self):
-        global _widgets
-        self.protocol('WM_DELETE_WINDOW', self.close)
-        self.title('Certificado que será usado')
-        self.state(tk.NORMAL)
-        self.config(takefocus=tk.TRUE)
-        self.resizable(width=True, height=True)
-        self.minsize(300, 400)
-        self.maxsize(450, 600)
-        self.transient(self.parent_window)
-
-    def close(self):
-        self.frame.tree.event_generate('<<ClearSelection>>')
+    def close_window(self):
         self.update()
         self.destroy()
         self.update()
 
-    def submit(self):
-        iid = self.frame.submit.selected
-        if iid is None:
+    def set_md5(self):
+        md5 = self.focus()
+        if md5 == '':
+            self._result = None
             return
-        self._client_certificate_id = iid
-        self.close()
+        self._result = md5
+
+    def has_result(self) -> bool:
+        return self._result is not None
+
+    def get_result(self) -> str:
+        return cast(str, self._result)
+
+
+class CertificateSelectorWindow(tk.Toplevel):
+    def __init__(
+        self,
+        master: ttk.Widget,
+        parent_window: tk.Tk | tk.Toplevel,
+        submit_callback: Callable[[str], Any],
+    ):
+        super().__init__(master)
+        self.parent_window = parent_window
+        self.submit_callback = submit_callback
+        self.frame = CertificateSelector(self, self.submit_callback)
+        self.frame.pack(side=tk.LEFT, expand=tk.TRUE, fill=tk.BOTH)
+        self.config_window()
+
+    def close_window(self):
+        self.frame.close_window()
+
+    def config_window(self):
+        global _widgets
+        self.protocol('WM_DELETE_WINDOW', self.close_window)
+        self.title('Certificado que será usado')
+        self.state(tk.NORMAL)
+        self.config(takefocus=tk.TRUE)
+        self.resizable(width=True, height=True)
+        self.minsize(400, 450)
+        self.maxsize(800, 600)
+        self.transient(self.parent_window)
