@@ -7,7 +7,7 @@ import tkinter as tk
 
 from dataclasses import dataclass
 from tkinter import ttk
-from typing import Any, Callable, cast
+from typing import Any, Callable
 
 
 @dataclass(frozen=False, slots=True)
@@ -26,15 +26,22 @@ _widgets: WidgetNamespace = None  # type: ignore
 class CertificateList(ttk.Treeview):
     def __init__(self, master: CertificateSelector):
         self.columns = ('issued_by', 'issued_to', 'is_expired')
-        super().__init__(master, columns=self.columns, show='tree', height=10)
+        super().__init__(master, columns=self.columns, show='headings', height=10)
         self._selected: int | None = None
         self.bind('<Visibility>', self.fill_tree)
+        self.bind('<Motion>', self._prevent_resizing)
+        self.bind('<Button-1>', self._prevent_resizing)
+        self.bind('<ButtonRelease-1>', self._prevent_resizing)
         self.heading('issued_by', text='Emitido Por', anchor=tk.W)
         self.column('issued_by', anchor=tk.W, minwidth=150, width=150)
         self.heading('issued_to', text='Emitido Para', anchor=tk.W)
         self.column('issued_to', anchor=tk.W, minwidth=150, width=150)
         self.heading('is_expired', text='Já expirou?', anchor=tk.CENTER)
-        self.column('is_expired', anchor=tk.CENTER, minwidth=50, width=50)
+        self.column('is_expired', anchor=tk.CENTER, minwidth=80, width=80)
+
+    def _prevent_resizing(self, event: tk.Event):
+        if self.identify_region(event.x, event.y) == 'separator':
+            return 'break'
 
     def fill_tree(self, event: tk.Event | None = None):
         cert_helper = CertificateHelper()
@@ -98,8 +105,6 @@ class CancelButton(ActionButton):
 
 
 class CertificateSelector(ttk.Frame):
-    _result: None | str = None
-
     def __init__(
         self, master: CertificateSelectorWindow, callback: Callable[[str], Any]
     ):
@@ -110,20 +115,27 @@ class CertificateSelector(ttk.Frame):
         self.tree = CertificateList(self)
         self.tree.bind('<<TreeviewSelect>>', self._enable_buttons)
         self.tree.bind('<Visibility>', self._enable_buttons, '+')
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.TRUE)
         self.scroll = ttk.Scrollbar(self)
-        self.scroll.pack(side=tk.LEFT, fill=tk.Y)
         self.button_frame = ttk.Frame(self)
         self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.TRUE)
+        self.scroll.pack(side=tk.LEFT, fill=tk.Y)
         # inside button frame
         self.cancel_btn = ttk.Button(
-            self.button_frame, command=self.toplevel.close_window
+            self.button_frame, command=self.toplevel.close_window, text='Cancelar'
         )
-        self.cancel_btn.pack(side=tk.RIGHT, ipady=2, ipadx=5)
-        self.submit_btn = ttk.Button(self.button_frame, command=self.set_md5)
-        self.submit_btn.pack(side=tk.RIGHT, ipady=2, ipadx=5, after=self.cancel_btn)
-        self.update_btn = ttk.Button(self.button_frame, command=self.tree.fill_tree)
-        self.update_btn.pack(side=tk.RIGHT, ipady=2, ipadx=5, after=self.submit_btn)
+        self.submit_btn = ttk.Button(
+            self.button_frame, command=self._call_submit, text='Selecionar'
+        )
+        self.update_btn = ttk.Button(
+            self.button_frame, command=self.tree.fill_tree, text='Atualizar'
+        )
+
+        self.submit_btn.pack(side=tk.LEFT, ipady=2, ipadx=5)
+        self.update_btn.pack(side=tk.LEFT, ipady=2, ipadx=5)
+        self.cancel_btn.pack(
+            side=tk.LEFT, ipady=2, ipadx=5, anchor=tk.E, expand=tk.TRUE
+        )
         # relate tree to scrollbar
         self.scroll.config(command=self.tree.yview)
         self.tree.config(xscrollcommand=self.scroll.set)
@@ -134,18 +146,11 @@ class CertificateSelector(ttk.Frame):
             return
         self.submit_btn.config(state=tk.ACTIVE)
 
-    def set_md5(self):
-        md5 = self.focus()
+    def _call_submit(self):
+        md5 = self.tree.focus()
         if md5 == '':
-            self._result = None
             return
-        self._result = md5
-
-    def has_result(self) -> bool:
-        return self._result is not None
-
-    def get_result(self) -> str:
-        return cast(str, self._result)
+        self.submit_callback(md5)
 
 
 class CertificateSelectorWindow(tk.Toplevel):
@@ -176,6 +181,6 @@ class CertificateSelectorWindow(tk.Toplevel):
         self.config(takefocus=tk.TRUE)
         self.resizable(width=True, height=True)
         self.minsize(400, 450)
-        self.maxsize(800, 600)
+        self.maxsize(500, 450)
         self.transient(self.parent_window)
         self.grab_set()
