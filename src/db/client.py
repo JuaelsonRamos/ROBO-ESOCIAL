@@ -96,7 +96,7 @@ class ClientConfig:
     # From sqlite3 docs:
     # > SQLITE_LIMIT_LENGTH
     # >     The maximum size of any string or BLOB or table row, in bytes.
-    _sizeof_64KiB = 1 * 1024 * 64  # kibibytes, meaning power of 1024
+    _sizeof_64KiB = 1024 * 1024 * 64  # kibibytes, meaning power of 1024
     SQLITE_LIMIT_LENGTH: Final[int] = _sizeof_64KiB
     """Size limit of `TEXT` and `BLOB` types in bytes."""
 
