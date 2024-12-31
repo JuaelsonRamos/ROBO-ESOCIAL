@@ -20,13 +20,14 @@ from src.db.tables import (
     TimezoneIdType,
     Worksheet as _Worksheet,
 )
-from src.exc import Task
 from src.global_state import get_global_state
 from src.runtime import CommandLineArguments
 from src.sistema.sheet import SheetValidator
 from src.types import TaskInitState
 
 import sys
+import math
+import string
 import asyncio
 import hashlib
 import inspect
@@ -36,19 +37,21 @@ from asyncio import Lock, Queue, Semaphore
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Coroutine, Final, NamedTuple, TypedDict, cast
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Final,
+    Literal,
+    Never,
+    TypedDict,
+    cast,
+)
 
 import playwright.async_api as playwright
 
 from sqlalchemy import func, select
-
-
-class WebpageUrlNamespace(NamedTuple):
-    esocial: str
-    govbr: str
-
-
-WebpageUrl = WebpageUrlNamespace('', '')  # TODO
 
 
 def make_db_cookie_dict() -> CookieDict: ...
@@ -98,6 +101,7 @@ class BrowserContext:
         self.browser = browser
         self.browser_exe = Path(browser.browser_type.executable_path)
         self.browser_type: BrowserType = cast(BrowserType, browser.browser_type.name)
+        self.login_url = 'https://login.esocial.gov.br/login.aspx'
         self._db_data_cache: dict[str, Any] = {}
 
     @staticmethod
@@ -203,12 +207,11 @@ class BrowserContext:
         return path
 
     async def new_page(self) -> PageState:
-        parsed_url: str = ''
         page = await self.browser_context.new_page()
-        return PageState(set(), set(), parsed_url, page)
+        return PageState(set(), set(), self.login_url, page)
 
 
-StepFunc = Callable[['CrawlerTask'], None]
+StepFunc = Callable[['CrawlerTask'], None | Awaitable[None]]
 
 
 class ProcessingEntryManager:
@@ -329,6 +332,21 @@ class EntryWorksheetManager:
         _EntryWorksheet.sync_update_one_from_id(data, self.db_id)
 
 
+CurrentPage = Literal[
+    'esocial-login',
+    'govbr-login',
+    'esocial-portal',
+    'esocial-sst',
+    'esocial-logout',
+]
+
+CrawlerTaskResult = Literal[
+    'graceful-session-timeout-forced-logout',
+    'error-session-timeout-forced-logout',
+    'graceful-success',
+]
+
+
 class CrawlerTask:
     _get_task_i = itertools.count(0).__next__
     tasks: dict[str, CrawlerTask] = {}
@@ -342,8 +360,27 @@ class CrawlerTask:
         self.p = p
         self.context = context
         self.runtime = runtime
+        self._class_resource_lock = Lock()
+        self._current_page: CurrentPage | None = None
+        self._countdown_time_left: int | None = None
 
-    async def _crawler_run(self):
+    async def get_current_page(self):
+        async with self._class_resource_lock:
+            return self._current_page
+
+    async def get_countdown_time_left(self):
+        async with self._class_resource_lock:
+            return self._countdown_time_left
+
+    async def set_current_page(self, state: CurrentPage):
+        async with self._class_resource_lock:
+            self._current_page = state
+
+    async def set_countdown_time_left(self, seconds: int):
+        async with self._class_resource_lock:
+            self._countdown_time_left = seconds
+
+    async def _crawler_start(self):
         await self.runtime.semaphore.acquire()
         await self.runtime.task_count_increase()
         self.processing_entry_manager = ProcessingEntryManager(
@@ -355,7 +392,8 @@ class CrawlerTask:
             # anything can be done
             return
         self.worksheet_managers: list[EntryWorksheetManager] = []
-        self.page: PageState = await self.context.new_page()
+        self.page_state: PageState = await self.context.new_page()
+        self.page = self.page_state.page
         for worksheet_id in self.context.worksheet_ids:
             self.current_entry_worksheet_manager = EntryWorksheetManager(
                 self.processing_entry_manager.db_id, worksheet_id
@@ -377,7 +415,7 @@ class CrawlerTask:
         self.task_index: int = self._get_task_i()
         self.task_index_formated: str = str(self.task_index).ljust(3, '0')
         self.task_name: str = f'crawler({self.task_index_formated})'
-        self.asyncio_coro: Coroutine = self._crawler_run()
+        self.asyncio_coro: Coroutine = self._crawler_start()
         self.asyncio_task: asyncio.Task = asyncio.create_task(
             self.asyncio_coro, name=self.task_name
         )
@@ -401,22 +439,186 @@ class CrawlerTask:
         unique = hash(self.task_index)
         return non_unique + unique
 
-    @classmethod
-    def define_steps_in_strict_order(cls, *steps: StepFunc) -> None:
-        if hasattr(cls, '_steps'):
-            return
-        if any(not hasattr(func, '__crawler_step__') for func in steps):
-            raise Task.CannotRegisterStep(
-                'function to register was not defined as a CrawlerTask.step'
-            )
-        cls.steps = tuple(steps)
+    async def _crawler_run(self) -> CrawlerTaskResult:
+        # esocial govbr frontpage: https://www.gov.br/esocial/pt-br
+        # govbr frontpage: https://www.gov.br/pt-br
 
-    @classmethod
-    def step(cls, func: StepFunc) -> StepFunc:
-        if func not in cls._all_steps:
-            func.__crawler_step__ = True
-            cls._all_steps.append(func)
-        return func
+        logout_url = 'https://*login.esocial.gov.br/logout.aspx*'
+        inf_timeout = 0
+        reasonable_timeout = 5
+        half_minute = 30
+        one_minute = 60
+
+        # goto esocial login entrypoint page
+        await self.page.goto(
+            self.context.login_url,
+            timeout=inf_timeout,
+            wait_until='load',
+        )
+        await self.set_current_page('esocial-login')
+
+        # goto govbr login authentication page
+        login_btn = self.page.locator(
+            'form > fieldset > #login-acoes button[type="button" i].sign-in'
+        )
+        await login_btn.wait_for(timeout=inf_timeout, state='attached')
+        login_btn_elem = login_btn.first
+        await login_btn_elem.click()
+        await self.page.wait_for_url(
+            'https://*sso.acesso.gov.br/login*', wait_until='load', timeout=inf_timeout
+        )
+        await self.set_current_page('govbr-login')
+
+        # login with system ca certificate
+        user_cert_btn = self.page.locator('button#login-certificate')
+        await user_cert_btn.wait_for(timeout=inf_timeout, state='attached')
+        user_cert_btn_elem = user_cert_btn.first
+
+        async def accept_dialog(dialog: playwright.Dialog):
+            await dialog.accept()
+
+        self.page.once('dialog', accept_dialog)
+        await user_cert_btn_elem.click()
+
+        # wait for esocial first logged-in dashboard
+        await self.page.wait_for_url(
+            'https://*esocial.gov.br/portal/*', wait_until='load', timeout=inf_timeout
+        )
+        await self.set_current_page('esocial-portal')
+
+        # def: update login session countdown
+        async def update_countdown_state(elem: playwright.Locator):
+            text = await elem.text_content(timeout=inf_timeout)
+            text = None if text is None else text.strip(string.whitespace)
+            if text is None or text == '':
+                # element has no text
+                left = await self.get_countdown_time_left()
+                if left is not None:
+                    # counter has been updated before, but element suddenly has no text
+                    if left == 0:
+                        # countdown already ran out
+                        return
+                    # countdown did not ran out, assume counting DOM error
+                    # reduce 1 seconds from counter to avoid false positives
+                    await self.set_countdown_time_left(max(0, left - 1))
+                    return
+                # never updated counter before, and element has no text
+                return
+            seconds = datetime.strptime('%M:%S', text).resolution.total_seconds()
+            # round down to closest integer for safety, as leaving before countdown
+            # running out seems less suspicious
+            await self.set_countdown_time_left(math.floor(seconds))
+
+        # update session countdown from esocial portal
+        esocial_countdown_element = self.page.locator('#header .tempo-sessao.countdown')
+        await esocial_countdown_element.wait_for(timeout=inf_timeout, state='attached')
+        portal_countdown_element = esocial_countdown_element.first
+        portal_countdown_element.on('change', update_countdown_state)
+        await portal_countdown_element.dispatch_event('change')  # force once
+
+        # class: should logout exception
+        class ShouldLogout(RuntimeError): ...
+
+        # def: check if should logout
+        async def should_logout() -> None | Never:
+            seconds = await self.get_countdown_time_left()
+            if seconds is not None and seconds <= 60:
+                # 1 minute left
+                raise ShouldLogout
+
+        # class: session timeout exception
+        class SessionTimeout(RuntimeError): ...
+
+        # def: has already logged out
+        async def has_session_timed_out() -> None | Never:
+            try:
+                await self.page.wait_for_url(logout_url, timeout=1, wait_until='commit')
+                await self.page.wait_for_url(
+                    logout_url, timeout=half_minute, wait_until='load'
+                )
+                logout_message = self.page.locator('.logout-sucesso')
+                await logout_message.wait_for(timeout=half_minute, state='attached')
+            except playwright.TimeoutError:
+                return
+            else:
+                raise SessionTimeout
+
+        # def: logout
+        async def logout() -> None:
+            page_state = await self.get_current_page()
+            if page_state == 'esocial-portal':
+                logout_btn = self.page.locator('a#sairAplicacao')
+                await logout_btn.wait_for(timeout=inf_timeout, state='attached')
+                await logout_btn.click()
+                logout_dialog = self.page.locator(
+                    '.ui-dialog[role*="dialog" i][aria-describedby*="sair" i]'
+                )
+                await logout_dialog.wait_for(timeout=inf_timeout, state='attached')
+                btn = logout_dialog.locator('button[type="button" i]')
+                # cancel_btn = btn.locator('', has_text='cancelar')
+                accept_btn = btn.locator('', has_text='sair')
+                await accept_btn.wait_for(timeout=inf_timeout, state='attached')
+                await accept_btn.click()
+            elif page_state == 'esocial-sst':
+                logout_btn = self.page.locator('header .logout a', has_text='sair')
+                await logout_btn.wait_for(timeout=inf_timeout, state='attached')
+                await logout_btn.click()
+            else:
+                return
+            await self.page.wait_for_url(
+                logout_url, timeout=inf_timeout, wait_until='load'
+            )
+            await self.set_current_page('esocial-logout')
+            logout_message = self.page.locator(
+                # '.logout-sucesso[title="Sessão Encerrada" i]'
+                '.logout-sucesso'
+            )
+            await logout_message.wait_for(timeout=inf_timeout, state='attached')
+
+        # def: after succcessful wait
+        async def after_successful_wait():
+            await should_logout()
+            await has_session_timed_out()
+
+        # main event loop
+        try:
+            # switch dashboard module
+            switch_profile_btn = self.page.locator(
+                '#header .informacoes a.alterar-perfil'
+            )
+            await switch_profile_btn.wait_for(timeout=half_minute, state='attached')
+            await after_successful_wait()
+            await switch_profile_btn.click()
+            # wait sub-page to load
+            await self.page.wait_for_load_state('load', timeout=one_minute * 2)
+            await after_successful_wait()
+            dashboard_module_btn = self.page.locator('#comSelecaoModulo #sst')
+            await dashboard_module_btn.wait_for(timeout=half_minute, state='attached')
+            await after_successful_wait()
+            await dashboard_module_btn.click()
+            await self.page.wait_for_url(
+                'https://*frontend.esocial.gov.br/sst*',
+                wait_until='load',
+                timeout=inf_timeout,
+            )
+            await after_successful_wait()
+            await self.set_current_page('esocial-sst')
+
+            # goto input page
+            await self.page.goto(
+                'https://frontend.esocial.gov.br/sst/gestaoTrabalhadores',
+                timeout=inf_timeout,
+                wait_until='load',
+            )
+            await after_successful_wait()
+
+        except ShouldLogout:
+            await logout()
+            return 'graceful-session-timeout-forced-logout'
+        except SessionTimeout:
+            return 'error-session-timeout-forced-logout'
+        else:
+            return 'graceful-success'
 
 
 class BrowserRuntime:
@@ -503,6 +705,3 @@ class BrowserRuntime:
         task = CrawlerTask(self.p, context, self)
         task.schedule_self()
         task.register_self()
-
-
-CrawlerTask.define_steps_in_strict_order  # TODO
