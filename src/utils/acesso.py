@@ -9,7 +9,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
-from undetected_chromedriver import Chrome
+import undetected_chromedriver as uc
 from webdriver_manager.chrome import ChromeDriverManager
 
 import src.webdriver.windows as windows
@@ -29,11 +29,11 @@ __all__ = [
 ]
 
 
-def deslogado(driver: Chrome, timeout: Int) -> bool:
+def deslogado(driver: uc.Chrome, timeout: Int) -> bool:
     """Testa se o elemento da mensagem de logout do ESocial aparece dentro do limite de tempo
     especificado.
 
-    :param driver: Webdriver ativo no hora da checagem.
+    :param driver: Webdriver ativo na hora da checagem.
     :param timeout: Tempo para esperar antes de assumir que o perfil não foi deslogado.
     :return: Se o perfil foi deslogado ou não.
     """
@@ -47,7 +47,7 @@ def deslogado(driver: Chrome, timeout: Int) -> bool:
         return True
 
 
-def segundos_restantes_de_sessao(driver: Chrome) -> Int:
+def segundos_restantes_de_sessao(driver: uc.Chrome) -> Int:
     """Retorna a quantidade de segundos restantes antes da sessão acabar ou um número absurdamente
     alto se algum erro acontecer.
 
@@ -63,19 +63,19 @@ def segundos_restantes_de_sessao(driver: Chrome) -> Int:
         return Int(MAX_INT)
 
 
-def inicializar_driver() -> Chrome:
+def inicializar_driver() -> uc.Chrome:
     """Inicializa o webdriver com as opções e características necessárias.
 
     :return: Instância do webdriver.
     """
-    driver = Chrome(driver_executable_path=ChromeDriverManager().install())
+    driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install())
     driver.set_window_rect(x=0, y=0, width=1280, height=720)
     if not DEBUG:
         windows.bloquear_janela(driver)
     return driver
 
 
-def teste_deslogado(driver: Chrome, timeout: Int) -> None:
+def teste_deslogado(driver: uc.Chrome, timeout: Int) -> None:
     """Testa se o ESocial for deslogado ao checar o tempo restante de sessão e a mensagem de logout.
 
     :param driver: Webdriver ativo na hora do teste.
@@ -85,7 +85,7 @@ def teste_deslogado(driver: Chrome, timeout: Int) -> None:
         raise ESocialDeslogadoError()
 
 
-def botao_funcionario(driver: Chrome, CPF: str) -> WebElement | None:
+def botao_funcionario(driver: uc.Chrome, CPF: str) -> WebElement | None:
     """Seleciona o botão que vai levar para a página de dados do funcionário referente ao CPF
     especificado na seleção por formulário.
 
@@ -99,7 +99,7 @@ def botao_funcionario(driver: Chrome, CPF: str) -> WebElement | None:
     return None
 
 
-def ocorreu_erro_funcionario(driver: Chrome) -> bool:
+def ocorreu_erro_funcionario(driver: uc.Chrome) -> bool:
     """Checa se algum erro relacionado ao funcionário ocorreu.
 
     :param driver: Webdriver ativo na hora da checagem.
@@ -118,3 +118,5 @@ def ocorreu_erro_funcionario(driver: Chrome) -> bool:
     if botao_funcionario(driver, cpf):
         return False
     return True
+
+
